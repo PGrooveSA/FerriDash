@@ -1,0 +1,131 @@
+"use server";
+import { revalidatePath } from "next/cache";
+import { audit, get, run, tx } from "@/lib/db";
+import { ADMIN, STAFF, fail, guarded, num, opt, str, type ActionResult } from "@/lib/action-utils";
+import { today, addDays } from "@/lib/today";
+
+// ---------------- Notices ----------------
+export async function saveNotice(_: ActionResult, f: FormData) {
+  return guarded(STAFF, (ctx) => {
+    const id = num(f, "id");
+    const vals = [str(f, "title"), str(f, "body"), str(f, "audience") || "all", opt(f, "tags")];
+    if (!vals[0] || !vals[1]) fail("Title and message are required.");
+    if (id) {
+      const n = get<{ author_id: number }>("SELECT author_id FROM notices WHERE id = ? AND school_id = ?", id, ctx.schoolId) ?? fail("Notice not found.");
+      if (!ctx.isAdmin && n.author_id !== ctx.user.id) fail("You can only edit your own notices.");
+      run("UPDATE notices SET title=?, body=?, audience=?, tags=? WHERE id = ?", ...vals, id);
+    } else run("INSERT INTO notices (title, body, audience, tags, school_id, author_id) VALUES (?,?,?,?,?,?)", ...vals, ctx.schoolId, ctx.user.id);
+    revalidatePath("/notices");
+  });
+}
+
+export async function deleteNotice(id: number) {
+  return guarded(STAFF, (ctx) => {
+    const n = get<{ author_id: number }>("SELECT author_id FROM notices WHERE id = ? AND school_id = ?", id, ctx.schoolId) ?? fail("Notice not found.");
+    if (!ctx.isAdmin && n.author_id !== ctx.user.id) fail("You can only delete your own notices.");
+    run("DELETE FROM notices WHERE id = ?", id);
+    revalidatePath("/notices");
+  });
+}
+
+// ---------------- Events ----------------
+export async function saveEvent(_: ActionResult, f: FormData) {
+  return guarded(STAFF, (ctx) => {
+    const id = num(f, "id");
+    const vals = [str(f, "title"), str(f, "date"), opt(f, "start_time"), opt(f, "end_time"), str(f, "category") || "school", opt(f, "audience"), opt(f, "description")];
+    if (!vals[0] || !vals[1]) fail("Title and date are required.");
+    if (id) run("UPDATE events SET title=?, date=?, start_time=?, end_time=?, category=?, audience=?, description=? WHERE id = ? AND school_id = ?", ...vals, id, ctx.schoolId);
+    else run("INSERT INTO events (title, date, start_time, end_time, category, audience, description, school_id) VALUES (?,?,?,?,?,?,?,?)", ...vals, ctx.schoolId);
+    revalidatePath("/calendar");
+  });
+}
+
+export async function deleteEvent(id: number) {
+  return guarded(STAFF, (ctx) => {
+    run("DELETE FROM events WHERE id = ? AND school_id = ?", id, ctx.schoolId);
+    revalidatePath("/calendar");
+  });
+}
+
+// ---------------- Library ----------------
+export async function saveBook(_: ActionResult, f: FormData) {
+  return guarded(ADMIN, (ctx) => {
+    const id = num(f, "id");
+    const vals = [str(f, "code"), str(f, "title"), opt(f, "author"), opt(f, "subject"), opt(f, "grades"), num(f, "publish_year"), num(f, "copies") ?? 1];
+    if (id) run("UPDATE books SET code=?, title=?, author=?, subject=?, grades=?, publish_year=?, copies=? WHERE id = ? AND school_id = ?", ...vals, id, ctx.schoolId);
+    else run("INSERT INTO books (code, title, author, subject, grades, publish_year, copies, school_id) VALUES (?,?,?,?,?,?,?,?)", ...vals, ctx.schoolId);
+    revalidatePath("/library");
+  });
+}
+
+export async function deleteBook(id: number) {
+  return guarded(ADMIN, (ctx) => {
+    run("DELETE FROM books WHERE id = ? AND school_id = ?", id, ctx.schoolId);
+    revalidatePath("/library");
+  });
+}
+
+export async function issueBook(_: ActionResult, f: FormData) {
+  return guarded(STAFF, (ctx) => {
+    const bookId = num(f, "book_id");
+    const book = get<{ copies: number; out: number }>("SELECT copies, (SELECT COUNT(*) FROM book_loans WHERE book_id = b.id AND returned_on IS NULL) out FROM books b WHERE id = ? AND school_id = ?", bookId, ctx.schoolId) ?? fail("Book not found.");
+    if (book.out >= book.copies) fail("All copies are checked out.");
+    const learner = get<{ id: number }>("SELECT id FROM learners WHERE school_id = ? AND admission_number = ? AND status = 'Active'", ctx.schoolId, str(f, "admission_number")) ?? fail("No active learner with that admission number.");
+    const days = num(f, "days") ?? 14;
+    run("INSERT INTO book_loans (school_id, book_id, learner_id, borrowed_on, due_on) VALUES (?,?,?,?,?)", ctx.schoolId, bookId, learner.id, today(), addDays(today(), days));
+    audit(ctx.schoolId, ctx.user.id, "issue", "book", bookId);
+    revalidatePath("/library");
+  });
+}
+
+export async function returnBook(loanId: number) {
+  return guarded(STAFF, (ctx) => {
+    run("UPDATE book_loans SET returned_on = ? WHERE id = ? AND school_id = ?", today(), loanId, ctx.schoolId);
+    revalidatePath("/library");
+  });
+}
+
+// ---------------- Messages ----------------
+function member(convId: number, userId: number) {
+  return !!get("SELECT 1 FROM conversation_members WHERE conversation_id = ? AND user_id = ?", convId, userId);
+}
+
+export async function sendMessage(convId: number, body: string): Promise<ActionResult> {
+  return guarded(undefined, (ctx) => {
+    const text = body.trim();
+    if (!text) fail("Type a message first.");
+    if (text.length > 4000) fail("Message is too long.");
+    if (!member(convId, ctx.user.id)) fail("You are not part of this conversation.");
+    run("INSERT INTO messages (conversation_id, sender_id, body) VALUES (?,?,?)", convId, ctx.user.id, text);
+    run("UPDATE conversation_members SET last_read_at = datetime('now') WHERE conversation_id = ? AND user_id = ?", convId, ctx.user.id);
+  });
+}
+
+/** Opens (or reuses) a one-to-one chat. Learners may only message staff; parents may message staff. */
+export async function startChat(_: ActionResult, f: FormData): Promise<ActionResult> {
+  const res = await guarded(undefined, (ctx) => {
+    const otherId = num(f, "user_id");
+    const other = get<{ role: string }>("SELECT role FROM users WHERE id = ? AND school_id = ? AND active = 1", otherId, ctx.schoolId) ?? fail("Person not found.");
+    const family = ["learner", "parent"];
+    if (family.includes(ctx.user.role) && family.includes(other.role)) fail("Learners and parents can message school staff only.");
+    const existing = get<{ id: number }>(`SELECT c.id FROM conversations c WHERE c.is_group = 0 AND c.school_id = ?
+      AND EXISTS (SELECT 1 FROM conversation_members WHERE conversation_id = c.id AND user_id = ?)
+      AND EXISTS (SELECT 1 FROM conversation_members WHERE conversation_id = c.id AND user_id = ?)`, ctx.schoolId, ctx.user.id, otherId);
+    const id = existing?.id ?? tx(() => {
+      const c = run("INSERT INTO conversations (school_id, is_group) VALUES (?, 0)", ctx.schoolId).id;
+      run("INSERT INTO conversation_members (conversation_id, user_id) VALUES (?,?), (?,?)", c, ctx.user.id, c, otherId);
+      return c;
+    });
+    const first = str(f, "body");
+    if (first) run("INSERT INTO messages (conversation_id, sender_id, body) VALUES (?,?,?)", id, ctx.user.id, first);
+    return { ok: true, message: String(id) };
+  });
+  revalidatePath("/messages");
+  return res;
+}
+
+export async function markRead(convId: number) {
+  return guarded(undefined, (ctx) => {
+    run("UPDATE conversation_members SET last_read_at = datetime('now') WHERE conversation_id = ? AND user_id = ?", convId, ctx.user.id);
+  });
+}
