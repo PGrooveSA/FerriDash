@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Ctx } from "@/lib/auth";
 import { ownLearnerIds } from "@/lib/auth";
-import { gradeLabel, zar, fullName } from "@/lib/format";
+import { gradeLabel, zar, fullName, avatarUrl } from "@/lib/format";
 import { Card, Empty, LevelBadge } from "@/components/ui/kit";
 import { MiniCalendar, Agenda, NoticeList, RecentMessages } from "@/components/widgets";
 import Avatar from "@/components/ui/Avatar";
@@ -20,7 +20,7 @@ export default function ParentDashboard({ ctx }: { ctx: Ctx }) {
         {kids.map(({ learner: l, latest, att, balance }) => (
           <Card key={l.id}>
             <div className="flex flex-wrap items-center gap-4">
-              <Avatar first={l.first_name} last={l.last_name} size={60} />
+              <Avatar first={l.first_name} last={l.last_name} size={60} photo={avatarUrl(l.user_id, l.av)} />
               <div className="flex-1 min-w-[12rem]">
                 <p className="text-lg font-semibold">{l.first_name} {l.last_name}</p>
                 <p className="text-sm muted">{gradeLabel(l.grade)} · Class {l.className} · {l.admission_number}</p>

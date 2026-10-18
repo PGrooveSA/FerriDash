@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireCtx } from "@/lib/auth";
 import { all, get } from "@/lib/db";
-import { gradeLabel, fmtDate } from "@/lib/format";
+import { gradeLabel, fmtDate, avatarUrl } from "@/lib/format";
 import { Card, PageHeader, Pager, TableWrap, Empty, StatusChip, hrefWith } from "@/components/ui/kit";
 import { FormDialog, DeleteButton, Filters, type Field } from "@/components/ui/forms";
 import Avatar from "@/components/ui/Avatar";
@@ -11,7 +11,7 @@ export const metadata = { title: "Learners" };
 const PER_PAGE = 12;
 const LANGS = ["English", "Afrikaans", "isiZulu", "isiXhosa", "Sepedi", "Setswana", "Sesotho", "Xitsonga", "siSwati", "Tshivenda", "isiNdebele", "SA Sign Language"];
 
-type L = { id: number; first_name: string; last_name: string; admission_number: string; id_number: string | null; gender: string | null; date_of_birth: string | null; class_id: number | null; className: string | null; grade: number | null; home_language: string | null; address: string | null; status: string; parents: string | null; has_login: number };
+type L = { id: number; first_name: string; last_name: string; admission_number: string; id_number: string | null; gender: string | null; date_of_birth: string | null; class_id: number | null; className: string | null; grade: number | null; home_language: string | null; address: string | null; status: string; parents: string | null; has_login: number; user_id: number | null; av: string | null };
 
 export default async function LearnersPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const ctx = await requireCtx(["school_admin", "teacher"]);
@@ -23,7 +23,7 @@ export default async function LearnersPage({ searchParams }: { searchParams: Pro
   const args = [ctx.schoolId, classId, q, ctx.user.role === "teacher" ? ctx.teacherId : null] as const;
   const total = get<{ n: number }>(`SELECT COUNT(*) n FROM learners l WHERE ${where}`, ...args)!.n;
   const rows = all<L>(`
-    SELECT l.*, c.name className, c.grade, l.user_id IS NOT NULL has_login,
+    SELECT l.*, c.name className, c.grade, l.user_id IS NOT NULL has_login, (SELECT avatar_updated_at FROM users WHERE id = l.user_id) av,
       (SELECT GROUP_CONCAT(COALESCE(u.title || ' ', '') || u.first_name || ' ' || u.last_name || ' (' || COALESCE(u.phone, u.email) || ')', '; ') FROM guardian_links g JOIN users u ON u.id = g.parent_user_id WHERE g.learner_id = l.id) parents
     FROM learners l LEFT JOIN classes c ON c.id = l.class_id WHERE ${where}
     ORDER BY c.grade, l.last_name, l.first_name LIMIT ?5 OFFSET ?6`, ...args, PER_PAGE, (page - 1) * PER_PAGE);
@@ -69,7 +69,7 @@ export default async function LearnersPage({ searchParams }: { searchParams: Pro
                   <tr key={l.id}>
                     <td>
                       <div className="flex items-center gap-3">
-                        <Avatar first={l.first_name} last={l.last_name} size={38} />
+                        <Avatar first={l.first_name} last={l.last_name} size={38} photo={avatarUrl(l.user_id, l.av)} />
                         <div><p className="font-semibold">{l.first_name} {l.last_name}</p><p className="text-xs muted font-mono">{l.admission_number}</p></div>
                       </div>
                     </td>

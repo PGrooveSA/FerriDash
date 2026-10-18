@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT NOT NULL,
   active INTEGER NOT NULL DEFAULT 1,
   last_login TEXT,
+  avatar_updated_at TEXT, -- set when the user has a profile photo in data/avatars
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

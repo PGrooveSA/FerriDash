@@ -1,6 +1,6 @@
 import { requireCtx } from "@/lib/auth";
 import { all, get } from "@/lib/db";
-import { fullName } from "@/lib/format";
+import { fullName, avatarUrl } from "@/lib/format";
 import { Card, PageHeader, Pager, TableWrap, Empty, hrefWith } from "@/components/ui/kit";
 import { FormDialog, DeleteButton, Filters, type Field } from "@/components/ui/forms";
 import Avatar from "@/components/ui/Avatar";
@@ -9,7 +9,7 @@ import { saveTeacher, deleteTeacher, resetPassword } from "@/app/actions/people"
 export const metadata = { title: "Teachers" };
 const PER_PAGE = 10;
 
-type T = { id: number; user_id: number; title: string | null; first_name: string; last_name: string; email: string; phone: string | null; staff_number: string | null; persal_number: string | null; sace_number: string | null; id_number: string | null; gender: string | null; post_level: string | null; address: string | null; subjects: string | null; classes: string | null };
+type T = { id: number; user_id: number; avatar_updated_at: string | null; title: string | null; first_name: string; last_name: string; email: string; phone: string | null; staff_number: string | null; persal_number: string | null; sace_number: string | null; id_number: string | null; gender: string | null; post_level: string | null; address: string | null; subjects: string | null; classes: string | null };
 
 export default async function TeachersPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const ctx = await requireCtx(["school_admin"]);
@@ -18,7 +18,7 @@ export default async function TeachersPage({ searchParams }: { searchParams: Pro
   const where = "t.school_id = ?1 AND (?2 = '' OR u.first_name || ' ' || u.last_name LIKE '%' || ?2 || '%' OR t.staff_number LIKE '%' || ?2 || '%' OR u.email LIKE '%' || ?2 || '%')";
   const total = get<{ n: number }>(`SELECT COUNT(*) n FROM teachers t JOIN users u ON u.id = t.user_id WHERE ${where}`, ctx.schoolId, q)!.n;
   const rows = all<T>(`
-    SELECT t.*, u.title, u.first_name, u.last_name, u.email, u.phone,
+    SELECT t.*, u.title, u.first_name, u.last_name, u.email, u.phone, u.avatar_updated_at,
       (SELECT GROUP_CONCAT(DISTINCT s.name) FROM class_subjects cs JOIN subjects s ON s.id = cs.subject_id WHERE cs.teacher_id = t.id) subjects,
       (SELECT GROUP_CONCAT(DISTINCT c.name) FROM class_subjects cs JOIN classes c ON c.id = cs.class_id WHERE cs.teacher_id = t.id) classes
     FROM teachers t JOIN users u ON u.id = t.user_id WHERE ${where}
@@ -56,7 +56,7 @@ export default async function TeachersPage({ searchParams }: { searchParams: Pro
                   <tr key={t.id}>
                     <td>
                       <div className="flex items-center gap-3">
-                        <Avatar first={t.first_name} last={t.last_name} size={40} />
+                        <Avatar first={t.first_name} last={t.last_name} size={40} photo={avatarUrl(t.user_id, t.avatar_updated_at)} />
                         <div><p className="font-semibold">{fullName(t, true)}</p><p className="text-xs muted">{t.email}</p></div>
                       </div>
                     </td>

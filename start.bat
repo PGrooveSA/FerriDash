@@ -11,6 +11,8 @@ rem    start.bat reset     reload the demo data, then run
 
 set PORT=3100
 set URL=http://localhost:%PORT%
+rem Node marks its built-in SQLite as experimental; hide that notice.
+set NODE_OPTIONS=--no-warnings=ExperimentalWarning
 
 echo.
 echo   Sekolo - School Management for South Africa

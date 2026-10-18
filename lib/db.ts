@@ -11,7 +11,14 @@ function open(): DatabaseSync {
   const db = new DatabaseSync(path);
   db.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;");
   db.exec(readFileSync(join(process.cwd(), "db", "schema.sql"), "utf8"));
+  migrate(db);
   return db;
+}
+
+/** Adds columns introduced after a database was first created. */
+function migrate(db: DatabaseSync) {
+  const has = (table: string, col: string) => (db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]).some((c) => c.name === col);
+  if (!has("users", "avatar_updated_at")) db.exec("ALTER TABLE users ADD COLUMN avatar_updated_at TEXT");
 }
 
 export function db(): DatabaseSync {

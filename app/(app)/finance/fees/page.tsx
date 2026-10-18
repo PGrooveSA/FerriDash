@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireCtx } from "@/lib/auth";
 import { all, get } from "@/lib/db";
-import { zar, gradeLabel } from "@/lib/format";
+import { zar, gradeLabel, avatarUrl } from "@/lib/format";
 import { MONTHS, today } from "@/lib/today";
 import { Card, PageHeader, Pager, Empty, StatusChip, StatCard, hrefWith } from "@/components/ui/kit";
 import { FormDialog, Filters } from "@/components/ui/forms";
@@ -14,7 +14,7 @@ import GenerateInvoicesButton from "./GenerateInvoicesButton";
 export const metadata = { title: "Fees collection" };
 const PER_PAGE = 10;
 
-type Row = { invoice_id: number; learner_id: number; first_name: string; last_name: string; admission_number: string; className: string; tuition: number; activities: number; other: number; total: number; paid: number; exempt: number; due_date: string };
+type Row = { invoice_id: number; learner_id: number; first_name: string; last_name: string; admission_number: string; className: string; tuition: number; activities: number; other: number; total: number; paid: number; exempt: number; due_date: string; user_id: number | null; av: string | null };
 
 export default async function FeesPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const ctx = await requireCtx(["school_admin"]);
@@ -27,7 +27,7 @@ export default async function FeesPage({ searchParams }: { searchParams: Promise
   const t = today();
   const statusSql = { paid: "AND total - paid <= 0.5", pending: "AND total - paid > 0.5 AND paid > 0 AND due_date >= ?5", overdue: "AND total - paid > 0.5 AND due_date < ?5", unpaid: "AND paid = 0" }[status] ?? "AND ?5 = ?5";
   const base = `
-    SELECT i.id invoice_id, l.id learner_id, l.first_name, l.last_name, l.admission_number, c.name className, i.tuition, i.activities, i.other,
+    SELECT i.id invoice_id, l.id learner_id, l.user_id, (SELECT avatar_updated_at FROM users WHERE id = l.user_id) av, l.first_name, l.last_name, l.admission_number, c.name className, i.tuition, i.activities, i.other,
       i.tuition + i.activities + i.other total, (SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.invoice_id = i.id) paid,
       EXISTS (SELECT 1 FROM payments p WHERE p.invoice_id = i.id AND p.method = 'Exemption') exempt, i.due_date
     FROM invoices i JOIN learners l ON l.id = i.learner_id LEFT JOIN classes c ON c.id = l.class_id
@@ -71,7 +71,7 @@ export default async function FeesPage({ searchParams }: { searchParams: Promise
               <thead><tr><th>Learner</th><th>Class</th><th>Tuition</th><th>Activities</th><th>Other</th><th>Total</th><th>Paid</th><th>Balance</th><th>Status</th><th className="text-right">Action</th></tr></thead>
               <tbody>{rows.map((r) => (
                 <tr key={r.invoice_id}>
-                  <td><div className="flex items-center gap-3"><Avatar first={r.first_name} last={r.last_name} size={36} /><div><p className="font-semibold">{r.first_name} {r.last_name}</p><p className="text-xs muted font-mono">{r.admission_number}</p></div></div></td>
+                  <td><div className="flex items-center gap-3"><Avatar first={r.first_name} last={r.last_name} size={36} photo={avatarUrl(r.user_id, r.av)} /><div><p className="font-semibold">{r.first_name} {r.last_name}</p><p className="text-xs muted font-mono">{r.admission_number}</p></div></div></td>
                   <td>{r.className}</td><td>{zar(r.tuition, true)}</td><td>{zar(r.activities, true)}</td><td>{zar(r.other, true)}</td>
                   <td className="font-medium">{zar(r.total, true)}</td><td>{zar(r.paid, true)}</td>
                   <td className={`font-semibold ${r.total - r.paid > 0.5 ? "text-rose-600" : ""}`}>{zar(Math.max(0, r.total - r.paid), true)}</td>

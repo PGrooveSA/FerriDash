@@ -1,6 +1,6 @@
 import { requireCtx } from "@/lib/auth";
 import { all, get } from "@/lib/db";
-import { fullName } from "@/lib/format";
+import { fullName, avatarUrl } from "@/lib/format";
 import { Card, PageHeader, Pager, TableWrap, Empty, hrefWith } from "@/components/ui/kit";
 import { FormDialog, DeleteButton, Filters, type Field } from "@/components/ui/forms";
 import Avatar from "@/components/ui/Avatar";
@@ -9,7 +9,7 @@ import { saveParent, linkChild, unlinkChild, deleteUser, resetPassword } from "@
 export const metadata = { title: "Parents" };
 const PER_PAGE = 12;
 
-type P = { id: number; title: string | null; first_name: string; last_name: string; email: string; phone: string | null; last_login: string | null };
+type P = { id: number; title: string | null; first_name: string; last_name: string; email: string; phone: string | null; last_login: string | null; avatar_updated_at: string | null };
 
 export default async function ParentsPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const ctx = await requireCtx(["school_admin"]);
@@ -17,7 +17,7 @@ export default async function ParentsPage({ searchParams }: { searchParams: Prom
   const q = sp.q?.trim() ?? "", page = Math.max(1, Number(sp.page) || 1);
   const where = "u.school_id = ?1 AND u.role = 'parent' AND (?2 = '' OR u.first_name || ' ' || u.last_name LIKE '%' || ?2 || '%' OR u.email LIKE '%' || ?2 || '%' OR u.phone LIKE '%' || ?2 || '%')";
   const total = get<{ n: number }>(`SELECT COUNT(*) n FROM users u WHERE ${where}`, ctx.schoolId, q)!.n;
-  const rows = all<P>(`SELECT id, title, first_name, last_name, email, phone, last_login FROM users u WHERE ${where} ORDER BY last_name, first_name LIMIT ?3 OFFSET ?4`, ctx.schoolId, q, PER_PAGE, (page - 1) * PER_PAGE);
+  const rows = all<P>(`SELECT id, title, first_name, last_name, email, phone, last_login, avatar_updated_at FROM users u WHERE ${where} ORDER BY last_name, first_name LIMIT ?3 OFFSET ?4`, ctx.schoolId, q, PER_PAGE, (page - 1) * PER_PAGE);
   const kids = rows.length ? all<{ parent_user_id: number; learner_id: number; relationship: string; first_name: string; last_name: string; className: string | null }>(`
     SELECT g.parent_user_id, g.learner_id, g.relationship, l.first_name, l.last_name, c.name className
     FROM guardian_links g JOIN learners l ON l.id = g.learner_id LEFT JOIN classes c ON c.id = l.class_id
@@ -46,7 +46,7 @@ export default async function ParentsPage({ searchParams }: { searchParams: Prom
               <tbody>
                 {rows.map((p) => (
                   <tr key={p.id}>
-                    <td><div className="flex items-center gap-3"><Avatar first={p.first_name} last={p.last_name} size={38} /><div><p className="font-semibold">{fullName(p, true)}</p><p className="text-xs muted">{p.email}</p></div></div></td>
+                    <td><div className="flex items-center gap-3"><Avatar first={p.first_name} last={p.last_name} size={38} photo={avatarUrl(p.id, p.avatar_updated_at)} /><div><p className="font-semibold">{fullName(p, true)}</p><p className="text-xs muted">{p.email}</p></div></div></td>
                     <td className="whitespace-nowrap">{p.phone ?? "-"}</td>
                     <td>
                       <div className="flex flex-wrap gap-1.5">

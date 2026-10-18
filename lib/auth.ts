@@ -7,7 +7,7 @@ export type Role = "super_admin" | "school_admin" | "teacher" | "learner" | "par
 
 export type User = {
   id: number; school_id: number | null; role: Role; title: string | null;
-  first_name: string; last_name: string; email: string; phone: string | null;
+  first_name: string; last_name: string; email: string; phone: string | null; avatar_updated_at: string | null;
 };
 
 export type School = {
@@ -30,7 +30,7 @@ export async function getCtx(): Promise<Ctx | null> {
   const store = await cookies();
   const session = await verifySession(store.get(SESSION_COOKIE)?.value);
   if (!session) return null;
-  const user = get<User>("SELECT id, school_id, role, title, first_name, last_name, email, phone FROM users WHERE id = ? AND active = 1", session.uid);
+  const user = get<User>("SELECT id, school_id, role, title, first_name, last_name, email, phone, avatar_updated_at FROM users WHERE id = ? AND active = 1", session.uid);
   if (!user) return null;
 
   let schoolId = user.school_id;

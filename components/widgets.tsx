@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { all } from "@/lib/db";
-import { fmtDate, fullName } from "@/lib/format";
+import { fmtDate, fullName, avatarUrl } from "@/lib/format";
 import { today, MONTHS } from "@/lib/today";
 import Avatar from "./ui/Avatar";
 
@@ -56,8 +56,9 @@ export function Agenda({ schoolId, limit = 4 }: { schoolId: number; limit?: numb
 
 export function RecentMessages({ userId, limit = 4 }: { userId: number; limit?: number }) {
   // For direct chats, show the other person rather than the last sender.
-  const rows = all<{ conversation_id: number; body: string; created_at: string; first_name: string; last_name: string; title: string | null; conv_title: string | null; is_group: number }>(`
+  const rows = all<{ conversation_id: number; body: string; created_at: string; first_name: string; last_name: string; title: string | null; conv_title: string | null; is_group: number; uid: number; av: string | null }>(`
     SELECT m.conversation_id, m.body, m.created_at, c.title AS conv_title, c.is_group,
+      COALESCE(o.id, u.id) uid, COALESCE(o.avatar_updated_at, u.avatar_updated_at) av,
       COALESCE(o.first_name, u.first_name) first_name, COALESCE(o.last_name, u.last_name) last_name, COALESCE(o.title, u.title) title
     FROM messages m JOIN users u ON u.id = m.sender_id JOIN conversations c ON c.id = m.conversation_id
     LEFT JOIN users o ON c.is_group = 0 AND o.id = (SELECT user_id FROM conversation_members cm WHERE cm.conversation_id = c.id AND cm.user_id <> ?1 LIMIT 1)
@@ -69,7 +70,7 @@ export function RecentMessages({ userId, limit = 4 }: { userId: number; limit?: 
       {rows.map((r) => (
         <li key={r.conversation_id}>
           <Link href={`/messages?c=${r.conversation_id}`} className="flex gap-3 group">
-            <Avatar first={r.first_name} last={r.last_name} size={40} />
+            <Avatar first={r.first_name} last={r.last_name} size={40} photo={avatarUrl(r.uid, r.av)} />
             <div className="min-w-0 flex-1">
               <div className="flex justify-between gap-2">
                 <p className="font-semibold text-sm truncate group-hover:underline">{r.is_group ? r.conv_title : fullName(r, true)}</p>

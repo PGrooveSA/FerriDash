@@ -2,7 +2,7 @@ import Link from "next/link";
 import { CalendarCheck, Award, ClipboardList, Library } from "lucide-react";
 import type { Ctx } from "@/lib/auth";
 import { all, get } from "@/lib/db";
-import { fmtDate, gradeLabel } from "@/lib/format";
+import { fmtDate, gradeLabel, avatarUrl } from "@/lib/format";
 import { today } from "@/lib/today";
 import { classResults, attendanceSummary, termDates } from "@/lib/results";
 import { capsLevel } from "@/lib/caps";
@@ -16,8 +16,8 @@ export type LearnerSnapshot = ReturnType<typeof learnerSnapshot>;
 /** Everything a learner or parent needs to see about one learner. Published results only. */
 export function learnerSnapshot(ctx: Ctx, learnerId: number) {
   const year = ctx.school.current_year;
-  const l = get<{ id: number; first_name: string; last_name: string; class_id: number; className: string; grade: number; admission_number: string }>(`
-    SELECT l.id, l.first_name, l.last_name, l.class_id, c.name className, c.grade, l.admission_number
+  const l = get<{ id: number; first_name: string; last_name: string; class_id: number; className: string; grade: number; admission_number: string; user_id: number | null; av: string | null }>(`
+    SELECT l.id, l.first_name, l.last_name, l.class_id, c.name className, c.grade, l.admission_number, l.user_id, (SELECT avatar_updated_at FROM users WHERE id = l.user_id) av
     FROM learners l JOIN classes c ON c.id = l.class_id WHERE l.id = ? AND l.school_id = ?`, learnerId, ctx.schoolId);
   if (!l) return null;
   const terms = [1, 2, 3, 4].map((t) => {
@@ -52,7 +52,7 @@ export default function LearnerDashboard({ ctx }: { ctx: Ctx }) {
     <div className="grid grid-cols-1 xl:grid-cols-[1fr_22rem] gap-6">
       <div className="space-y-6 min-w-0">
         <div className="glass p-6 sm:p-8 flex flex-wrap items-center gap-6 bg-gradient-to-r from-brand-200/80 to-brand-100/40 dark:from-brand-500/20 dark:to-transparent">
-          <Avatar first={l.first_name} last={l.last_name} size={88} />
+          <Avatar first={l.first_name} last={l.last_name} size={88} photo={avatarUrl(l.user_id, l.av)} />
           <div className="flex-1 min-w-[14rem]">
             <h1 className="text-2xl font-bold tracking-tight">Welcome, {l.first_name}</h1>
             <p className="text-sm muted mt-1">{gradeLabel(l.grade)} · Class {l.className} · Admission no. {l.admission_number}</p>

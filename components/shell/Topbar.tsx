@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Bell, MessageSquare, Search } from "lucide-react";
 import { all } from "@/lib/db";
 import type { Ctx } from "@/lib/auth";
-import { ROLE_LABEL, fullName } from "@/lib/format";
+import { ROLE_LABEL, fullName, avatarUrl } from "@/lib/format";
 import { switchSchool } from "@/app/actions/auth";
 import ThemeToggle from "./ThemeToggle";
 import Avatar from "../ui/Avatar";
@@ -35,7 +35,7 @@ export default function Topbar({ ctx }: { ctx: Ctx }) {
             <p className="text-sm font-semibold leading-tight">{fullName(ctx.user)}</p>
             <p className="text-xs muted">{ROLE_LABEL[ctx.user.role]}</p>
           </div>
-          <Avatar first={ctx.user.first_name} last={ctx.user.last_name} size={42} online />
+          <Avatar first={ctx.user.first_name} last={ctx.user.last_name} size={42} online photo={avatarUrl(ctx.user.id, ctx.user.avatar_updated_at)} />
         </Link>
       </div>
     </header>

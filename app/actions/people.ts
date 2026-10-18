@@ -1,6 +1,8 @@
 "use server";
 import bcrypt from "bcryptjs";
 import { randomBytes } from "node:crypto";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { AVATAR_DIR, MAX_AVATAR_BYTES, avatarFile, imageType } from "@/lib/avatars";
 import { revalidatePath } from "next/cache";
 import { audit, get, run, tx } from "@/lib/db";
 import { parseSaId } from "@/lib/format";
@@ -45,6 +47,7 @@ export async function deleteTeacher(id: number) {
   return guarded(ADMIN, (ctx) => {
     const t = get<{ user_id: number }>("SELECT user_id FROM teachers WHERE id = ? AND school_id = ?", id, ctx.schoolId) ?? fail("Teacher not found.");
     tx(() => { run("DELETE FROM teachers WHERE id = ?", id); run("DELETE FROM users WHERE id = ?", t.user_id); });
+    removeAvatarFile(t.user_id);
     audit(ctx.schoolId, ctx.user.id, "delete", "teacher", id);
     revalidatePath("/teachers");
   });
@@ -100,6 +103,7 @@ export async function deleteLearner(id: number) {
   return guarded(ADMIN, (ctx) => {
     const l = get<{ user_id: number | null }>("SELECT user_id FROM learners WHERE id = ? AND school_id = ?", id, ctx.schoolId) ?? fail("Learner not found.");
     tx(() => { run("DELETE FROM learners WHERE id = ?", id); if (l.user_id) run("DELETE FROM users WHERE id = ?", l.user_id); });
+    removeAvatarFile(l.user_id);
     audit(ctx.schoolId, ctx.user.id, "delete", "learner", id);
     revalidatePath("/learners");
   });
@@ -146,6 +150,7 @@ export async function deleteUser(id: number) {
     const u = get<{ role: string }>("SELECT role FROM users WHERE id = ? AND school_id = ?", id, ctx.schoolId) ?? fail("User not found.");
     if (u.role === "school_admin" && id === ctx.user.id) fail("You cannot delete your own account.");
     run("DELETE FROM users WHERE id = ?", id);
+    removeAvatarFile(id);
     audit(ctx.schoolId, ctx.user.id, "delete", "user", id);
     revalidatePath("/parents");
   });
@@ -160,6 +165,36 @@ export async function resetPassword(_: ActionResult, f: FormData) {
     if (!scope) fail("User not found.");
     run("UPDATE users SET password_hash = ? WHERE id = ?", bcrypt.hashSync(pw, 10), id);
     audit(ctx.schoolId, ctx.user.id, "reset_password", "user", id);
+  });
+}
+
+// ---------------- Profile photo ----------------
+function removeAvatarFile(userId: number | null | undefined) {
+  if (userId) rmSync(avatarFile(userId), { force: true });
+}
+
+/** Any signed-in user may set their own profile photo (resized in the browser first). */
+export async function uploadAvatar(f: FormData): Promise<ActionResult> {
+  return guarded(undefined, async (ctx) => {
+    const file = f.get("photo");
+    if (!(file instanceof File) || file.size === 0) fail("Choose a photo to upload.");
+    if (file.size > MAX_AVATAR_BYTES) fail("That photo is too large. Please use an image under 2 MB.");
+    const buf = new Uint8Array(await file.arrayBuffer());
+    if (!imageType(buf)) fail("Only JPG, PNG or WebP photos are allowed.");
+    mkdirSync(AVATAR_DIR, { recursive: true });
+    writeFileSync(avatarFile(ctx.user.id), buf);
+    run("UPDATE users SET avatar_updated_at = datetime('now') WHERE id = ?", ctx.user.id);
+    audit(ctx.schoolId, ctx.user.id, "upload_photo", "user", ctx.user.id);
+    revalidatePath("/", "layout");
+  });
+}
+
+export async function removeAvatar(): Promise<ActionResult> {
+  return guarded(undefined, (ctx) => {
+    removeAvatarFile(ctx.user.id);
+    run("UPDATE users SET avatar_updated_at = NULL WHERE id = ?", ctx.user.id);
+    audit(ctx.schoolId, ctx.user.id, "remove_photo", "user", ctx.user.id);
+    revalidatePath("/", "layout");
   });
 }
 
