@@ -50,7 +50,7 @@ export default async function AcademicsPage({ searchParams }: { searchParams: Pr
         {tab === "subjects" && <FormDialog title="Add subject" triggerLabel="Add subject" fields={subjectFields()} action={saveSubject} />}
       </PageHeader>
       <div className="glass-strong inline-flex rounded-full p-1 mb-5">
-        {tabs.map(([k, label]) => <Link key={k} href={`/academics?tab=${k}`} className={`px-4 py-2 rounded-full text-sm font-medium ${tab === k ? "bg-gradient-to-r from-brand-200 to-lilac-200 dark:from-brand-500/30 dark:to-lilac-500/30" : "muted"}`}>{label}</Link>)}
+        {tabs.map(([k, label]) => <Link key={k} href={`/academics?tab=${k}`} className={`px-4 py-2 rounded-full text-sm font-medium ${tab === k ? "bg-gradient-to-r from-brand-200 to-gold-200 dark:from-brand-500/30 dark:to-gold-500/30" : "muted"}`}>{label}</Link>)}
       </div>
 
       {tab === "classes" && (
@@ -60,7 +60,7 @@ export default async function AcademicsPage({ searchParams }: { searchParams: Pr
               <thead><tr><th>Class</th><th>Grade</th><th>Phase</th><th>Class teacher</th><th>Room</th><th>Learners</th><th>Subjects</th><th className="text-right">Action</th></tr></thead>
               <tbody>{classes.map((c) => (
                 <tr key={c.id}>
-                  <td className="font-semibold">{c.name}</td><td>{gradeLabel(c.grade)}</td><td><span className="chip chip-lilac">{phaseOf(c.grade)}</span></td>
+                  <td className="font-semibold">{c.name}</td><td>{gradeLabel(c.grade)}</td><td><span className="chip chip-gold">{phaseOf(c.grade)}</span></td>
                   <td>{c.teacher ?? "-"}</td><td>{c.room ?? "-"}</td>
                   <td><Link className="hover:underline" href={`/learners?class=${c.id}`}>{c.learners}</Link></td>
                   <td><Link className="hover:underline" href={`/academics?tab=allocation&class=${c.id}`}>{c.subjects}</Link></td>
@@ -79,7 +79,7 @@ export default async function AcademicsPage({ searchParams }: { searchParams: Pr
             <tbody>{subjects.map((s) => (
               <tr key={s.id}>
                 <td className="font-semibold">{s.name}</td><td className="font-mono text-xs">{s.code}</td>
-                <td><span className="chip chip-sky">{CATEGORIES.find((c) => c.value === s.category)?.label}</span></td><td>{s.used}</td>
+                <td><span className="chip chip-info">{CATEGORIES.find((c) => c.value === s.category)?.label}</span></td><td>{s.used}</td>
                 <td><div className="flex justify-end gap-1.5"><FormDialog trigger="edit" title={`Edit ${s.name}`} fields={subjectFields(s)} hidden={{ id: s.id }} action={saveSubject} /><DeleteButton action={deleteSubject.bind(null, s.id)} label={s.name} /></div></td>
               </tr>))}
             </tbody>

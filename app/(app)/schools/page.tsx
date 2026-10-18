@@ -40,7 +40,7 @@ export default async function SchoolsPage() {
         <FormDialog title="Register a school" triggerLabel="Add school" fields={fields()} action={saveSchool} size="lg" />
       </PageHeader>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <StatCard label="Schools" value={schools.length} icon={Building2} tone="lilac" />
+        <StatCard label="Schools" value={schools.length} icon={Building2} tone="gold" />
         <StatCard label="Active learners" value={schools.reduce((a, s) => a + s.learners, 0)} icon={Users} tone="sky" />
         <StatCard label="Provinces" value={`${provinces} / 9`} icon={MapPin} tone="butter" />
       </div>

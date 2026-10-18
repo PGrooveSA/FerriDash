@@ -75,7 +75,7 @@ function FamilyAttendance({ ctx, sp }: { ctx: Ctx; sp: Record<string, string> })
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard label="Attendance rate" value={sum.rate != null ? `${sum.rate}%` : "-"} icon={CalendarCheck} tone="sky" />
         <StatCard label="Days present" value={sum.present ?? 0} icon={CalendarCheck} tone="green" />
-        <StatCard label="Days absent" value={sum.absent ?? 0} icon={CalendarX} tone="lilac" hint={`${sum.excused ?? 0} excused`} />
+        <StatCard label="Days absent" value={sum.absent ?? 0} icon={CalendarX} tone="gold" hint={`${sum.excused ?? 0} excused`} />
         <StatCard label="Late arrivals" value={sum.late ?? 0} icon={Clock} tone="butter" />
       </div>
       {[...byMonth.entries()].map(([month, list]) => (

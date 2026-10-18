@@ -54,7 +54,7 @@ export default async function FeesPage({ searchParams }: { searchParams: Promise
           <StatCard label="Total billed" value={zar(sums.billed, true)} icon={Receipt} tone="sky" />
           <StatCard label="Collected" value={zar(sums.paid, true)} icon={Wallet} tone="green" hint={sums.billed ? `${Math.round((sums.paid / sums.billed) * 100)}%` : undefined} />
           <StatCard label="Outstanding" value={zar(outstanding, true)} icon={AlertTriangle} tone="butter" />
-          <StatCard label="Exemptions" value={zar(sums.exempt, true)} icon={BadgePercent} tone="lilac" hint="Fee exemption regulations" />
+          <StatCard label="Exemptions" value={zar(sums.exempt, true)} icon={BadgePercent} tone="gold" hint="Fee exemption regulations" />
         </div>
       </div>
 

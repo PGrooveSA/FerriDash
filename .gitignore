@@ -6,3 +6,4 @@ data/*.db-*
 *.tsbuildinfo
 next-env.d.ts
 data/avatars/
+data/logos/

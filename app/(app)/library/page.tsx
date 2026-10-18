@@ -9,7 +9,7 @@ import { saveBook, deleteBook, issueBook, returnBook } from "@/app/actions/conte
 export const metadata = { title: "Library" };
 const PER_PAGE = 10;
 type B = { id: number; code: string; title: string; author: string | null; subject: string | null; grades: string | null; publish_year: number | null; copies: number; out: number };
-const COVERS = ["from-rose-400 to-rose-600", "from-sky-400 to-indigo-600", "from-amber-300 to-orange-500", "from-emerald-400 to-teal-600", "from-violet-400 to-purple-600", "from-slate-500 to-slate-800"];
+const COVERS = ["from-rose-400 to-rose-600", "from-emerald-500 to-teal-800", "from-amber-300 to-orange-500", "from-emerald-400 to-teal-600", "from-amber-500 to-orange-700", "from-slate-500 to-slate-800"];
 
 export default async function LibraryPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const ctx = await requireCtx();

@@ -44,7 +44,7 @@ export default function LearnerDashboard({ ctx }: { ctx: Ctx }) {
   const bars = latest ? latest.cr!.subjects.map((s) => {
     const v = latest.row!.pct[s.csId];
     const lv = capsLevel(v)?.level ?? 0;
-    return { name: s.name.replace(" Home Language", " HL").replace(" First Additional Language", " FAL"), value: v, color: lv >= 6 ? "#86efac" : lv >= 4 ? "#c4b5fd" : lv === 3 ? "#fde68a" : "#fda4af" };
+    return { name: s.name.replace(" Home Language", " HL").replace(" First Additional Language", " FAL"), value: v, color: lv >= 6 ? "#86efac" : lv >= 4 ? "#f9c95e" : lv === 3 ? "#fde68a" : "#fda4af" };
   }) : [];
   const trend = snap.terms.filter((x) => x.row?.average != null).map((x) => ({ term: `Term ${x.term}`, average: x.row!.average }));
 
@@ -64,7 +64,7 @@ export default function LearnerDashboard({ ctx }: { ctx: Ctx }) {
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard label="Attendance" value={att.rate != null ? `${att.rate}%` : "-"} icon={CalendarCheck} tone="sky" hint={`${att.absent ?? 0} days absent this year`} />
-          <StatCard label={latest ? `Term ${latest.term} average` : "Average"} value={latest?.row?.average != null ? `${latest.row.average}%` : "-"} icon={Award} tone="lilac" hint={latest?.row?.position ? `Position ${latest.row.position} of ${latest.cr!.learners.length}` : undefined} />
+          <StatCard label={latest ? `Term ${latest.term} average` : "Average"} value={latest?.row?.average != null ? `${latest.row.average}%` : "-"} icon={Award} tone="gold" hint={latest?.row?.position ? `Position ${latest.row.position} of ${latest.cr!.learners.length}` : undefined} />
           <StatCard label="Homework due" value={homework.length} icon={ClipboardList} tone="butter" />
           <StatCard label="Library books out" value={loans} icon={Library} tone="green" />
         </div>
@@ -72,7 +72,7 @@ export default function LearnerDashboard({ ctx }: { ctx: Ctx }) {
           <Card title={latest ? `Marks by subject · Term ${latest.term}` : "Marks by subject"}>
             {bars.length ? <HBars data={bars} /> : <Empty title="No published results yet" />}
           </Card>
-          <Card title="Progress">{trend.length ? <Trend data={trend} xKey="term" series={[{ key: "average", name: "Average %", color: "#8b5cf6" }]} /> : <Empty />}</Card>
+          <Card title="Progress">{trend.length ? <Trend data={trend} xKey="term" series={[{ key: "average", name: "Average %", color: "#d98e0b" }]} /> : <Empty />}</Card>
         </div>
         <Card title="Homework">
           {homework.length ? (

@@ -6,7 +6,7 @@ import Avatar from "./ui/Avatar";
 
 const CAT_TONE: Record<string, string> = {
   academic: "bg-brand-100/80 border-brand-400 dark:bg-brand-500/15", sport: "bg-rose-100/70 border-rose-400 dark:bg-rose-500/15",
-  meeting: "bg-butter-100/80 border-butter-500 dark:bg-butter-500/15", school: "bg-lilac-100/80 border-lilac-500 dark:bg-lilac-500/15",
+  meeting: "bg-butter-100/80 border-butter-500 dark:bg-butter-500/15", school: "bg-gold-100/80 border-gold-500 dark:bg-gold-500/15",
   holiday: "bg-emerald-100/70 border-emerald-500 dark:bg-emerald-500/15",
 };
 export const catTone = (c: string) => CAT_TONE[c] ?? CAT_TONE.school;
@@ -28,9 +28,9 @@ export function MiniCalendar({ schoolId }: { schoolId: number }) {
       <div className="grid grid-cols-7 gap-1 text-center text-xs">
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => <span key={d} className="muted py-1">{d}</span>)}
         {cells.map((d, i) => (
-          <span key={i} className={`relative py-1.5 rounded-xl text-sm ${d === Number(t.slice(8)) ? "bg-gradient-to-br from-brand-300 to-lilac-300 text-slate-900 font-bold" : ""}`}>
+          <span key={i} className={`relative py-1.5 rounded-xl text-sm ${d === Number(t.slice(8)) ? "bg-gradient-to-br from-brand-300 to-gold-300 text-slate-900 font-bold" : ""}`}>
             {d}
-            {d && eventDays.has(d) && <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-lilac-500" />}
+            {d && eventDays.has(d) && <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-gold-500" />}
           </span>
         ))}
       </div>
@@ -95,7 +95,7 @@ export function NoticeList({ schoolId, audiences, limit = 4 }: { schoolId: numbe
           <Link href={`/notices?id=${n.id}`} className="block group">
             <div className="flex justify-between gap-2">
               <p className="font-semibold text-sm group-hover:underline">{n.title}</p>
-              <span className="chip chip-sky shrink-0">{fmtDate(n.created_at, { day: "numeric", month: "short" })}</span>
+              <span className="chip chip-info shrink-0">{fmtDate(n.created_at, { day: "numeric", month: "short" })}</span>
             </div>
             <p className="text-xs muted line-clamp-2 mt-1">{n.body}</p>
           </Link>

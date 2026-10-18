@@ -47,10 +47,10 @@ export default async function AttendanceReport({ searchParams }: { searchParams:
       </PageHeader>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <StatCard label="Overall attendance" value={overall != null ? `${overall}%` : "-"} icon={CalendarCheck} tone="sky" />
-        <StatCard label="Learners" value={rows.length} icon={Users} tone="lilac" />
+        <StatCard label="Learners" value={rows.length} icon={Users} tone="gold" />
         <StatCard label="Below 90% attendance" value={chronic.length} icon={AlertTriangle} tone="butter" hint="Follow up with parents" />
       </div>
-      {byClass.length > 1 && <Card title="Attendance by class" className="mb-6"><Bars data={byClass} xKey="name" yMax={100} unit="%" series={[{ key: "rate", name: "Attendance", color: "#7dd3fc" }]} /></Card>}
+      {byClass.length > 1 && <Card title="Attendance by class" className="mb-6"><Bars data={byClass} xKey="name" yMax={100} unit="%" series={[{ key: "rate", name: "Attendance", color: "#79d0a3" }]} /></Card>}
       <Card className="print-area">
         <div className="overflow-x-auto">
           <table className="table">

@@ -53,7 +53,7 @@ export function HBars({ data, height }: { data: { name: string; value: number | 
           <YAxis type="category" dataKey="name" {...axis} width={150} />
           <Tooltip {...tooltipStyle} formatter={(v) => `${v}%`} />
           <Bar isAnimationActive={false} dataKey="value" name="Mark" radius={[0, 10, 10, 0]} maxBarSize={22}>
-            {data.map((d, i) => <Cell key={i} fill={d.color ?? "#c4b5fd"} />)}
+            {data.map((d, i) => <Cell key={i} fill={d.color ?? "#f9c95e"} />)}
           </Bar>
         </BarChart>
       </ResponsiveContainer>

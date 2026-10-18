@@ -49,3 +49,7 @@ export function toCsv(rows: (string | number | null | undefined)[][]) {
 /** URL of a user's profile photo, or null when they have none. The version busts caches after a new upload. */
 export const avatarUrl = (userId: number | null | undefined, version: string | null | undefined) =>
   userId && version ? `/api/avatar/${userId}?v=${encodeURIComponent(version)}` : null;
+
+/** URL of a school's logo, or null when it has none. */
+export const logoUrl = (schoolId: number | null | undefined, version: string | null | undefined) =>
+  schoolId && version ? `/api/logo/${schoolId}?v=${encodeURIComponent(version)}` : null;

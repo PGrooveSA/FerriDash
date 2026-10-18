@@ -81,7 +81,7 @@ export default function Sidebar({ role, schoolName }: { role: Role; schoolName: 
     const kids = item.children?.filter((c) => !c.roles || c.roles.includes(role));
     const active = isActive(item.href);
     const base = "flex items-center gap-3 rounded-2xl px-4 py-2.5 text-[0.92rem] font-medium transition-colors";
-    const cls = active ? `${base} bg-gradient-to-r from-brand-200/90 to-lilac-200/70 text-slate-900 dark:from-brand-500/25 dark:to-lilac-500/20 dark:text-white shadow-sm` : `${base} muted hover:bg-white/50 dark:hover:bg-white/5 hover:text-[var(--ink)]`;
+    const cls = active ? `${base} bg-gradient-to-r from-brand-200/90 to-gold-200/70 text-slate-900 dark:from-brand-500/25 dark:to-gold-500/20 dark:text-white shadow-sm` : `${base} muted hover:bg-white/50 dark:hover:bg-white/5 hover:text-[var(--ink)]`;
     if (kids && kids.length > 1) {
       const isOpen = expanded === item.href;
       return (
@@ -136,7 +136,7 @@ export default function Sidebar({ role, schoolName }: { role: Role; schoolName: 
           </li>
         </ul>
       </nav>
-      <div className="mt-4 rounded-3xl p-5 text-white relative overflow-hidden bg-gradient-to-br from-brand-400 via-brand-500 to-lilac-500">
+      <div className="mt-4 rounded-3xl p-5 text-white relative overflow-hidden bg-gradient-to-br from-brand-400 via-brand-500 to-gold-500">
         <div className="absolute -right-8 -bottom-10 w-32 h-32 rounded-full bg-white/20 blur-xl" />
         <p className="font-semibold leading-snug relative">CAPS results made simple</p>
         <p className="text-xs text-white/85 mt-1 relative">Capture marks, moderate and publish report cards in one place.</p>

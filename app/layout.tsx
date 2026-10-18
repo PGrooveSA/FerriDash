@@ -18,8 +18,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <div className="mesh" aria-hidden>
-          <div className="blob" style={{ background: "#7dd3fc", top: "-6rem", left: "-4rem" }} />
-          <div className="blob" style={{ background: "#c4b5fd", top: "30%", right: "-8rem", animationDelay: "-8s" }} />
+          <div className="blob" style={{ background: "#79d0a3", top: "-6rem", left: "-4rem" }} />
+          <div className="blob" style={{ background: "#f9c95e", top: "30%", right: "-8rem", animationDelay: "-8s" }} />
           <div className="blob" style={{ background: "#fde68a", bottom: "-8rem", left: "35%", animationDelay: "-16s" }} />
         </div>
         {children}

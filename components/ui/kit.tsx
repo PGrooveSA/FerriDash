@@ -30,7 +30,7 @@ export function PageHeader({ title, subtitle, children }: { title: string; subti
 
 const TONES = {
   sky: "from-brand-200/80 to-brand-100/40 dark:from-brand-500/25 dark:to-brand-500/5",
-  lilac: "from-lilac-200/80 to-lilac-100/40 dark:from-lilac-500/25 dark:to-lilac-500/5",
+  gold: "from-gold-200/80 to-gold-100/40 dark:from-gold-500/25 dark:to-gold-500/5",
   butter: "from-butter-300/80 to-butter-100/40 dark:from-butter-500/25 dark:to-butter-500/5",
   green: "from-emerald-200/70 to-emerald-50/40 dark:from-emerald-500/20 dark:to-emerald-500/5",
 } as const;
@@ -68,10 +68,10 @@ export function TableWrap({ children }: { children: React.ReactNode }) {
 }
 
 const STATUS_TONE: Record<string, string> = {
-  paid: "chip-sky", published: "chip-green", approved: "chip-sky", submitted: "chip-butter", draft: "chip-slate",
-  pending: "chip-butter", partial: "chip-butter", overdue: "chip-red", available: "chip-sky", "checked out": "chip-red",
-  active: "chip-green", promoted: "chip-green", "not promoted": "chip-red", present: "chip-sky", absent: "chip-red", late: "chip-butter", excused: "chip-lilac",
-  exempt: "chip-lilac",
+  paid: "chip-info", published: "chip-green", approved: "chip-info", submitted: "chip-butter", draft: "chip-slate",
+  pending: "chip-butter", partial: "chip-butter", overdue: "chip-red", available: "chip-info", "checked out": "chip-red",
+  active: "chip-green", promoted: "chip-green", "not promoted": "chip-red", present: "chip-info", absent: "chip-red", late: "chip-butter", excused: "chip-gold",
+  exempt: "chip-gold",
 };
 export function StatusChip({ status }: { status: string }) {
   return <span className={`chip ${STATUS_TONE[status.toLowerCase()] ?? "chip-slate"}`}><span className="w-1.5 h-1.5 rounded-full bg-current" />{status}</span>;
@@ -100,7 +100,7 @@ export function LevelBadge({ pct }: { pct: number | null }) {
   if (pct == null) return <span className="muted">-</span>;
   const p = Math.round(pct);
   const lvl = p >= 80 ? 7 : p >= 70 ? 6 : p >= 60 ? 5 : p >= 50 ? 4 : p >= 40 ? 3 : p >= 30 ? 2 : 1;
-  const tone = lvl >= 6 ? "chip-green" : lvl >= 4 ? "chip-sky" : lvl === 3 ? "chip-butter" : "chip-red";
+  const tone = lvl >= 6 ? "chip-green" : lvl >= 4 ? "chip-info" : lvl === 3 ? "chip-butter" : "chip-red";
   return <span className={`chip ${tone}`} title={`CAPS level ${lvl}`}>L{lvl}</span>;
 }
 

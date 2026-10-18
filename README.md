@@ -86,6 +86,12 @@ Learners and parents never see unpublished marks.
 - **Reports**: CAPS report cards (one learner or the whole class, print or save as PDF) with comments, attendance,
   position and promotion outcome; class broadsheet (CSV); promotion schedule (CSV); attendance report; finance report with debtors list.
 
+## School logo and profile photos
+
+- **School logo**: school admins upload or remove it under **Settings** (no other role can). It appears on the sign-in page, report cards and fee statements. The sign-in page shows the school from a `/login?school=<EMIS number>` link, otherwise the last school that signed in on that device, otherwise the only school.
+- **Profile photos**: every user can upload one under **Profile**.
+- Images are resized in the browser and stored offline in `data/logos` and `data/avatars`. Logos are public; profile photos are only visible to signed-in users of the same school.
+
 ## South African details
 
 ZAR currency (`en-ZA` formatting), SA ID number validation (Luhn check, with date of birth and gender read from the ID),
@@ -95,7 +101,7 @@ languages plus SA Sign Language, four-term calendar, and a POPIA privacy notice.
 ## Architecture
 
 - **Next.js 15 (App Router) + React 19 + TypeScript**, server components and server actions
-- **Tailwind CSS 4** glass design system (`app/globals.css`): `.glass`, `.glass-strong`, `.glass-solid`, light and dark
+- **Tailwind CSS 4** glass design system (`app/globals.css`) in chalkboard green and school gold: `.glass`, `.glass-strong`, `.glass-solid`, light and dark
   themes, and support for `prefers-reduced-transparency` and `prefers-reduced-motion`
 - **SQLite via `node:sqlite`** (`db/schema.sql`). Every tenant table carries `school_id`; all queries are scoped to the
   signed-in user's school. The SQL stays close to standard so it can move to PostgreSQL or Supabase later.

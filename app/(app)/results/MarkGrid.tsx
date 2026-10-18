@@ -121,7 +121,7 @@ export default function MarkGrid({ grade, term, assessments, learners, initial, 
                     );
                   })}
                   <td className="text-center font-semibold">{pct == null ? "-" : `${Math.round(pct)}%`}</td>
-                  <td className="text-center">{lvl ? <span className={`chip ${lvl.level >= 6 ? "chip-green" : lvl.level >= 4 ? "chip-sky" : lvl.level === 3 ? "chip-butter" : "chip-red"}`} title={lvl.descriptor}>{lvl.level}</span> : "-"}</td>
+                  <td className="text-center">{lvl ? <span className={`chip ${lvl.level >= 6 ? "chip-green" : lvl.level >= 4 ? "chip-info" : lvl.level === 3 ? "chip-butter" : "chip-red"}`} title={lvl.descriptor}>{lvl.level}</span> : "-"}</td>
                 </tr>
               );
             })}

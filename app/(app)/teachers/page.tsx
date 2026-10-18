@@ -64,7 +64,7 @@ export default async function TeachersPage({ searchParams }: { searchParams: Pro
                     <td className="max-w-[16rem] text-sm">{t.subjects?.split(",").join(", ") ?? <span className="muted">Not allocated</span>}</td>
                     <td className="text-sm">{t.classes?.split(",").join(", ") ?? "-"}</td>
                     <td className="whitespace-nowrap">{t.phone}</td>
-                    <td><span className="chip chip-lilac">{t.post_level}</span></td>
+                    <td><span className="chip chip-gold">{t.post_level}</span></td>
                     <td>
                       <div className="flex justify-end gap-1.5">
                         <FormDialog trigger="edit" title={`Edit ${t.first_name}`} fields={fields(t)} hidden={{ id: t.id }} action={saveTeacher} size="lg" />

@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS schools (
   motto TEXT,
   current_year INTEGER NOT NULL DEFAULT 2026,
   current_term INTEGER NOT NULL DEFAULT 4 CHECK (current_term BETWEEN 1 AND 4),
+  logo_updated_at TEXT, -- set when the school has uploaded a logo (data/logos)
   active INTEGER NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

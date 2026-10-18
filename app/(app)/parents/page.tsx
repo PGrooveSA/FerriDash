@@ -51,7 +51,7 @@ export default async function ParentsPage({ searchParams }: { searchParams: Prom
                     <td>
                       <div className="flex flex-wrap gap-1.5">
                         {kids.filter((k) => k.parent_user_id === p.id).map((k) => (
-                          <span key={k.learner_id} className="chip chip-sky">
+                          <span key={k.learner_id} className="chip chip-info">
                             {k.first_name} {k.last_name} · {k.className ?? "-"} <span className="muted">({k.relationship})</span>
                             <form action={async () => { "use server"; await unlinkChild(p.id, k.learner_id); }}><button className="ml-1 hover:text-rose-600" aria-label="Unlink">×</button></form>
                           </span>

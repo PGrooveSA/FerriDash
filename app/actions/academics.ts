@@ -1,5 +1,7 @@
 "use server";
 import bcrypt from "bcryptjs";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { LOGO_DIR, MAX_LOGO_BYTES, imageType, logoFile } from "@/lib/uploads";
 import { revalidatePath } from "next/cache";
 import { audit, get, run, tx } from "@/lib/db";
 import { ADMIN, fail, guarded, num, opt, str, type ActionResult } from "@/lib/action-utils";
@@ -86,6 +88,31 @@ export async function saveSchoolSettings(_: ActionResult, f: FormData) {
       if (a && b) run("INSERT INTO terms (school_id, year, number, start_date, end_date) VALUES (?,?,?,?,?) ON CONFLICT(school_id, year, number) DO UPDATE SET start_date = excluded.start_date, end_date = excluded.end_date", ctx.schoolId, num(f, "current_year"), t, a, b);
     }
     audit(ctx.schoolId, ctx.user.id, "update", "school", ctx.schoolId);
+    revalidatePath("/", "layout");
+  });
+}
+
+// ---------------- School logo (admins only) ----------------
+export async function uploadLogo(f: FormData): Promise<ActionResult> {
+  return guarded(ADMIN, async (ctx) => {
+    const file = f.get("logo");
+    if (!(file instanceof File) || file.size === 0) fail("Choose a logo to upload.");
+    if (file.size > MAX_LOGO_BYTES) fail("That logo is too large. Please use an image under 2 MB.");
+    const buf = new Uint8Array(await file.arrayBuffer());
+    if (!imageType(buf)) fail("Only PNG, JPG or WebP logos are allowed.");
+    mkdirSync(LOGO_DIR, { recursive: true });
+    writeFileSync(logoFile(ctx.schoolId), buf);
+    run("UPDATE schools SET logo_updated_at = datetime('now') WHERE id = ?", ctx.schoolId);
+    audit(ctx.schoolId, ctx.user.id, "upload_logo", "school", ctx.schoolId);
+    revalidatePath("/", "layout");
+  });
+}
+
+export async function removeLogo(): Promise<ActionResult> {
+  return guarded(ADMIN, (ctx) => {
+    rmSync(logoFile(ctx.schoolId), { force: true });
+    run("UPDATE schools SET logo_updated_at = NULL WHERE id = ?", ctx.schoolId);
+    audit(ctx.schoolId, ctx.user.id, "remove_logo", "school", ctx.schoolId);
     revalidatePath("/", "layout");
   });
 }

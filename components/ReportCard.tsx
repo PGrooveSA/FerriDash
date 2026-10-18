@@ -1,5 +1,5 @@
 import { CAPS_LEVELS, capsLevel, phaseOf } from "@/lib/caps";
-import { fmtDate, gradeLabel } from "@/lib/format";
+import { fmtDate, gradeLabel, logoUrl } from "@/lib/format";
 import { today } from "@/lib/today";
 import type { School } from "@/lib/auth";
 import type { ClassResults, LearnerRow, Period } from "@/lib/results";
@@ -23,7 +23,7 @@ export default function ReportCard({ d, editor }: { d: ReportCardData; editor?: 
     <article className="glass-solid print-area p-6 sm:p-8 relative overflow-hidden text-[0.9rem]">
       {d.draft && <div className="absolute inset-0 grid place-items-center pointer-events-none"><span className="text-7xl font-black text-rose-500/10 -rotate-12 select-none">DRAFT</span></div>}
       <header className="flex flex-wrap items-start gap-4 pb-4 border-b-2 border-brand-300">
-        <img src="/icon.svg" alt="" className="w-14 h-14" />
+        <img src={logoUrl(school.id, school.logo_updated_at) ?? "/icon.svg"} alt="" className="w-16 h-16 object-contain" />
         <div className="flex-1 min-w-[14rem]">
           <h2 className="text-xl font-bold tracking-tight">{school.name}</h2>
           <p className="text-xs muted">{school.address} · {school.phone} · EMIS {school.emis_number}</p>
@@ -67,7 +67,7 @@ export default function ReportCard({ d, editor }: { d: ReportCardData; editor?: 
 
       <section className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
         <div className="rounded-2xl bg-brand-100/60 dark:bg-brand-500/10 p-3"><p className="text-xs muted">Average</p><p className="text-xl font-bold">{row.average ?? "-"}%</p></div>
-        <div className="rounded-2xl bg-lilac-100/60 dark:bg-lilac-500/10 p-3"><p className="text-xs muted">Position in class</p><p className="text-xl font-bold">{row.position ?? "-"} <span className="text-sm font-normal muted">/ {cr.learners.length}</span></p></div>
+        <div className="rounded-2xl bg-gold-100/60 dark:bg-gold-500/10 p-3"><p className="text-xs muted">Position in class</p><p className="text-xl font-bold">{row.position ?? "-"} <span className="text-sm font-normal muted">/ {cr.learners.length}</span></p></div>
         <div className="rounded-2xl bg-butter-100/70 dark:bg-butter-500/10 p-3"><p className="text-xs muted">Days absent</p><p className="text-xl font-bold">{d.attendance.absent ?? 0} <span className="text-sm font-normal muted">of {d.attendance.total ?? 0}</span></p></div>
         <div className="rounded-2xl bg-emerald-100/60 dark:bg-emerald-500/10 p-3"><p className="text-xs muted">Attendance</p><p className="text-xl font-bold">{d.attendance.rate ?? "-"}%</p></div>
       </section>

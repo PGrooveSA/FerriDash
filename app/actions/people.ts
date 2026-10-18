@@ -2,7 +2,7 @@
 import bcrypt from "bcryptjs";
 import { randomBytes } from "node:crypto";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { AVATAR_DIR, MAX_AVATAR_BYTES, avatarFile, imageType } from "@/lib/avatars";
+import { AVATAR_DIR, MAX_AVATAR_BYTES, avatarFile, imageType } from "@/lib/uploads";
 import { revalidatePath } from "next/cache";
 import { audit, get, run, tx } from "@/lib/db";
 import { parseSaId } from "@/lib/format";

@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { getCtx } from "@/lib/auth";
 import { get } from "@/lib/db";
-import { avatarFile, imageType } from "@/lib/avatars";
+import { avatarFile, imageHeaders, imageType } from "@/lib/uploads";
 
 // Serves a profile photo to signed-in users of the same school.
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -16,15 +16,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     const buf = await readFile(avatarFile(id));
     const type = imageType(buf);
     if (!type) return new Response("Not found", { status: 404 });
-    return new Response(new Uint8Array(buf), {
-      headers: {
-        "Content-Type": type,
-        // URLs carry ?v=<updated time>, so a new upload gets a new URL.
-        "Cache-Control": "private, max-age=31536000, immutable",
-        "X-Content-Type-Options": "nosniff",
-        "Content-Security-Policy": "default-src 'none'",
-      },
-    });
+    return new Response(new Uint8Array(buf), { headers: imageHeaders(type, "private") });
   } catch {
     return new Response("Not found", { status: 404 });
   }

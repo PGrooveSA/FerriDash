@@ -40,7 +40,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <StatCard label="Draft" value={count("draft")} icon={FileClock} tone="sky" />
           <StatCard label="Awaiting moderation" value={count("submitted")} icon={ClipboardCheck} tone="butter" />
-          <StatCard label="Approved" value={count("approved")} icon={CheckCircle2} tone="lilac" />
+          <StatCard label="Approved" value={count("approved")} icon={CheckCircle2} tone="gold" />
           <StatCard label="Published" value={count("published")} icon={Globe} tone="green" />
         </div>
       )}

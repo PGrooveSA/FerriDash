@@ -8,7 +8,7 @@ import { Donut } from "@/components/charts";
 import { Wallet, TrendingUp, AlertTriangle, Receipt } from "lucide-react";
 
 export const metadata = { title: "Finance report" };
-const COLORS = ["#7dd3fc", "#c4b5fd", "#fde68a", "#86efac", "#fda4af", "#a5b4fc", "#fdba74", "#67e8f9", "#f0abfc", "#bef264", "#fcd34d", "#94a3b8"];
+const COLORS = ["#79d0a3", "#f9c95e", "#fde68a", "#86efac", "#fda4af", "#e8906c", "#fdba74", "#5ec2b0", "#f4b6a0", "#bef264", "#fcd34d", "#94a3b8"];
 
 export default async function FinanceReport() {
   const ctx = await requireCtx(["school_admin"]);
@@ -44,7 +44,7 @@ export default async function FinanceReport() {
         <StatCard label="Fees billed" value={zar(billed, true)} icon={Receipt} tone="sky" />
         <StatCard label="Fees collected" value={zar(paid, true)} icon={Wallet} tone="green" hint={billed ? `${Math.round((paid / billed) * 100)}% collection rate` : undefined} />
         <StatCard label="Outstanding" value={zar(billed - paid, true)} icon={AlertTriangle} tone="butter" hint={`${debtors.length} accounts in arrears`} />
-        <StatCard label="Expenses" value={zar(spent, true)} icon={TrendingUp} tone="lilac" hint={`Net ${zar(paid - spent, true)}`} />
+        <StatCard label="Expenses" value={zar(spent, true)} icon={TrendingUp} tone="gold" hint={`Net ${zar(paid - spent, true)}`} />
       </div>
       {!ctx.school.fee_paying && <div className="glass p-4 mb-6 text-sm">This is a no-fee school. Only expenses are tracked.</div>}
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_22rem] gap-6 mb-6">

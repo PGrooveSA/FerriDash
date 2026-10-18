@@ -19,6 +19,7 @@ function open(): DatabaseSync {
 function migrate(db: DatabaseSync) {
   const has = (table: string, col: string) => (db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]).some((c) => c.name === col);
   if (!has("users", "avatar_updated_at")) db.exec("ALTER TABLE users ADD COLUMN avatar_updated_at TEXT");
+  if (!has("schools", "logo_updated_at")) db.exec("ALTER TABLE schools ADD COLUMN logo_updated_at TEXT");
 }
 
 export function db(): DatabaseSync {

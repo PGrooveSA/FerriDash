@@ -13,7 +13,7 @@ export type User = {
 export type School = {
   id: number; name: string; emis_number: string; province: string; district: string; quintile: number;
   school_type: string; fee_paying: number; address: string; phone: string; email: string; principal: string;
-  motto: string; current_year: number; current_term: number;
+  motto: string; current_year: number; current_term: number; logo_updated_at: string | null;
 };
 
 export type Ctx = {

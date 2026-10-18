@@ -10,7 +10,7 @@ const LABEL: Record<Status, string> = { P: "Present", A: "Absent", L: "Late", E:
 
 export function StatusDot({ s }: { s: Status | "" }) {
   if (!s) return <span className="muted">-</span>;
-  const cls = { P: "bg-brand-400 text-white", A: "bg-rose-500 text-white", L: "bg-butter-500 text-white", E: "bg-lilac-500 text-white" }[s];
+  const cls = { P: "bg-brand-400 text-white", A: "bg-rose-500 text-white", L: "bg-butter-500 text-white", E: "bg-gold-500 text-white" }[s];
   const Icon = { P: Check, A: X, L: Clock, E: ShieldCheck }[s];
   return <span className={`inline-grid place-items-center w-7 h-7 rounded-full ${cls}`} title={LABEL[s]}><Icon className="w-4 h-4" strokeWidth={3} /></span>;
 }

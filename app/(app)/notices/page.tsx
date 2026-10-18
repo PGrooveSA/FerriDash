@@ -9,7 +9,7 @@ import { saveNotice, deleteNotice } from "@/app/actions/content";
 
 export const metadata = { title: "Notice board" };
 const PER_PAGE = 6;
-const TAG_TONES = ["chip-lilac", "chip-sky", "chip-butter", "chip-green"];
+const TAG_TONES = ["chip-gold", "chip-info", "chip-butter", "chip-green"];
 type N = { id: number; title: string; body: string; audience: string; tags: string | null; views: number; created_at: string; author_id: number; title_: string | null; first_name: string | null; last_name: string | null };
 
 export default async function NoticesPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
@@ -46,7 +46,7 @@ export default async function NoticesPage({ searchParams }: { searchParams: Prom
           {rows.length === 0 ? <Card><Empty title="No notices" /></Card> : (
             <div className="space-y-4">
               {rows.map((n) => (
-                <Link key={n.id} href={hrefWith("/notices", sp, { id: n.id })} className={`glass block p-5 transition ${n.id === selected?.id ? "ring-2 ring-lilac-300 bg-lilac-100/40 dark:bg-lilac-500/10" : "hover:-translate-y-0.5"}`}>
+                <Link key={n.id} href={hrefWith("/notices", sp, { id: n.id })} className={`glass block p-5 transition ${n.id === selected?.id ? "ring-2 ring-gold-300 bg-gold-100/40 dark:bg-gold-500/10" : "hover:-translate-y-0.5"}`}>
                   <div className="flex flex-wrap items-start gap-3">
                     <div className="flex-1 min-w-[12rem]">
                       <h2 className="text-lg font-semibold">{n.title}</h2>
@@ -64,7 +64,7 @@ export default async function NoticesPage({ searchParams }: { searchParams: Prom
         </div>
         {selected && (
           <Card className="xl:sticky xl:top-4 h-fit">
-            <div className="rounded-2xl h-36 bg-gradient-to-br from-brand-300 via-lilac-300 to-butter-300 dark:from-brand-500/40 dark:via-lilac-500/40 dark:to-butter-500/30 grid place-items-center text-white text-5xl font-black">
+            <div className="rounded-2xl h-36 bg-gradient-to-br from-brand-300 via-gold-300 to-butter-300 dark:from-brand-500/40 dark:via-gold-500/40 dark:to-butter-500/30 grid place-items-center text-white text-5xl font-black">
               {selected.title.slice(0, 1)}
             </div>
             <h2 className="text-xl font-semibold mt-4">{selected.title}</h2>

@@ -12,7 +12,7 @@ export default function ParentDashboard({ ctx }: { ctx: Ctx }) {
   return (
     <div className="grid grid-cols-1 xl:grid-cols-[1fr_22rem] gap-6">
       <div className="space-y-6 min-w-0">
-        <div className="glass p-6 sm:p-8 bg-gradient-to-r from-lilac-200/70 to-butter-100/60 dark:from-lilac-500/20 dark:to-transparent">
+        <div className="glass p-6 sm:p-8 bg-gradient-to-r from-gold-200/70 to-butter-100/60 dark:from-gold-500/20 dark:to-transparent">
           <h1 className="text-2xl font-bold tracking-tight">Welcome, {fullName(ctx.user, true)}</h1>
           <p className="text-sm muted mt-1">Follow your {kids.length === 1 ? "child's" : "children's"} progress at {ctx.school.name}.</p>
         </div>

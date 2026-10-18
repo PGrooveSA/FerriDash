@@ -43,7 +43,7 @@ export default async function PromotionPage({ searchParams }: { searchParams: Pr
       {provisional && <div className="glass p-4 mb-5 text-sm flex items-center gap-3"><Clock className="w-5 h-5 text-butter-500" /> Final examination marks are not captured yet, so these outcomes are <b>provisional</b> (based on SBA and earlier examinations).</div>}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 no-print">
         <StatCard label={cr.grade === 12 ? "NSC achieved" : "Promoted"} value={promoted} icon={CheckCircle2} tone="green" hint={rows.length ? `${Math.round((promoted / rows.length) * 100)}% of class` : undefined} />
-        <StatCard label="Not meeting requirements" value={notPromoted} icon={XCircle} tone="lilac" />
+        <StatCard label="Not meeting requirements" value={notPromoted} icon={XCircle} tone="gold" />
         <StatCard label="Phase requirements" value={phaseOf(cr.grade)} tone="butter" hint={RULES[phaseOf(cr.grade)]} />
       </div>
       <Card className="print-area">

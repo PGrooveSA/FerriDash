@@ -1,9 +1,10 @@
 import { requireCtx } from "@/lib/auth";
 import { all } from "@/lib/db";
-import { PROVINCES } from "@/lib/format";
+import { PROVINCES, logoUrl } from "@/lib/format";
 import { CAPS_LEVELS, SBA_WEIGHT } from "@/lib/caps";
 import { Card, PageHeader } from "@/components/ui/kit";
 import SettingsForm from "./SettingsForm";
+import LogoUploader from "./LogoUploader";
 
 export const metadata = { title: "Settings" };
 
@@ -15,7 +16,10 @@ export default async function SettingsPage() {
     <>
       <PageHeader title="School settings" subtitle="Profile, academic calendar and CAPS assessment configuration." />
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_24rem] gap-6">
-        <SettingsForm school={ctx.school} terms={terms} provinces={PROVINCES} />
+        <div className="space-y-6">
+          <LogoUploader logo={logoUrl(ctx.schoolId, ctx.school.logo_updated_at)} schoolName={ctx.school.name} />
+          <SettingsForm school={ctx.school} terms={terms} provinces={PROVINCES} />
+        </div>
         <div className="space-y-6">
           <Card title="CAPS achievement levels">
             <table className="table text-sm"><thead><tr><th>Level</th><th>Mark</th><th>Descriptor</th></tr></thead>

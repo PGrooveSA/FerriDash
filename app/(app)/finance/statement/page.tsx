@@ -1,6 +1,6 @@
 import { requireCtx, ownLearnerIds } from "@/lib/auth";
 import { all, get } from "@/lib/db";
-import { zar, fmtDate, gradeLabel } from "@/lib/format";
+import { zar, fmtDate, gradeLabel, logoUrl } from "@/lib/format";
 import { today } from "@/lib/today";
 import { Card, PageHeader, Empty } from "@/components/ui/kit";
 import { Filters, PrintButton, DeleteButton } from "@/components/ui/forms";
@@ -37,7 +37,7 @@ export default async function StatementPage({ searchParams }: { searchParams: Pr
       </PageHeader>
       <article className="glass-solid print-area p-6 sm:p-8">
         <header className="flex flex-wrap justify-between gap-4 pb-4 border-b-2 border-brand-300">
-          <div><h2 className="text-xl font-bold">{ctx.school.name}</h2><p className="text-xs muted">{ctx.school.address}</p><p className="text-xs muted">{ctx.school.phone} · {ctx.school.email}</p></div>
+          <div className="flex items-start gap-4">{ctx.school.logo_updated_at && <img src={logoUrl(ctx.schoolId, ctx.school.logo_updated_at)!} alt="" className="w-14 h-14 object-contain" />}<div><h2 className="text-xl font-bold">{ctx.school.name}</h2><p className="text-xs muted">{ctx.school.address}</p><p className="text-xs muted">{ctx.school.phone} · {ctx.school.email}</p></div></div>
           <div className="text-right"><p className="text-xs uppercase tracking-widest muted">Statement of account</p><p className="font-semibold">{fmtDate(today())}</p></div>
         </header>
         <div className="grid sm:grid-cols-3 gap-4 py-4 text-sm">

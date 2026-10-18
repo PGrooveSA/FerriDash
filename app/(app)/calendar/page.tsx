@@ -59,10 +59,10 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
               const date = d ? `${ym}-${String(d).padStart(2, "0")}` : "";
               const evs = events.filter((e) => e.date === date);
               return (
-                <Link key={i} href={d ? `/calendar?m=${ym}&d=${date}` : "#"} className={`min-h-[5.5rem] sm:min-h-[7rem] p-1.5 sm:p-2 border-t border-l border-line first:border-l-0 [&:nth-child(7n+1)]:border-l-0 ${!d ? "pointer-events-none bg-slate-500/5" : date === selected ? "bg-lilac-100/50 dark:bg-lilac-500/10" : "hover:bg-white/40 dark:hover:bg-white/5"}`}>
+                <Link key={i} href={d ? `/calendar?m=${ym}&d=${date}` : "#"} className={`min-h-[5.5rem] sm:min-h-[7rem] p-1.5 sm:p-2 border-t border-l border-line first:border-l-0 [&:nth-child(7n+1)]:border-l-0 ${!d ? "pointer-events-none bg-slate-500/5" : date === selected ? "bg-gold-100/50 dark:bg-gold-500/10" : "hover:bg-white/40 dark:hover:bg-white/5"}`}>
                   {d && (
                     <>
-                      <span className={`text-sm font-semibold inline-grid place-items-center w-7 h-7 rounded-full ${date === t ? "bg-gradient-to-br from-brand-400 to-lilac-500 text-white" : ""}`}>{String(d).padStart(2, "0")}</span>
+                      <span className={`text-sm font-semibold inline-grid place-items-center w-7 h-7 rounded-full ${date === t ? "bg-gradient-to-br from-brand-400 to-gold-500 text-white" : ""}`}>{String(d).padStart(2, "0")}</span>
                       <div className="space-y-1 mt-1">
                         {evs.slice(0, 2).map((e) => <div key={e.id} className={`text-[0.68rem] sm:text-xs truncate rounded-md border-l-[3px] px-1.5 py-0.5 ${catTone(e.category)}`}>{e.title}</div>)}
                         {evs.length > 2 && <div className="text-[0.65rem] muted">{evs.length - 2} more</div>}
