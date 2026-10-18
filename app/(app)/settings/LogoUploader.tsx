@@ -56,7 +56,7 @@ export default function LogoUploader({ logo, schoolName }: { logo: string | null
   return (
     <div className="glass p-6">
       <h2 className="font-semibold text-lg">School logo</h2>
-      <p className="text-sm muted mt-1">Shown on the sign-in page, report cards and fee statements. Only school administrators can change it.</p>
+      <p className="text-sm muted mt-1">Shown on everyone's dashboard, in the sidebar, and on report cards and fee statements. Only school administrators can change it.</p>
       <div className="flex flex-wrap items-center gap-6 mt-4">
         <button type="button" disabled={pending} onClick={() => input.current?.click()}
           onDragOver={(e) => { e.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)}
@@ -73,7 +73,7 @@ export default function LogoUploader({ logo, schoolName }: { logo: string | null
             <button type="button" className="btn btn-primary btn-sm" disabled={pending} onClick={() => input.current?.click()}><ImagePlus className="w-3.5 h-3.5" />{shown ? "Replace logo" : "Upload logo"}</button>
             {shown && (
               <button type="button" className="btn btn-danger btn-sm" disabled={pending} onClick={() => {
-                if (!confirm("Remove the school logo? It will disappear from the sign-in page and reports.")) return;
+                if (!confirm("Remove the school logo? Dashboards and reports will show the school initials instead.")) return;
                 start(async () => { const r = await removeLogo(); if (r.error) setError(r.error); else { setPreview(null); router.refresh(); } });
               }}><Trash2 className="w-3.5 h-3.5" />Remove</button>
             )}

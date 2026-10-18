@@ -57,7 +57,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
           {convs.map((c) => (
             <li key={c.id}>
               <Link href={`/messages?c=${c.id}`} className={`flex gap-3 px-4 py-3.5 border-b border-line ${c.id === activeId ? "bg-gold-100/50 dark:bg-gold-500/10" : "hover:bg-white/40 dark:hover:bg-white/5"}`}>
-                {c.is_group ? <span className="w-11 h-11 rounded-full grid place-items-center bg-gradient-to-br from-brand-300 to-gold-400 text-white shrink-0"><Users className="w-5 h-5" /></span> : <Avatar first={c.other_first ?? "?"} last={c.other_last ?? ""} size={44} photo={avatarUrl(c.other_id, c.other_av)} />}
+                {c.is_group ? <span className="w-11 h-11 rounded-full grid place-items-center bg-gradient-to-br from-brand-400 to-berry-400 text-white shrink-0"><Users className="w-5 h-5" /></span> : <Avatar first={c.other_first ?? "?"} last={c.other_last ?? ""} size={44} photo={avatarUrl(c.other_id, c.other_av)} />}
                 <div className="min-w-0 flex-1">
                   <div className="flex justify-between gap-2"><p className="font-semibold truncate">{name(c)}</p><span className="text-[0.7rem] muted shrink-0">{c.created_at ? fmtDate(c.created_at, { day: "numeric", month: "short" }) : ""}</span></div>
                   <div className="flex gap-2 items-center"><p className="text-xs muted line-clamp-2 flex-1">{c.is_group && c.sender ? <b>{c.sender}: </b> : null}{c.body ?? "No messages yet"}</p>{c.unread > 0 && <span className="w-5 h-5 text-[0.65rem] rounded-full grid place-items-center bg-gold-500 text-white shrink-0">{c.unread}</span>}</div>
@@ -72,7 +72,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
         {active ? (
           <>
             <header className="px-5 py-4 border-b border-line flex items-center gap-3">
-              {active.is_group ? <span className="w-11 h-11 rounded-full grid place-items-center bg-gradient-to-br from-brand-300 to-gold-400 text-white"><Users className="w-5 h-5" /></span> : <Avatar first={active.other_first ?? "?"} last={active.other_last ?? ""} size={44} photo={avatarUrl(active.other_id, active.other_av)} />}
+              {active.is_group ? <span className="w-11 h-11 rounded-full grid place-items-center bg-gradient-to-br from-brand-400 to-berry-400 text-white"><Users className="w-5 h-5" /></span> : <Avatar first={active.other_first ?? "?"} last={active.other_last ?? ""} size={44} photo={avatarUrl(active.other_id, active.other_av)} />}
               <div><p className="font-semibold">{name(active)}</p><p className="text-xs muted">{active.is_group ? `${active.members} members` : ROLE_LABEL[active.other_role ?? ""] ?? ""}</p></div>
             </header>
             <Thread key={active.id} convId={active.id} meId={ctx.user.id} isGroup={!!active.is_group} messages={messages} />
@@ -85,7 +85,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
           <>
             <p className="font-semibold mb-4">{active.is_group ? "Group info" : "Contact info"}</p>
             <div className="text-center">
-              {active.is_group ? <span className="w-24 h-24 mx-auto rounded-full grid place-items-center bg-gradient-to-br from-brand-300 via-gold-400 to-butter-300 text-white"><Users className="w-10 h-10" /></span> : <div className="inline-block"><Avatar first={active.other_first ?? "?"} last={active.other_last ?? ""} size={96} photo={avatarUrl(active.other_id, active.other_av)} /></div>}
+              {active.is_group ? <span className="w-24 h-24 mx-auto rounded-full grid place-items-center bg-gradient-to-br from-brand-400 via-berry-400 to-gold-300 text-white"><Users className="w-10 h-10" /></span> : <div className="inline-block"><Avatar first={active.other_first ?? "?"} last={active.other_last ?? ""} size={96} photo={avatarUrl(active.other_id, active.other_av)} /></div>}
               <p className="font-semibold mt-3">{name(active)}</p>
               <p className="text-xs muted">{active.is_group ? `Group · ${active.members} members` : ROLE_LABEL[active.other_role ?? ""]}</p>
             </div>

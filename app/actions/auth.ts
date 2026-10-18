@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { audit, get, run } from "@/lib/db";
 import { requireCtx } from "@/lib/auth";
-import { LAST_SCHOOL_COOKIE, SCHOOL_COOKIE, SESSION_COOKIE, SESSION_HOURS, signSession } from "@/lib/session";
+import { SCHOOL_COOKIE, SESSION_COOKIE, SESSION_HOURS, signSession } from "@/lib/session";
 
 // Simple in-memory brute-force guard (per email, per server process).
 const attempts = new Map<string, { n: number; until: number }>();
@@ -30,7 +30,6 @@ export async function login(_: unknown, form: FormData): Promise<{ error?: strin
   store.set(SESSION_COOKIE, await signSession({ uid: user.id, role: user.role }), {
     httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production" && process.env.INSECURE_COOKIES !== "1", path: "/", maxAge: SESSION_HOURS * 3600,
   });
-  if (user.school_id) store.set(LAST_SCHOOL_COOKIE, String(user.school_id), { httpOnly: true, sameSite: "lax", path: "/", maxAge: 365 * 24 * 3600 });
   redirect("/dashboard");
 }
 

@@ -38,7 +38,7 @@ export default function Thread({ convId, meId, isGroup, messages }: { convId: nu
           return (
             <div key={m.id} className={`flex gap-3 items-end ${mine ? "flex-row-reverse" : ""}`}>
               <Avatar first={m.first_name} last={m.last_name} size={32} photo={avatarUrl(m.sender_id, m.avatar_updated_at)} />
-              <div className={`max-w-[75%] rounded-3xl px-4 py-3 shadow-sm ${mine ? "bg-gradient-to-br from-brand-400 to-gold-500 text-white rounded-br-md" : "glass-solid !rounded-3xl rounded-bl-md"}`}>
+              <div className={`max-w-[75%] rounded-3xl px-4 py-3 shadow-sm ${mine ? "bg-gradient-to-br from-brand-500 to-berry-500 text-white rounded-br-md" : "glass-solid !rounded-3xl rounded-bl-md"}`}>
                 {isGroup && !mine && <p className={`text-xs font-semibold mb-1 ${ROLE_TONE[m.role] ?? ""}`}>{m.title ? `${m.title} ` : ""}{m.first_name} {m.last_name}</p>}
                 <p className="text-sm whitespace-pre-wrap break-words">{m.body}</p>
                 <p className={`text-[0.65rem] mt-1 text-right ${mine ? "text-white/75" : "muted"}`}>{new Date(m.created_at.replace(" ", "T") + "Z").toLocaleString("en-ZA", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
@@ -52,7 +52,7 @@ export default function Thread({ convId, meId, isGroup, messages }: { convId: nu
         <textarea value={text} onChange={(e) => setText(e.target.value)} rows={1} placeholder="Type your message" aria-label="Message"
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
           className="input !rounded-3xl resize-none max-h-32" />
-        <button disabled={pending || !text.trim()} className="icon-btn !w-11 !h-11 !bg-gradient-to-br from-brand-400 to-gold-500 text-white disabled:opacity-50" aria-label="Send"><Send className="w-4 h-4" /></button>
+        <button disabled={pending || !text.trim()} className="icon-btn !w-11 !h-11 !bg-gradient-to-br from-brand-500 to-berry-500 text-white disabled:opacity-50" aria-label="Send"><Send className="w-4 h-4" /></button>
       </form>
       {error && <p className="text-sm text-rose-600 px-4 pb-3">{error}</p>}
     </>

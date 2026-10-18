@@ -50,7 +50,7 @@ export default async function AttendanceReport({ searchParams }: { searchParams:
         <StatCard label="Learners" value={rows.length} icon={Users} tone="gold" />
         <StatCard label="Below 90% attendance" value={chronic.length} icon={AlertTriangle} tone="butter" hint="Follow up with parents" />
       </div>
-      {byClass.length > 1 && <Card title="Attendance by class" className="mb-6"><Bars data={byClass} xKey="name" yMax={100} unit="%" series={[{ key: "rate", name: "Attendance", color: "#79d0a3" }]} /></Card>}
+      {byClass.length > 1 && <Card title="Attendance by class" className="mb-6"><Bars data={byClass} xKey="name" yMax={100} unit="%" series={[{ key: "rate", name: "Attendance", color: "#ffa86d" }]} /></Card>}
       <Card className="print-area">
         <div className="overflow-x-auto">
           <table className="table">

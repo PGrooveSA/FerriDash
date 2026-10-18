@@ -8,7 +8,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const ctx = await requireCtx();
   return (
     <div className="min-h-screen">
-      <div className="no-print"><Sidebar role={ctx.user.role} schoolName={ctx.school.name} /></div>
+      <div className="no-print"><Sidebar role={ctx.user.role} school={{ id: ctx.school.id, name: ctx.school.name, logo_updated_at: ctx.school.logo_updated_at }} /></div>
       <div className="lg:pl-[17rem]">
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-4 flex flex-col min-h-screen">
           <div className="no-print"><Topbar ctx={ctx} /></div>

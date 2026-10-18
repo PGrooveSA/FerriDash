@@ -63,7 +63,7 @@ export default async function MyResultsPage({ searchParams }: { searchParams: Pr
             </div>
           </Card>
           <Card title="At a glance">
-            <HBars data={cr.subjects.map((s) => ({ name: s.name.replace(" Home Language", " HL").replace(" First Additional Language", " FAL"), value: row.pct[s.csId], color: (row.pct[s.csId] ?? 0) >= 50 ? "#f9c95e" : "#fda4af" }))} />
+            <HBars data={cr.subjects.map((s) => ({ name: s.name.replace(" Home Language", " HL").replace(" First Additional Language", " FAL"), value: row.pct[s.csId], color: (row.pct[s.csId] ?? 0) >= 50 ? "#ffdf55" : "#fda4af" }))} />
           </Card>
         </div>
       )}

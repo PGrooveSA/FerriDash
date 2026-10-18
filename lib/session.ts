@@ -3,8 +3,6 @@ import { SignJWT, jwtVerify } from "jose";
 
 export const SESSION_COOKIE = "sh_session";
 export const SCHOOL_COOKIE = "sh_school";
-/** Remembers which school last signed in on this device, so the sign-in page can show its logo. */
-export const LAST_SCHOOL_COOKIE = "sh_last_school";
 export const SESSION_HOURS = 12;
 
 export type SessionPayload = { uid: number; role: string };

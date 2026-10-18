@@ -1,5 +1,5 @@
 const PALETTE = [
-  ["#ade6c6", "#135d41"], ["#fde3a3", "#8a5a06"], ["#fde68a", "#854d0e"], ["#a7f3d0", "#047857"], ["#fecdd3", "#be123c"], ["#f8cdb8", "#a3401c"],
+  ["#ffcca6", "#ab3a0b"], ["#ffee99", "#8a6400"], ["#fde68a", "#854d0e"], ["#fbcfe2", "#a3214f"], ["#fecdd3", "#be123c"], ["#f8cdb8", "#a3401c"],
 ];
 
 /** Shows the user's profile photo when they have one, otherwise coloured initials. */

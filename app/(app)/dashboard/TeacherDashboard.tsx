@@ -7,6 +7,7 @@ import { today } from "@/lib/today";
 import { classResults } from "@/lib/results";
 import { Card, StatCard, StatusChip } from "@/components/ui/kit";
 import { Bars } from "@/components/charts";
+import { SchoolMark } from "@/components/SchoolCrest";
 import { MiniCalendar, Agenda, RecentMessages, NoticeList } from "@/components/widgets";
 
 export default function TeacherDashboard({ ctx }: { ctx: Ctx }) {
@@ -42,7 +43,8 @@ export default function TeacherDashboard({ ctx }: { ctx: Ctx }) {
   return (
     <div className="grid grid-cols-1 xl:grid-cols-[1fr_22rem] gap-6">
       <div className="space-y-6 min-w-0">
-        <div className="glass p-6 sm:p-8 bg-gradient-to-r from-brand-300/70 via-brand-200/60 to-gold-200/60 dark:from-brand-500/25 dark:to-gold-500/15">
+        <div className="glass p-6 sm:p-8 flex flex-wrap items-center gap-6 bg-gradient-to-r from-brand-300/70 via-brand-200/60 to-gold-200/60 dark:from-brand-500/25 dark:to-gold-500/15">
+          <div className="flex-1 min-w-[16rem]">
           <p className="text-sm muted">Sawubona · Dumela · Welcome</p>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mt-1">{fullName(ctx.user, true)}</h1>
           <p className="mt-2 text-sm max-w-xl">You have <b>{toCapture}</b> assessment{toCapture === 1 ? "" : "s"} waiting for marks and {homeroom ? (registerDone ? "today's register is complete." : <>the <b>{homeroom.name}</b> register still needs to be taken today.</>) : "no register class."}</p>
@@ -50,6 +52,8 @@ export default function TeacherDashboard({ ctx }: { ctx: Ctx }) {
             <Link href="/results" className="btn btn-primary">Capture marks</Link>
             {homeroom && <Link href={`/attendance?class=${homeroom.id}`} className="btn btn-ghost">Take register</Link>}
           </div>
+          </div>
+          <SchoolMark school={ctx.school} />
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -60,7 +64,7 @@ export default function TeacherDashboard({ ctx }: { ctx: Ctx }) {
         </div>
 
         <Card title={`My classes · Term ${prev} averages`}>
-          <Bars data={perf} xKey="name" yMax={100} unit="%" series={[{ key: "average", name: "Average", color: "#f9c95e" }]} />
+          <Bars data={perf} xKey="name" yMax={100} unit="%" series={[{ key: "average", name: "Average", color: "#ffdf55" }]} />
         </Card>
 
         <Card title="My mark sheets" action={<span className="text-xs muted">Term {term}</span>}>

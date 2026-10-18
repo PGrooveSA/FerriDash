@@ -7,6 +7,7 @@ import {
   Wallet, Megaphone, CalendarDays, Library, MessageSquare, UserCircle, Settings, LogOut, ChevronDown, X, Menu,
 } from "lucide-react";
 import { logout } from "@/app/actions/auth";
+import SchoolCrest from "@/components/SchoolCrest";
 
 type Role = "super_admin" | "school_admin" | "teacher" | "learner" | "parent";
 type Item = { href: string; label: string; icon: typeof LayoutDashboard; roles: Role[]; children?: { href: string; label: string; roles?: Role[] }[] };
@@ -63,7 +64,7 @@ const OTHER: Item[] = [
   { href: "/settings", label: "Setting", icon: Settings, roles: ADMIN },
 ];
 
-export default function Sidebar({ role, schoolName }: { role: Role; schoolName: string }) {
+export default function Sidebar({ role, school }: { role: Role; school: { id: number; name: string; logo_updated_at: string | null } }) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -113,13 +114,14 @@ export default function Sidebar({ role, schoolName }: { role: Role; schoolName: 
 
   const nav = (
     <div className="flex flex-col h-full">
-      <div className="flex items-center gap-3 px-3 pt-2 pb-6">
-        <img src="/icon.svg" alt="" className="w-9 h-9" />
-        <div className="min-w-0">
-          <p className="text-xl font-bold tracking-tight leading-none">Sekolo</p>
-          <p className="text-[0.7rem] muted truncate mt-1">{schoolName}</p>
-        </div>
+      <div className="flex items-center gap-2 px-3 pt-1 pb-4">
+        <img src="/icon.svg" alt="" className="w-7 h-7" />
+        <p className="text-lg font-bold tracking-tight">Sekolo</p>
         <button className="ml-auto lg:hidden icon-btn" onClick={() => setOpen(false)} aria-label="Close menu"><X className="w-4 h-4" /></button>
+      </div>
+      <div className="flex items-center gap-3 mx-1 mb-5 p-2.5 rounded-2xl bg-white/45 dark:bg-white/5 border border-white/60 dark:border-white/10">
+        <SchoolCrest school={school} size={44} />
+        <p className="text-sm font-semibold leading-snug line-clamp-2">{school.name}</p>
       </div>
       <nav className="flex-1 overflow-y-auto pr-1 -mr-1">
         <p className="px-4 text-[0.7rem] font-semibold tracking-widest muted mb-2">MENU</p>
@@ -136,7 +138,7 @@ export default function Sidebar({ role, schoolName }: { role: Role; schoolName: 
           </li>
         </ul>
       </nav>
-      <div className="mt-4 rounded-3xl p-5 text-white relative overflow-hidden bg-gradient-to-br from-brand-400 via-brand-500 to-gold-500">
+      <div className="mt-4 rounded-3xl p-5 text-white relative overflow-hidden bg-gradient-to-br from-brand-500 via-brand-500 to-berry-500">
         <div className="absolute -right-8 -bottom-10 w-32 h-32 rounded-full bg-white/20 blur-xl" />
         <p className="font-semibold leading-snug relative">CAPS results made simple</p>
         <p className="text-xs text-white/85 mt-1 relative">Capture marks, moderate and publish report cards in one place.</p>

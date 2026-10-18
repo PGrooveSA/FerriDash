@@ -5,6 +5,7 @@ import { gradeLabel, zar, fullName, avatarUrl } from "@/lib/format";
 import { Card, Empty, LevelBadge } from "@/components/ui/kit";
 import { MiniCalendar, Agenda, NoticeList, RecentMessages } from "@/components/widgets";
 import Avatar from "@/components/ui/Avatar";
+import { SchoolMark } from "@/components/SchoolCrest";
 import { learnerSnapshot } from "./LearnerDashboard";
 
 export default function ParentDashboard({ ctx }: { ctx: Ctx }) {
@@ -12,9 +13,12 @@ export default function ParentDashboard({ ctx }: { ctx: Ctx }) {
   return (
     <div className="grid grid-cols-1 xl:grid-cols-[1fr_22rem] gap-6">
       <div className="space-y-6 min-w-0">
-        <div className="glass p-6 sm:p-8 bg-gradient-to-r from-gold-200/70 to-butter-100/60 dark:from-gold-500/20 dark:to-transparent">
-          <h1 className="text-2xl font-bold tracking-tight">Welcome, {fullName(ctx.user, true)}</h1>
-          <p className="text-sm muted mt-1">Follow your {kids.length === 1 ? "child's" : "children's"} progress at {ctx.school.name}.</p>
+        <div className="glass p-6 sm:p-8 flex flex-wrap items-center gap-6 bg-gradient-to-r from-gold-200/70 via-butter-100/60 to-berry-100/60 dark:from-gold-500/20 dark:to-transparent">
+          <div className="flex-1 min-w-[14rem]">
+            <h1 className="text-2xl font-bold tracking-tight">Welcome, {fullName(ctx.user, true)}</h1>
+            <p className="text-sm muted mt-1">Follow your {kids.length === 1 ? "child's" : "children's"} progress at {ctx.school.name}.</p>
+          </div>
+          <SchoolMark school={ctx.school} />
         </div>
         {kids.length === 0 && <Card><Empty title="No learners linked" hint="Ask the school office to link your child to your account." /></Card>}
         {kids.map(({ learner: l, latest, att, balance }) => (
