@@ -10,6 +10,10 @@ Copyright © Infinite Q Graphics
 
 Requires **Node.js 22.13+** (uses the built-in `node:sqlite`; no database server and no internet connection needed once installed).
 
+**Windows:** double-click `start.bat`. It checks Node.js, installs packages and builds the app on first run, then opens http://localhost:3100 in your browser. Use `start.bat rebuild` after code changes, `start.bat dev` for live-reload development, or `start.bat reset` to reload the demo data.
+
+**Any platform:**
+
 ```bash
 npm install
 npm run dev
