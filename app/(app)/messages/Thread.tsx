@@ -17,6 +17,8 @@ export default function Thread({ convId, meId, isGroup, messages }: { convId: nu
   const end = useRef<HTMLDivElement>(null);
 
   useEffect(() => { end.current?.scrollIntoView({ block: "end" }); }, [messages.length]);
+  // Opening a chat marks it read on the server; refresh once so the top bar's unread dot updates straight away.
+  useEffect(() => { router.refresh(); }, [convId, router]);
   // Poll for new messages every 5 seconds while the chat is open (works fully offline on the LAN).
   useEffect(() => { const t = setInterval(() => router.refresh(), 5000); return () => clearInterval(t); }, [router]);
 

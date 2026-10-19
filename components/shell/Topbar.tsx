@@ -7,9 +7,11 @@ import { switchSchool } from "@/app/actions/auth";
 import ThemeToggle from "./ThemeToggle";
 import NoticeBell from "./NoticeBell";
 import { unreadNoticeCount } from "@/lib/notices";
+import { unreadMessageCount } from "@/lib/messages";
 import Avatar from "../ui/Avatar";
 
 export default function Topbar({ ctx }: { ctx: Ctx }) {
+  const unreadMessages = unreadMessageCount(ctx.user.id);
   const schools = ctx.user.role === "super_admin" ? all<{ id: number; name: string }>("SELECT id, name FROM schools ORDER BY name") : [];
   return (
     <header className="flex flex-wrap items-center gap-3 pl-14 lg:pl-0">
@@ -27,7 +29,10 @@ export default function Topbar({ ctx }: { ctx: Ctx }) {
       )}
       <div className="ml-auto flex items-center gap-2">
         <ThemeToggle />
-        <Link href="/messages" className="icon-btn" aria-label="Messages"><MessageSquare className="w-[1.1rem] h-[1.1rem]" /></Link>
+        <Link href="/messages" className="icon-btn relative" aria-label={unreadMessages ? `Messages, ${unreadMessages} unread` : "Messages"} title={unreadMessages ? `${unreadMessages} unread message${unreadMessages === 1 ? "" : "s"}` : "Messages"}>
+          <MessageSquare className="w-[1.1rem] h-[1.1rem]" />
+          {unreadMessages > 0 && <span className="absolute top-2 right-2.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900" />}
+        </Link>
         <NoticeBell unread={unreadNoticeCount(ctx)} />
         <Link href="/profile" className="flex items-center gap-3 pl-2">
           <div className="text-right hidden sm:block">
