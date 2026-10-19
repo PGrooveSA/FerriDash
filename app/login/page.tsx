@@ -12,8 +12,8 @@ export default function LoginPage() {
       <LoginBackdrop />
       <main className="relative z-10 min-h-screen grid lg:grid-cols-2 gap-6 p-4 sm:p-8">
         <section className="hidden lg:flex login-hero flex-col justify-between p-10 relative overflow-hidden">
-          {/* Large on desktop, scaling with the screen; never smaller than 15rem here. */}
-          <BrandLogo variant="onDark" className="w-[clamp(15rem,30vw,28rem)] drop-shadow-[0_6px_24px_rgb(0_0_0/0.35)]" />
+          {/* Scales with the screen: about 185px wide on small laptops up to 256px on large monitors. */}
+          <BrandLogo variant="onDark" className="w-[clamp(11.5rem,18vw,16rem)] drop-shadow-[0_6px_24px_rgb(0_0_0/0.35)]" />
           <div>
             <h1 className="text-4xl xl:text-5xl font-bold leading-tight tracking-tight max-w-lg text-white">
               Learning today, <span className="bg-gradient-to-r from-gold-300 via-brand-300 to-sky-300 bg-clip-text text-transparent">leading tomorrow</span>.
@@ -42,7 +42,7 @@ export default function LoginPage() {
           <div className="glass login-card w-full max-w-md p-8 sm:p-10">
             {/* Phones and tablets (the welcome panel is hidden): smaller on phones, larger on tablets. */}
             <div className="lg:hidden mb-7 flex justify-center">
-              <BrandLogo className="w-[clamp(11rem,55vw,18rem)]" />
+              <BrandLogo className="w-[clamp(9.5rem,45vw,13rem)]" />
             </div>
             <h2 className="text-2xl font-bold tracking-tight">Welcome back</h2>
             <p className="muted text-sm mt-1">Sign in with your school email address.</p>
