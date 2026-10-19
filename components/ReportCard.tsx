@@ -20,7 +20,7 @@ export default function ReportCard({ d, editor }: { d: ReportCardData; editor?: 
     return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length) : null;
   };
   return (
-    <article className="glass-solid print-area p-6 sm:p-8 relative overflow-hidden text-[0.9rem]">
+    <article className="glass-solid print-area w-full max-w-[210mm] mx-auto p-6 sm:p-8 relative overflow-hidden text-[0.9rem]">
       {d.draft && <div className="absolute inset-0 grid place-items-center pointer-events-none"><span className="text-7xl font-black text-rose-500/10 -rotate-12 select-none">DRAFT</span></div>}
       <header className="flex flex-wrap items-start gap-4 pb-4 border-b-2 border-brand-300">
         <img src={logoUrl(school.id, school.logo_updated_at) ?? "/icon.svg"} alt="" className="w-16 h-16 object-contain" />

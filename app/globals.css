@@ -178,12 +178,22 @@ body {
 
 /* Print: report cards and broadsheets */
 @media print {
-  @page { size: A4; margin: 12mm; }
-  body { background: white !important; color: black !important; }
+  /* Default paper; the PDF buttons swap this for A4 or A5 portrait. */
+  @page { size: A4 portrait; margin: 12mm; }
+  html, body { background: white !important; color: black !important; }
   .mesh, .no-print { display: none !important; }
-  .print-area { box-shadow: none !important; border: none !important; background: white !important; backdrop-filter: none !important; }
-  .page-break { break-after: page; }
+  /* Remove the space kept for the (hidden) sidebar and page padding so printouts are full width and centred. */
+  .app-content { padding-left: 0 !important; }
+  .app-content-inner { max-width: none !important; padding: 0 !important; min-height: 0 !important; }
   main { padding: 0 !important; margin: 0 !important; }
+  .print-area { box-shadow: none !important; border: none !important; background: white !important; backdrop-filter: none !important;
+    width: 100% !important; max-width: none !important; margin: 0 auto !important; padding: 0 !important; border-radius: 0 !important; }
+  .page-break { break-after: page; }
+  .page-break:last-child { break-after: auto; }
+  /* Everything is sized in rem, so the root size scales the whole report to the paper. */
+  html.print-a4 { font-size: 13px; }
+  html.print-a5 { font-size: 9.5px; }
+  html.print-a5 .print-area { font-size: 0.95rem; }
 }
 
 /* ---------- Sign-in background: education and the future ---------- */

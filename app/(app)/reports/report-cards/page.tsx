@@ -5,7 +5,7 @@ import { gradeLabel } from "@/lib/format";
 import { parsePeriod, periodLabel } from "@/lib/results";
 import { reportCards } from "@/lib/report-data";
 import { Card, PageHeader, Empty, LevelBadge } from "@/components/ui/kit";
-import { Filters, PrintButton, FormDialog } from "@/components/ui/forms";
+import { Filters, PdfButtons, FormDialog } from "@/components/ui/forms";
 import ReportCard from "@/components/ReportCard";
 import { saveComment } from "@/app/actions/results";
 
@@ -31,10 +31,10 @@ export default async function ReportCardsPage({ searchParams }: { searchParams: 
     const has = card && Object.values(card.row.pct).some((v) => v != null);
     return (
       <>
-        <PageHeader title="Report card" subtitle={periodLabel(period)}>
+        <div className="no-print"><PageHeader title="Report card" subtitle={periodLabel(period)}>
           <Filters filters={[...(kids.length > 1 ? [{ name: "learner", label: "Child", value: learnerId, options: kids.map((k) => ({ value: k.id, label: k.name })) }] : []), periodFilter]} />
-          {has && <PrintButton label="Download PDF" />}
-        </PageHeader>
+          {has && <PdfButtons filename={`Report card - ${card!.row.first_name} ${card!.row.last_name} - ${periodLabel(period)} ${ctx.school.current_year}`} />}
+        </PageHeader></div>
         {has ? <ReportCard d={card!} /> : <Card><Empty title={`The ${periodLabel(period)} report has not been published yet`} /></Card>}
       </>
     );
@@ -60,11 +60,11 @@ export default async function ReportCardsPage({ searchParams }: { searchParams: 
 
   return (
     <>
-      <PageHeader title="Report cards" subtitle={`${data.cr.className} · ${gradeLabel(data.cr.grade)} · ${periodLabel(period)}`}>
+      <div className="no-print"><PageHeader title="Report cards" subtitle={`${data.cr.className} · ${gradeLabel(data.cr.grade)} · ${periodLabel(period)}`}>
         <Filters filters={[{ name: "class", label: "Class", value: classId, options: classes.map((c) => ({ value: c.id, label: c.name })) }, periodFilter]} />
         {mode === "list" && <Link href={`/reports/report-cards?class=${classId}&term=${period}&all=1`} className="btn btn-primary">Print whole class</Link>}
-        {mode !== "list" && <><Link href={`/reports/report-cards?class=${classId}&term=${period}`} className="btn btn-ghost no-print">Back to list</Link><PrintButton /></>}
-      </PageHeader>
+        {mode !== "list" && <><Link href={`/reports/report-cards?class=${classId}&term=${period}`} className="btn btn-ghost no-print">Back to list</Link><PdfButtons filename={mode === "one" && data.cards[0] ? `Report card - ${data.cards[0].row.first_name} ${data.cards[0].row.last_name} - ${periodLabel(period)} ${ctx.school.current_year}` : `Report cards - ${data.cr.className} - ${periodLabel(period)} ${ctx.school.current_year}`} /></>}
+      </PageHeader></div>
       {data.cards.some((c) => c.draft) && <p className="no-print glass p-3 mb-4 text-sm">Some subjects are not yet published for this period, so these reports are marked <b>DRAFT</b>. Learners and parents only see published results.</p>}
 
       {mode === "list" ? (

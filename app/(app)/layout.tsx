@@ -9,8 +9,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="min-h-screen">
       <div className="no-print"><Sidebar role={ctx.user.role} school={{ id: ctx.school.id, name: ctx.school.name, logo_updated_at: ctx.school.logo_updated_at }} /></div>
-      <div className="lg:pl-[17rem]">
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-4 flex flex-col min-h-screen">
+      <div className="app-content lg:pl-[17rem]">
+        <div className="app-content-inner max-w-[1600px] mx-auto px-4 sm:px-6 py-4 flex flex-col min-h-screen">
           <div className="no-print"><Topbar ctx={ctx} /></div>
           <main className="flex-1 py-6">{children}</main>
           {/* Pinned to the bottom of the screen; stays visible while scrolling. */}

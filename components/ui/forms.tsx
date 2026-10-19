@@ -219,3 +219,40 @@ function CheckboxGroup({ field }: { field: Field }) {
   );
 }
 
+
+/**
+ * Paper-size picker (A4 / A5 portrait) and a Download PDF button.
+ * Uses the browser's print dialog ("Save as PDF"), which works offline. The paper size is applied
+ * with an @page rule and the document title becomes the suggested file name.
+ */
+export function PdfButtons({ filename, label = "Download PDF" }: { filename: string; label?: string }) {
+  const [size, setSize] = useState<"A4" | "A5">("A4");
+  const download = () => {
+    const html = document.documentElement;
+    const style = document.createElement("style");
+    style.textContent = `@page { size: ${size} portrait; margin: ${size === "A5" ? "8mm" : "12mm"}; }`;
+    document.head.appendChild(style);
+    html.classList.add(size === "A5" ? "print-a5" : "print-a4");
+    const title = document.title;
+    document.title = filename;
+    const cleanup = () => {
+      style.remove();
+      html.classList.remove("print-a4", "print-a5");
+      document.title = title;
+      window.removeEventListener("afterprint", cleanup);
+    };
+    window.addEventListener("afterprint", cleanup);
+    window.print();
+  };
+  return (
+    <div className="no-print flex items-center gap-2">
+      <div className="glass-strong rounded-full p-1 flex" role="radiogroup" aria-label="Paper size">
+        {(["A4", "A5"] as const).map((s) => (
+          <button key={s} type="button" role="radio" aria-checked={size === s} onClick={() => setSize(s)}
+            className={`px-3 py-1.5 rounded-full text-sm ${size === s ? "bg-brand-500 text-white" : "muted hover:text-[var(--ink)]"}`}>{s}</button>
+        ))}
+      </div>
+      <button type="button" onClick={download} className="btn btn-primary">{label}</button>
+    </div>
+  );
+}
