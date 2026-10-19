@@ -1,4 +1,4 @@
--- Sekolo schema (SQLite, written to stay portable to PostgreSQL).
+-- FerriDash schema (SQLite, written to stay portable to PostgreSQL).
 -- Every tenant-owned table carries school_id so many schools share one database.
 
 PRAGMA foreign_keys = ON;

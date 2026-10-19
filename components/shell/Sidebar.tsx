@@ -116,7 +116,7 @@ export default function Sidebar({ role, school }: { role: Role; school: { id: nu
   const nav = (
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-2 px-3 pt-1 pb-4">
-        <BrandLogo className="w-[11.5rem]" />
+        <BrandLogo className="w-[7rem]" />
         <button className="ml-auto lg:hidden icon-btn" onClick={() => setOpen(false)} aria-label="Close menu"><X className="w-4 h-4" /></button>
       </div>
       <div className="flex items-center gap-3 mx-1 mb-5 p-2.5 rounded-2xl bg-white/45 dark:bg-white/5 border border-white/60 dark:border-white/10">

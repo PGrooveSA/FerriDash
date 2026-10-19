@@ -1,4 +1,4 @@
-# Sekolo – School Management for South Africa
+# FerriDash – School Management for South Africa
 
 A multi-school management system for South African public and independent schools, Grade R to Grade 12.
 It covers learners, educators, parents, attendance, **CAPS results**, **report generation**, fees in **ZAR**,
@@ -38,7 +38,7 @@ All demo accounts use the password **`Demo@2026`**. Change or remove them before
 
 | Role | Email |
 |---|---|
-| Platform admin (all schools) | `superadmin@sekolo.demo` |
+| Platform admin (all schools) | `superadmin@ferridash.demo` |
 | School admin | `admin@sunnyside.demo`, `admin@moletjie.demo`, `admin@tableview.demo` |
 | Educator | `teacher@sunnyside.demo` (also `@moletjie.demo`, `@tableview.demo`) |
 | Learner | `learner@sunnyside.demo` (also `@moletjie.demo`, `@tableview.demo`) |

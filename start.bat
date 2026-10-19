@@ -1,6 +1,6 @@
 @echo off
 setlocal
-title Sekolo - School Management
+title FerriDash - School Management
 cd /d "%~dp0"
 
 rem  Usage:
@@ -15,7 +15,7 @@ rem Node marks its built-in SQLite as experimental; hide that notice.
 set NODE_OPTIONS=--no-warnings=ExperimentalWarning
 
 echo.
-echo   Sekolo - School Management for South Africa
+echo   FerriDash - School Management for South Africa
 echo   Copyright (c) Infinite Q Graphics
 echo.
 
@@ -35,7 +35,7 @@ if errorlevel 1 (
 rem ---- Is something already using the port? ----
 netstat -ano | findstr /r /c:":%PORT% .*LISTENING" >nul
 if not errorlevel 1 (
-  echo   [!] Port %PORT% is already in use - Sekolo may already be running.
+  echo   [!] Port %PORT% is already in use - FerriDash may already be running.
   echo       Opening %URL% ...
   start "" "%URL%"
   goto :end
@@ -78,7 +78,7 @@ if not exist ".next\BUILD_ID" (
 )
 
 echo.
-echo   Sekolo is running at %URL%
+echo   FerriDash is running at %URL%
 echo   Demo logins are listed in README.md. Press Ctrl+C to stop.
 echo.
 call npm start
@@ -86,7 +86,7 @@ goto :end
 
 :fail
 echo.
-echo   Sekolo could not start. See the message above.
+echo   FerriDash could not start. See the message above.
 pause
 exit /b 1
 

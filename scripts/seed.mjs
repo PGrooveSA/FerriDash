@@ -118,7 +118,7 @@ const SCHOOLS = [
 
 db.exec("BEGIN");
 
-insert("users", { school_id: null, role: "super_admin", title: "Mr", first_name: "Platform", last_name: "Administrator", email: "superadmin@sekolo.demo", phone: "+27 11 000 0000", password_hash: hash });
+insert("users", { school_id: null, role: "super_admin", title: "Mr", first_name: "Platform", last_name: "Administrator", email: "superadmin@ferridash.demo", phone: "+27 11 000 0000", password_hash: hash });
 
 const usedEmails = new Set();
 const email = (first, last, domain) => {
@@ -318,5 +318,5 @@ for (const [si, s] of SCHOOLS.entries()) {
 
 db.exec("COMMIT");
 const counts = ["schools", "users", "learners", "teachers", "assessments", "marks", "attendance"].map((t) => `${t}: ${db.prepare(`SELECT COUNT(*) n FROM ${t}`).get().n}`);
-console.log("Seeded Sekolo demo data ->", dbPath);
+console.log("Seeded FerriDash demo data ->", dbPath);
 console.log(counts.join(" | "));

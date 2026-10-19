@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: { default: "Sekolo", template: "%s · Sekolo" },
+  title: { default: "FerriDash", template: "%s · FerriDash" },
   description: "School management for South African schools - CAPS results, reports, attendance and finance.",
   icons: { icon: "/icon.svg" },
 };
