@@ -254,3 +254,32 @@ body {
 
 /* Charcoal text and icons would vanish on the dark theme; lift them to a light warm grey. */
 .dark .text-charcoal-500, .dark .text-charcoal-400 { color: var(--color-charcoal-300); }
+
+/* Sign-in page: its own dawn-sky look, distinct from the warm app interior. */
+.edu-sky {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 80% 45% at 50% 108%, rgb(255 130 54 / 0.55), transparent 70%),
+    radial-gradient(ellipse 60% 40% at 15% 0%, rgb(56 189 248 / 0.25), transparent 70%),
+    linear-gradient(180deg, #060b26 0%, #0c1a4d 30%, #16348a 62%, #2a5fc4 88%, #4c86d9 100%);
+}
+.edu-grid {
+  position: absolute; inset: 0; opacity: 0.18;
+  background-image: radial-gradient(rgb(186 230 253 / 0.9) 1px, transparent 1.2px);
+  background-size: 34px 34px;
+  mask-image: linear-gradient(to bottom, black 0%, black 55%, transparent 95%);
+}
+.edu-backdrop .edu-path-svg { opacity: 0.75; }
+.edu-backdrop .edu-ring { border-color: rgb(186 230 253 / 0.45); }
+.edu-backdrop .edu-ring-2 { border-color: rgb(252 202 28 / 0.5); }
+.edu-backdrop .edu-float svg { filter: drop-shadow(0 0 8px rgb(186 230 253 / 0.35)); }
+
+.login-hero {
+  border-radius: 1.5rem; color: white;
+  background: linear-gradient(160deg, rgb(255 255 255 / 0.12), rgb(255 255 255 / 0.04));
+  border: 1px solid rgb(255 255 255 / 0.16);
+  backdrop-filter: blur(18px) saturate(140%); -webkit-backdrop-filter: blur(18px) saturate(140%);
+  box-shadow: 0 20px 60px -20px rgb(2 6 23 / 0.6), inset 0 1px 0 rgb(255 255 255 / 0.15);
+}
+.login-card { background: rgb(255 255 255 / 0.86); box-shadow: 0 24px 70px -20px rgb(2 6 23 / 0.65); }
+.dark .login-card { background: rgb(10 16 40 / 0.78); }

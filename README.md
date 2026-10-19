@@ -88,7 +88,7 @@ Learners and parents never see unpublished marks.
 
 ## School logo and profile photos
 
-- **School logo**: school admins upload or remove it under **Settings** (no other role can). After sign-in it appears on every role's dashboard, in the sidebar, and on report cards and fee statements. The sign-in page stays generic because all schools share it; its animated background shows rising education symbols, an orbiting atom, a learning path and a sunrise for the future.
+- **School logo**: school admins upload or remove it under **Settings** (no other role can). After sign-in it appears on every role's dashboard, in the sidebar, and on report cards and fee statements. The sign-in page stays generic because all schools share it; its animated dawn-sky background (midnight blue to a tangerine sunrise) shows rising education symbols, an orbiting atom, a learning path and twinkling stars for the future.
 - **Profile photos**: every user can upload one under **Profile**.
 - Images are resized in the browser and stored offline in `data/logos` and `data/avatars`. Logos are public; profile photos are only visible to signed-in users of the same school.
 
