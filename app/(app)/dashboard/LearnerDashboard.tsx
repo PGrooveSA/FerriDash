@@ -53,7 +53,7 @@ export default function LearnerDashboard({ ctx }: { ctx: Ctx }) {
     <div className="grid grid-cols-1 xl:grid-cols-[1fr_22rem] gap-6">
       <div className="space-y-6 min-w-0">
         <div className="glass p-6 sm:p-8 flex flex-wrap items-center gap-6 bg-gradient-to-r from-sky-200/80 via-brand-100/40 to-emerald-200/70 dark:from-sky-500/20 dark:to-emerald-500/10">
-          <Avatar first={l.first_name} last={l.last_name} size={88} photo={avatarUrl(l.user_id, l.av)} />
+          <Avatar first={l.first_name} last={l.last_name} size={128} photo={avatarUrl(l.user_id, l.av)} />
           <div className="flex-1 min-w-[14rem]">
             <h1 className="text-2xl font-bold tracking-tight">Welcome, {l.first_name}</h1>
             <p className="text-sm muted mt-1">{gradeLabel(l.grade)} · Class {l.className} · Admission no. {l.admission_number}</p>
