@@ -17,14 +17,14 @@ export default function LoginPage() {
           </div>
           <div>
             <h1 className="text-4xl xl:text-5xl font-bold leading-tight tracking-tight max-w-lg">
-              Learning today, <span className="bg-gradient-to-r from-brand-500 via-gold-500 to-berry-500 bg-clip-text text-transparent">leading tomorrow</span>.
+              Learning today, <span className="bg-gradient-to-r from-brand-500 via-gold-500 to-charcoal-500 dark:to-charcoal-300 bg-clip-text text-transparent">leading tomorrow</span>.
             </h1>
             <p className="muted mt-4 max-w-md">CAPS-aligned results, report cards, attendance and fees in Rand, built for South African schools from Grade R to Grade 12.</p>
             <ul className="mt-8 grid grid-cols-2 gap-3 max-w-md text-sm">
               {[
                 [GraduationCap, "CAPS 7-point scale", "text-brand-500"],
                 [LineChart, "Results & reports", "text-gold-500"],
-                [Users, "Parent access", "text-berry-500"],
+                [Users, "Parent access", "text-charcoal-500"],
                 [ShieldCheck, "POPIA-minded", "text-brand-500"],
               ].map(([Icon, label, tone], i) => {
                 const I = Icon as typeof GraduationCap;

@@ -32,7 +32,7 @@ const TONES = {
   sky: "from-brand-200/80 to-brand-100/40 dark:from-brand-500/25 dark:to-brand-500/5",
   gold: "from-gold-200/80 to-gold-100/40 dark:from-gold-500/25 dark:to-gold-500/5",
   butter: "from-butter-300/80 to-butter-100/40 dark:from-butter-500/25 dark:to-butter-500/5",
-  green: "from-berry-200/80 to-berry-100/40 dark:from-berry-500/20 dark:to-berry-500/5",
+  green: "from-charcoal-200/80 to-charcoal-100/40 dark:from-charcoal-500/20 dark:to-charcoal-500/5",
 } as const;
 
 export function StatCard({ label, value, icon: Icon, tone = "sky", delta, hint }: { label: string; value: React.ReactNode; icon?: LucideIcon; tone?: keyof typeof TONES; delta?: number; hint?: string }) {

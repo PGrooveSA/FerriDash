@@ -8,7 +8,7 @@ import { Donut } from "@/components/charts";
 import { Wallet, TrendingUp, AlertTriangle, Receipt } from "lucide-react";
 
 export const metadata = { title: "Finance report" };
-const COLORS = ["#ffa86d", "#ffdf55", "#fde68a", "#86efac", "#fda4af", "#e8906c", "#fdba74", "#f0709f", "#f4b6a0", "#bef264", "#fcd34d", "#94a3b8"];
+const COLORS = ["#ffa86d", "#ffdf55", "#fde68a", "#86efac", "#fda4af", "#e8906c", "#fdba74", "#7a716a", "#f4b6a0", "#bef264", "#fcd34d", "#94a3b8"];
 
 export default async function FinanceReport() {
   const ctx = await requireCtx(["school_admin"]);

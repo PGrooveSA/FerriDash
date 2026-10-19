@@ -20,13 +20,13 @@
   --color-gold-400: #fcca1c;
   --color-gold-500: #e2a900;
   --color-gold-600: #b38300;
-  /* Berry - accent */
-  --color-berry-100: #fde7f1;
-  --color-berry-200: #fbcfe2;
-  --color-berry-300: #f7a3c6;
-  --color-berry-400: #f0709f;
-  --color-berry-500: #e0457f;
-  --color-berry-600: #c02a63;
+  /* Warm charcoal - accent */
+  --color-charcoal-100: #f4f2f0;
+  --color-charcoal-200: #e4dfda;
+  --color-charcoal-300: #bdb5ae;
+  --color-charcoal-400: #7a716a;
+  --color-charcoal-500: #3b3531;
+  --color-charcoal-600: #26221f;
   /* Chalk yellow - highlights */
   --color-butter-100: #fef9c3;
   --color-butter-200: #fef08a;
@@ -75,14 +75,14 @@ body {
     radial-gradient(40rem 32rem at 8% 10%, rgb(255 168 109 / 0.55), transparent 60%),
     radial-gradient(36rem 30rem at 92% 6%, rgb(255 223 85 / 0.55), transparent 60%),
     radial-gradient(40rem 34rem at 78% 92%, rgb(253 230 138 / 0.55), transparent 60%),
-    radial-gradient(34rem 28rem at 18% 88%, rgb(251 207 226 / 0.45), transparent 60%);
+    radial-gradient(34rem 28rem at 18% 88%, rgb(228 223 218 / 0.45), transparent 60%);
 }
 .dark .mesh {
   background:
     radial-gradient(40rem 32rem at 8% 10%, rgb(244 96 12 / 0.28), transparent 60%),
     radial-gradient(36rem 30rem at 92% 6%, rgb(226 169 0 / 0.28), transparent 60%),
     radial-gradient(40rem 34rem at 78% 92%, rgb(234 179 8 / 0.16), transparent 60%),
-    radial-gradient(34rem 28rem at 18% 88%, rgb(224 69 127 / 0.16), transparent 60%);
+    radial-gradient(34rem 28rem at 18% 88%, rgb(59 53 49 / 0.16), transparent 60%);
 }
 .mesh .blob {
   position: absolute; width: 28rem; height: 28rem; border-radius: 9999px; filter: blur(70px); opacity: 0.45;
@@ -128,8 +128,8 @@ body {
   }
   .btn:active { transform: scale(0.97); }
   .btn:focus-visible, .input:focus-visible { outline: 2px solid var(--color-brand-500); outline-offset: 2px; }
-  .btn-primary { background: linear-gradient(135deg, var(--color-brand-500), var(--color-berry-500)); color: white; box-shadow: 0 8px 20px -8px rgb(244 96 12 / 0.7); }
-  .btn-primary:hover { box-shadow: 0 10px 24px -6px rgb(224 69 127 / 0.55); }
+  .btn-primary { background: linear-gradient(135deg, var(--color-brand-500), var(--color-charcoal-500)); color: white; box-shadow: 0 8px 20px -8px rgb(244 96 12 / 0.7); }
+  .btn-primary:hover { box-shadow: 0 10px 24px -6px rgb(59 53 49 / 0.55); }
   .btn-ghost { background: var(--glass); border: 1px solid var(--glass-border); }
   .btn-ghost:hover { background: var(--glass-strong); }
   .btn-butter { background: var(--color-butter-300); color: #422006; }
@@ -191,7 +191,7 @@ body {
 
 .edu-sun {
   position: absolute; left: 50%; bottom: -38vmin; width: 95vmin; height: 95vmin; margin-left: -47.5vmin; border-radius: 9999px;
-  background: radial-gradient(circle, rgb(255 223 85 / 0.75) 0%, rgb(255 130 54 / 0.45) 38%, rgb(224 69 127 / 0.18) 60%, transparent 72%);
+  background: radial-gradient(circle, rgb(255 223 85 / 0.75) 0%, rgb(255 130 54 / 0.45) 38%, rgb(59 53 49 / 0.18) 60%, transparent 72%);
   animation: edu-sunrise 14s ease-in-out infinite alternate;
 }
 .edu-horizon {
@@ -218,11 +218,11 @@ body {
 
 .edu-atom { position: absolute; right: 6vw; top: 18vh; width: 220px; height: 220px; opacity: 0.8; }
 .edu-ring { position: absolute; inset: 0; border-radius: 9999px; border: 2px dashed rgb(244 96 12 / 0.45); transform: rotateX(68deg) rotateZ(25deg); }
-.edu-ring-2 { inset: 30px; border-color: rgb(224 69 127 / 0.45); transform: rotateX(68deg) rotateZ(-40deg); }
+.edu-ring-2 { inset: 30px; border-color: rgb(59 53 49 / 0.45); transform: rotateX(68deg) rotateZ(-40deg); }
 .edu-orbit { position: absolute; inset: 0; animation: edu-spin var(--dur, 12s) linear infinite; }
 .edu-electron {
   position: absolute; top: -12px; left: 50%; margin-left: -16px; width: 32px; height: 32px; border-radius: 9999px;
-  display: grid; place-items: center; color: white; background: linear-gradient(135deg, var(--color-brand-500), var(--color-berry-500));
+  display: grid; place-items: center; color: white; background: linear-gradient(135deg, var(--color-brand-500), var(--color-charcoal-500));
   box-shadow: 0 0 18px rgb(244 96 12 / 0.6); animation: edu-spin var(--dur, 12s) linear infinite reverse;
 }
 .edu-electron-sm { top: 22px; width: 14px; height: 14px; margin-left: -7px; background: var(--color-gold-400); box-shadow: 0 0 12px rgb(252 202 28 / 0.8); }
@@ -251,3 +251,6 @@ body {
   .edu-sun, .edu-star, .edu-path, .edu-goal, .edu-orbit, .edu-electron, .edu-nucleus { animation: none !important; }
   .edu-float { animation: none !important; opacity: 0.35; bottom: auto; top: calc(var(--o, 0.5) * 120%); }
 }
+
+/* Charcoal text and icons would vanish on the dark theme; lift them to a light warm grey. */
+.dark .text-charcoal-500, .dark .text-charcoal-400 { color: var(--color-charcoal-300); }

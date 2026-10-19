@@ -10,7 +10,7 @@ import {
  */
 type Glyph = { Icon: LucideIcon; left: number; size: number; dur: number; delay: number; tone: string; sway: number; rot: number; o: number };
 
-const TONES = ["text-brand-500", "text-gold-500", "text-berry-500", "text-gold-400", "text-brand-400", "text-berry-400"];
+const TONES = ["text-brand-500", "text-gold-500", "text-charcoal-500", "text-gold-400", "text-brand-400", "text-charcoal-400"];
 const ICONS = [GraduationCap, BookOpen, Pencil, Lightbulb, Atom, Rocket, Calculator, Microscope, FlaskConical, Ruler, Telescope, Brain, Globe2, Music, Palette, Cpu, GraduationCap, BookOpen, Lightbulb, Rocket];
 
 // Fixed layout (not random) so server and client render identically.
@@ -44,7 +44,7 @@ export default function LoginBackdrop() {
           <linearGradient id="eduPath" x1="0" y1="1" x2="1" y2="0">
             <stop offset="0" stopColor="var(--color-brand-400)" />
             <stop offset="0.5" stopColor="var(--color-gold-400)" />
-            <stop offset="1" stopColor="var(--color-berry-400)" />
+            <stop offset="1" stopColor="var(--color-charcoal-400)" />
           </linearGradient>
         </defs>
         <path className="edu-path" d="M-40 760 C 220 700, 260 560, 470 560 S 760 640, 860 470 S 1010 200, 1180 120" fill="none" stroke="url(#eduPath)" strokeWidth="5" strokeLinecap="round" />

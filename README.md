@@ -101,7 +101,7 @@ languages plus SA Sign Language, four-term calendar, and a POPIA privacy notice.
 ## Architecture
 
 - **Next.js 15 (App Router) + React 19 + TypeScript**, server components and server actions
-- **Tailwind CSS 4** glass design system (`app/globals.css`) in a sunrise palette (tangerine, sunshine yellow and berry): `.glass`, `.glass-strong`, `.glass-solid`, light and dark
+- **Tailwind CSS 4** glass design system (`app/globals.css`) in a sunrise palette (tangerine, sunshine yellow and warm charcoal): `.glass`, `.glass-strong`, `.glass-solid`, light and dark
   themes, and support for `prefers-reduced-transparency` and `prefers-reduced-motion`
 - **SQLite via `node:sqlite`** (`db/schema.sql`). Every tenant table carries `school_id`; all queries are scoped to the
   signed-in user's school. The SQL stays close to standard so it can move to PostgreSQL or Supabase later.

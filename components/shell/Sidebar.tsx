@@ -138,7 +138,7 @@ export default function Sidebar({ role, school }: { role: Role; school: { id: nu
           </li>
         </ul>
       </nav>
-      <div className="mt-4 rounded-3xl p-5 text-white relative overflow-hidden bg-gradient-to-br from-brand-500 via-brand-500 to-berry-500">
+      <div className="mt-4 rounded-3xl p-5 text-white relative overflow-hidden bg-gradient-to-br from-brand-500 via-brand-500 to-charcoal-500">
         <div className="absolute -right-8 -bottom-10 w-32 h-32 rounded-full bg-white/20 blur-xl" />
         <p className="font-semibold leading-snug relative">CAPS results made simple</p>
         <p className="text-xs text-white/85 mt-1 relative">Capture marks, moderate and publish report cards in one place.</p>
