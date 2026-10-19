@@ -24,9 +24,9 @@ export default function ParentDashboard({ ctx }: { ctx: Ctx }) {
         {kids.map(({ learner: l, latest, att, balance }) => (
           <Card key={l.id}>
             <div className="flex flex-wrap items-center gap-4">
-              <Avatar first={l.first_name} last={l.last_name} size={60} photo={avatarUrl(l.user_id, l.av)} />
+              <Avatar first={l.first_name} last={l.last_name} size={104} photo={avatarUrl(l.user_id, l.av)} />
               <div className="flex-1 min-w-[12rem]">
-                <p className="text-lg font-semibold">{l.first_name} {l.last_name}</p>
+                <p className="text-xl font-semibold">{l.first_name} {l.last_name}</p>
                 <p className="text-sm muted">{gradeLabel(l.grade)} · Class {l.className} · {l.admission_number}</p>
               </div>
               <div className="flex flex-wrap gap-2">
