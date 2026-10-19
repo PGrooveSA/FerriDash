@@ -48,15 +48,15 @@ export default async function TeachersPage({ searchParams }: { searchParams: Pro
     { name: "address", label: "Address", defaultValue: t?.address, half: true },
     // Existing class-subject pairs (only shown when the school already has some).
     ...(allocation.length ? [{
-      name: "allocations", label: "Classes & subjects to teach", type: "checkboxes",
+      name: "allocations", label: "Classes & subjects to teach", type: "checkboxes", placeholder: "Select classes & subjects",
       options: allocation.map((a) => ({ value: a.id, group: `Class ${a.className} · ${gradeLabel(a.grade)}`, label: a.subject, hint: a.teacher_id ? (a.teacher_id === t?.id ? "Teaching now" : `Now: ${a.teacher}`) : "Unallocated" })),
       defaultValues: t ? allocation.filter((a) => a.teacher_id === t.id).map((a) => a.id) : [],
       help: "Ticking a subject someone else teaches moves it to this teacher.",
     } as Field] : []),
     // Add more teaching: every ticked/new subject is assigned in every ticked/new class.
-    { name: "teach_classes", label: allocation.length ? "Add teaching: classes" : "Classes they will teach", type: "checkboxes", half: true, placeholder: "No classes yet. Type new ones below.",
+    { name: "teach_classes", label: allocation.length ? "Add teaching: classes" : "Classes they will teach", type: "checkboxes", half: true, placeholder: "Select classes", emptyText: "No classes yet. Type new ones below.",
       options: classes.map((c) => ({ value: c.id, label: c.name, hint: gradeLabel(c.grade) })) },
-    { name: "teach_subjects", label: allocation.length ? "Add teaching: subjects" : "Subjects they will teach", type: "checkboxes", half: true, placeholder: "No subjects yet. Type new ones below.",
+    { name: "teach_subjects", label: allocation.length ? "Add teaching: subjects" : "Subjects they will teach", type: "checkboxes", half: true, placeholder: "Select subjects", emptyText: "No subjects yet. Type new ones below.",
       options: subjects.map((x) => ({ value: x.id, label: x.name })) },
     { name: "new_classes", label: "New classes (optional)", placeholder: "e.g. 10A, 11B", half: true, help: "Start with the grade: 10A, 8B, R1." },
     { name: "new_subjects", label: "New subjects (optional)", placeholder: "e.g. Mathematics, Physical Sciences", half: true, help: "Each chosen subject is taught in each chosen class." },

@@ -1,7 +1,7 @@
 "use client";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { Pencil, Plus, Trash2, X } from "lucide-react";
+import { ChevronDown, Pencil, Plus, Trash2, X } from "lucide-react";
 
 export type ActionResult = { error?: string; ok?: boolean; message?: string };
 export type FormAction = (state: ActionResult, form: FormData) => Promise<ActionResult>;
@@ -13,6 +13,8 @@ export type Field = {
   options?: { value: string | number; label: string; group?: string; hint?: string }[];
   /** Pre-ticked values for a checkboxes field. */
   defaultValues?: (string | number)[];
+  /** For checkboxes: message shown when there is nothing to choose from. */
+  emptyText?: string;
   required?: boolean; defaultValue?: string | number | null; placeholder?: string; half?: boolean; step?: string; help?: string;
 };
 
@@ -136,43 +138,83 @@ export function CsvButton({ filename, rows, label = "Export CSV" }: { filename: 
   );
 }
 
-/** Grouped tick-box list with a quick filter; submits every ticked value under the field name. */
+/**
+ * Multi-select dropdown: a select-style button that opens a list of tick-boxes (with a filter).
+ * Every ticked value is submitted under the field name.
+ */
 function CheckboxGroup({ field }: { field: Field }) {
+  const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState("");
   const [picked, setPicked] = useState<Set<string>>(() => new Set((field.defaultValues ?? []).map(String)));
+  const box = useRef<HTMLDivElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
   const opts = field.options ?? [];
   const q = filter.trim().toLowerCase();
   const visible = q ? opts.filter((o) => `${o.group ?? ""} ${o.label} ${o.hint ?? ""}`.toLowerCase().includes(q)) : opts;
   const groups = [...new Set(visible.map((o) => o.group ?? ""))];
+  const grouped = groups.some(Boolean);
   const toggle = (v: string) => setPicked((p) => { const n = new Set(p); if (n.has(v)) n.delete(v); else n.add(v); return n; });
-  if (!opts.length) return <p className="text-sm muted rounded-2xl border border-dashed border-line px-3 py-2">{field.placeholder ?? "Nothing to choose yet."}</p>;
+
+  // Close when clicking outside; keep the open panel in view inside the scrolling form.
+  useEffect(() => {
+    if (!open) return;
+    panel.current?.scrollIntoView({ block: "nearest" });
+    const onDown = (e: MouseEvent) => { if (box.current && !box.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [open]);
+
+  if (!opts.length) return <p className="text-sm muted rounded-2xl border border-dashed border-line px-3 py-2">{field.emptyText ?? "Nothing to choose yet."}</p>;
+
+  const chosen = opts.filter((o) => picked.has(String(o.value)));
+  const summary = chosen.length === 0 ? (field.placeholder ?? "Select…")
+    : chosen.length <= 3 ? chosen.map((o) => (o.group && grouped ? `${o.group.replace(/^Class /, "").split(" ·")[0]} ${o.label}` : o.label)).join(", ")
+    : `${chosen.length} selected`;
+
   return (
-    <div className="rounded-2xl border border-line bg-[var(--glass-solid)]">
-      <div className="flex items-center gap-2 p-2 border-b border-line">
-        <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Filter by class or subject" className="input !py-1.5 !text-sm" aria-label={`Filter ${field.label}`} />
-        <span className="chip chip-info shrink-0">{picked.size} selected</span>
-      </div>
-      {/* Hidden inputs carry the ticked values, including ones filtered out of view. */}
+    <div ref={box} className="relative">
+      {/* Hidden inputs carry the ticked values, even while the dropdown is closed. */}
       {[...picked].map((v) => <input key={v} type="hidden" name={field.name} value={v} />)}
-      <div className="max-h-56 overflow-y-auto p-2 space-y-2">
-        {groups.map((g) => (
-          <div key={g}>
-            {g && <p className="text-xs font-semibold muted px-1 mb-1">{g}</p>}
-            <div className="grid sm:grid-cols-2 gap-1">
-              {visible.filter((o) => (o.group ?? "") === g).map((o) => {
-                const v = String(o.value);
-                return (
-                  <label key={v} className={`flex items-start gap-2 rounded-xl px-2 py-1.5 cursor-pointer text-sm ${picked.has(v) ? "bg-brand-100/70 dark:bg-brand-500/15" : "hover:bg-white/50 dark:hover:bg-white/5"}`}>
-                    <input type="checkbox" className="mt-0.5 accent-[var(--color-brand-500)]" checked={picked.has(v)} onChange={() => toggle(v)} />
-                    <span className="min-w-0"><span className="block">{o.label}</span>{o.hint && <span className="block text-[0.7rem] muted">{o.hint}</span>}</span>
-                  </label>
-                );
-              })}
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-haspopup="listbox" aria-expanded={open}
+        className={`input flex items-center gap-2 text-left ${open ? "ring-2 ring-brand-300" : ""}`}>
+        <span className={`flex-1 truncate ${chosen.length ? "" : "muted"}`}>{summary}</span>
+        {chosen.length > 0 && <span className="chip chip-info shrink-0">{chosen.length}</span>}
+        <ChevronDown className={`w-4 h-4 shrink-0 muted transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div ref={panel} role="listbox" aria-multiselectable
+          onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); setOpen(false); } }}
+          className="absolute z-30 left-0 right-0 mt-1 rounded-2xl border border-line bg-[var(--glass-solid)] backdrop-blur-xl shadow-xl">
+          {opts.length > 6 && (
+            <div className="p-2 border-b border-line">
+              <input autoFocus value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Type to filter" className="input !py-1.5 !text-sm" aria-label={`Filter ${field.label}`} />
             </div>
+          )}
+          <div className="max-h-60 overflow-y-auto p-2 space-y-2">
+            {groups.map((g) => (
+              <div key={g}>
+                {g && <p className="text-xs font-semibold muted px-1 mb-1">{g}</p>}
+                <div className={`grid gap-0.5 ${field.half ? "" : "sm:grid-cols-2"}`}>
+                  {visible.filter((o) => (o.group ?? "") === g).map((o) => {
+                    const v = String(o.value);
+                    return (
+                      <label key={v} className={`flex items-start gap-2 rounded-xl px-2 py-1.5 cursor-pointer text-sm ${picked.has(v) ? "bg-brand-100/70 dark:bg-brand-500/15" : "hover:bg-white/60 dark:hover:bg-white/5"}`}>
+                        <input type="checkbox" className="mt-0.5 accent-[var(--color-brand-500)]" checked={picked.has(v)} onChange={() => toggle(v)} />
+                        <span className="min-w-0"><span className="block">{o.label}</span>{o.hint && <span className="block text-[0.7rem] muted">{o.hint}</span>}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+            {!visible.length && <p className="text-sm muted px-1">No matches.</p>}
           </div>
-        ))}
-        {!visible.length && <p className="text-sm muted px-1">No matches.</p>}
-      </div>
+          <div className="flex items-center justify-between gap-2 p-2 border-t border-line">
+            <button type="button" className="text-xs muted hover:text-[var(--ink)] disabled:opacity-40" disabled={!picked.size} onClick={() => setPicked(new Set())}>Clear</button>
+            <button type="button" className="btn btn-primary btn-sm" onClick={() => setOpen(false)}>Done</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
