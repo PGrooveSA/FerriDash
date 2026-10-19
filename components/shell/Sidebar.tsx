@@ -33,6 +33,7 @@ const MENU: Item[] = [
       { href: "/results/moderation", label: "Moderation", roles: ADMIN },
       { href: "/results/analysis", label: "Analysis", roles: STAFF },
       { href: "/results/my", label: "My Results", roles: FAMILY },
+      { href: "/records", label: "Academic Record", roles: FAMILY },
     ],
   },
   {

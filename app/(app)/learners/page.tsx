@@ -17,16 +17,18 @@ export default async function LearnersPage({ searchParams }: { searchParams: Pro
   const ctx = await requireCtx(["school_admin", "teacher"]);
   const sp = await searchParams;
   const q = sp.q?.trim() ?? "", page = Math.max(1, Number(sp.page) || 1), classId = Number(sp.class) || 0;
+  // Current learners by default; past learners (graduated, transferred, withdrawn) stay on record and can be listed.
+  const status = ["Active", "Graduated", "Transferred", "Withdrawn", "all"].includes(sp.status ?? "") ? sp.status! : "Active";
   // Educators only see learners in classes they teach.
   const scope = ctx.user.role === "teacher" ? "AND l.class_id IN (SELECT class_id FROM class_subjects WHERE teacher_id = ?4 UNION SELECT id FROM classes WHERE class_teacher_id = ?4)" : "AND ?4 IS NULL";
-  const where = `l.school_id = ?1 AND (?2 = 0 OR l.class_id = ?2) AND (?3 = '' OR l.first_name || ' ' || l.last_name LIKE '%' || ?3 || '%' OR l.admission_number LIKE '%' || ?3 || '%') ${scope}`;
+  const where = `l.school_id = ?1 AND (?2 = 0 OR l.class_id = ?2) AND (?3 = '' OR l.first_name || ' ' || l.last_name LIKE '%' || ?3 || '%' OR l.admission_number LIKE '%' || ?3 || '%') AND (?7 = 'all' OR l.status = ?7) ${scope}`;
   const args = [ctx.schoolId, classId, q, ctx.user.role === "teacher" ? ctx.teacherId : null] as const;
-  const total = get<{ n: number }>(`SELECT COUNT(*) n FROM learners l WHERE ${where}`, ...args)!.n;
+  const total = get<{ n: number }>(`SELECT COUNT(*) n FROM learners l WHERE ${where}`, ...args, null, null, status)!.n;
   const rows = all<L>(`
     SELECT l.*, c.name className, c.grade, l.user_id IS NOT NULL has_login, (SELECT avatar_updated_at FROM users WHERE id = l.user_id) av,
       (SELECT GROUP_CONCAT(COALESCE(u.title || ' ', '') || u.first_name || ' ' || u.last_name || ' (' || COALESCE(u.phone, u.email) || ')', '; ') FROM guardian_links g JOIN users u ON u.id = g.parent_user_id WHERE g.learner_id = l.id) parents
     FROM learners l LEFT JOIN classes c ON c.id = l.class_id WHERE ${where}
-    ORDER BY c.grade, l.last_name, l.first_name LIMIT ?5 OFFSET ?6`, ...args, PER_PAGE, (page - 1) * PER_PAGE);
+    ORDER BY c.grade, l.last_name, l.first_name LIMIT ?5 OFFSET ?6`, ...args, PER_PAGE, (page - 1) * PER_PAGE, status);
   const classes = all<{ id: number; name: string; grade: number }>("SELECT id, name, grade FROM classes WHERE school_id = ? AND year = ? ORDER BY grade, name", ctx.schoolId, ctx.school.current_year);
   const nextAdmission = `${ctx.school.current_year}-${String((get<{ n: number }>("SELECT COUNT(*) n FROM learners WHERE school_id = ?", ctx.schoolId)!.n + 1)).padStart(4, "0")}`;
 
@@ -56,7 +58,8 @@ export default async function LearnersPage({ searchParams }: { searchParams: Pro
     <>
       <PageHeader title="Learners" subtitle={`${total} learner${total === 1 ? "" : "s"}${classId ? "" : " across all classes"}`}>
         <Filters search={{ name: "q", placeholder: "Search name or admission no.", value: q }}
-          filters={[{ name: "class", label: "Class", allLabel: "All classes", value: classId || "", options: classes.map((c) => ({ value: c.id, label: c.name })) }]} />
+          filters={[{ name: "class", label: "Class", allLabel: "All classes", value: classId || "", options: classes.map((c) => ({ value: c.id, label: c.name })) },
+            { name: "status", label: "Status", value: status, options: [{ value: "Active", label: "Current learners" }, { value: "Graduated", label: "Graduated" }, { value: "Transferred", label: "Transferred" }, { value: "Withdrawn", label: "Withdrawn / left" }, { value: "all", label: "Everyone (incl. past)" }] }]} />
         {ctx.isAdmin && <FormDialog title="Admit learner" triggerLabel="Admit learner" fields={fields()} action={saveLearner} size="lg" />}
       </PageHeader>
       <Card>
@@ -70,7 +73,7 @@ export default async function LearnersPage({ searchParams }: { searchParams: Pro
                     <td>
                       <div className="flex items-center gap-3">
                         <Avatar first={l.first_name} last={l.last_name} size={38} photo={avatarUrl(l.user_id, l.av)} />
-                        <div><p className="font-semibold">{l.first_name} {l.last_name}</p><p className="text-xs muted font-mono">{l.admission_number}</p></div>
+                        <div><Link href={`/learners/${l.id}`} className="font-semibold hover:underline">{l.first_name} {l.last_name}</Link><p className="text-xs muted font-mono">{l.admission_number}</p></div>
                       </div>
                     </td>
                     <td>{l.className ? <Link className="hover:underline" href={`/learners?class=${l.class_id}`}>{l.className}</Link> : "-"}</td>

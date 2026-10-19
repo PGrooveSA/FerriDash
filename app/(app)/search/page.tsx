@@ -27,7 +27,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
       {q && nothing && <Card><Empty title="No matches" /></Card>}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {learners.length > 0 && <Card title="Learners"><ul className="space-y-3">{learners.map((l) => (
-          <li key={l.id}><Link href={`/learners?q=${encodeURIComponent(l.admission_number)}`} className="flex items-center gap-3 hover:underline"><Avatar first={l.first_name} last={l.last_name} size={34} photo={avatarUrl(l.user_id, l.av)} />{l.first_name} {l.last_name} <span className="muted text-sm">{l.className} · {l.admission_number}</span></Link></li>))}</ul></Card>}
+          <li key={l.id}><Link href={`/learners/${l.id}`} className="flex items-center gap-3 hover:underline"><Avatar first={l.first_name} last={l.last_name} size={34} photo={avatarUrl(l.user_id, l.av)} />{l.first_name} {l.last_name} <span className="muted text-sm">{l.className} · {l.admission_number}</span></Link></li>))}</ul></Card>}
         {teachers.length > 0 && <Card title="Staff"><ul className="space-y-3">{teachers.map((t) => (
           <li key={t.id} className="flex items-center gap-3"><Avatar first={t.first_name} last={t.last_name} size={34} photo={avatarUrl(t.id, t.avatar_updated_at)} />{t.title} {t.first_name} {t.last_name} <span className="muted text-sm">{t.email}</span></li>))}</ul></Card>}
         {books.length > 0 && <Card title="Library"><ul className="space-y-2">{books.map((b) => <li key={b.id}><Link className="hover:underline" href={`/library?q=${encodeURIComponent(b.title)}`}>{b.title}</Link> <span className="muted text-sm">{b.author}</span></li>)}</ul></Card>}
