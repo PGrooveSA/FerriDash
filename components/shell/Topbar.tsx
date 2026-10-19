@@ -1,10 +1,12 @@
 import Link from "next/link";
-import { Bell, MessageSquare, Search } from "lucide-react";
+import { MessageSquare, Search } from "lucide-react";
 import { all } from "@/lib/db";
 import type { Ctx } from "@/lib/auth";
 import { ROLE_LABEL, fullName, avatarUrl } from "@/lib/format";
 import { switchSchool } from "@/app/actions/auth";
 import ThemeToggle from "./ThemeToggle";
+import NoticeBell from "./NoticeBell";
+import { unreadNoticeCount } from "@/lib/notices";
 import Avatar from "../ui/Avatar";
 
 export default function Topbar({ ctx }: { ctx: Ctx }) {
@@ -26,10 +28,7 @@ export default function Topbar({ ctx }: { ctx: Ctx }) {
       <div className="ml-auto flex items-center gap-2">
         <ThemeToggle />
         <Link href="/messages" className="icon-btn" aria-label="Messages"><MessageSquare className="w-[1.1rem] h-[1.1rem]" /></Link>
-        <Link href="/notices" className="icon-btn relative" aria-label="Notices">
-          <Bell className="w-[1.1rem] h-[1.1rem]" />
-          <span className="absolute top-2 right-2.5 w-2 h-2 rounded-full bg-rose-500" />
-        </Link>
+        <NoticeBell unread={unreadNoticeCount(ctx)} />
         <Link href="/profile" className="flex items-center gap-3 pl-2">
           <div className="text-right hidden sm:block">
             <p className="text-sm font-semibold leading-tight">{fullName(ctx.user)}</p>

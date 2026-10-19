@@ -6,6 +6,7 @@ import { fmtDate, fullName } from "@/lib/format";
 import { Card, PageHeader, Empty, Pager, hrefWith } from "@/components/ui/kit";
 import { FormDialog, DeleteButton, Filters, type Field } from "@/components/ui/forms";
 import { saveNotice, deleteNotice } from "@/app/actions/content";
+import { noticeAudiences, markNoticesSeen } from "@/lib/notices";
 
 export const metadata = { title: "Notice board" };
 const PER_PAGE = 6;
@@ -16,7 +17,9 @@ export default async function NoticesPage({ searchParams }: { searchParams: Prom
   const ctx = await requireCtx();
   const sp = await searchParams;
   const role = ctx.user.role;
-  const audiences = ctx.isAdmin ? ["all", "staff", "learners", "parents"] : role === "teacher" ? ["all", "staff"] : role === "learner" ? ["all", "learners"] : ["all", "parents"];
+  const audiences = noticeAudiences(ctx);
+  // Opening the notice board marks every notice up to now as read (clears the bell dot).
+  markNoticesSeen(ctx.user.id);
   const q = sp.q?.trim() ?? "", page = Math.max(1, Number(sp.page) || 1);
   const where = `n.school_id = ? AND n.audience IN (${audiences.map(() => "?").join(",")}) AND (? = '' OR n.title LIKE '%' || ? || '%' OR u.last_name LIKE '%' || ? || '%')`;
   const args = [ctx.schoolId, ...audiences, q, q, q];

@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS users (
   active INTEGER NOT NULL DEFAULT 1,
   last_login TEXT,
   avatar_updated_at TEXT, -- set when the user has a profile photo in data/avatars
+  notices_seen_at TEXT, -- last time the user opened the notice board (UTC); newer notices are unread
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
