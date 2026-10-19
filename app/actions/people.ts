@@ -22,7 +22,13 @@ export async function saveTeacher(_: ActionResult, f: FormData) {
     const email = str(f, "email").toLowerCase();
     if (!email.includes("@")) fail("Enter a valid email address.");
     checkId(opt(f, "id_number"));
+    // Classes & subjects ticked on the form (must belong to this school), and the optional register class.
+    const allocations = [...new Set(f.getAll("allocations").map(Number).filter(Boolean))];
+    for (const cs of allocations) if (!get("SELECT id FROM class_subjects WHERE id = ? AND school_id = ?", cs, ctx.schoolId)) fail("One of the chosen classes/subjects is not valid.");
+    const homeroom = num(f, "homeroom_class_id");
+    if (homeroom && !get("SELECT id FROM classes WHERE id = ? AND school_id = ?", homeroom, ctx.schoolId)) fail("Choose a valid register class.");
     tx(() => {
+      let teacherId = id;
       if (id) {
         const t = get<{ user_id: number }>("SELECT user_id FROM teachers WHERE id = ? AND school_id = ?", id, ctx.schoolId) ?? fail("Teacher not found.");
         run("UPDATE users SET title=?, first_name=?, last_name=?, email=?, phone=? WHERE id = ?", opt(f, "title"), str(f, "first_name"), str(f, "last_name"), email, opt(f, "phone"), t.user_id);
@@ -37,8 +43,17 @@ export async function saveTeacher(_: ActionResult, f: FormData) {
         const t = run("INSERT INTO teachers (school_id, user_id, staff_number, persal_number, sace_number, id_number, gender, post_level, address, employed_since) VALUES (?,?,?,?,?,?,?,?,?,date('now'))",
           ctx.schoolId, u.id, opt(f, "staff_number"), opt(f, "persal_number"), opt(f, "sace_number"), opt(f, "id_number"), opt(f, "gender"), opt(f, "post_level"), opt(f, "address"));
         audit(ctx.schoolId, ctx.user.id, "create", "teacher", t.id);
+        teacherId = t.id;
       }
+      // Teaching allocation: unticked subjects become unallocated; ticked ones move to this teacher.
+      const keep = allocations.length ? allocations : [-1];
+      run(`UPDATE class_subjects SET teacher_id = NULL WHERE teacher_id = ? AND id NOT IN (${keep.map(() => "?").join(",")})`, teacherId!, ...keep);
+      for (const cs of allocations) run("UPDATE class_subjects SET teacher_id = ? WHERE id = ?", teacherId!, cs);
+      run("UPDATE classes SET class_teacher_id = NULL WHERE class_teacher_id = ? AND id IS NOT ?", teacherId!, homeroom);
+      if (homeroom) run("UPDATE classes SET class_teacher_id = ? WHERE id = ?", teacherId!, homeroom);
+      audit(ctx.schoolId, ctx.user.id, "allocate", "teacher", teacherId!, `${allocations.length} subject(s)${homeroom ? ", register class" : ""}`);
     });
+    revalidatePath("/academics");
     revalidatePath("/teachers");
   });
 }

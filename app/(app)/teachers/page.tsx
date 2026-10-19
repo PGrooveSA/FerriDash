@@ -1,6 +1,6 @@
 import { requireCtx } from "@/lib/auth";
 import { all, get } from "@/lib/db";
-import { fullName, avatarUrl } from "@/lib/format";
+import { fullName, avatarUrl, gradeLabel } from "@/lib/format";
 import { Card, PageHeader, Pager, TableWrap, Empty, hrefWith } from "@/components/ui/kit";
 import { FormDialog, DeleteButton, Filters, type Field } from "@/components/ui/forms";
 import Avatar from "@/components/ui/Avatar";
@@ -24,6 +24,14 @@ export default async function TeachersPage({ searchParams }: { searchParams: Pro
     FROM teachers t JOIN users u ON u.id = t.user_id WHERE ${where}
     ORDER BY u.last_name, u.first_name LIMIT ?3 OFFSET ?4`, ctx.schoolId, q, PER_PAGE, (page - 1) * PER_PAGE);
 
+  // Teaching allocation choices: every class-subject this year, with who teaches it now.
+  const allocation = all<{ id: number; className: string; grade: number; subject: string; teacher_id: number | null; teacher: string | null }>(`
+    SELECT cs.id, c.name className, c.grade, s.name subject, cs.teacher_id,
+      (SELECT COALESCE(u.title || ' ', '') || u.last_name FROM teachers t JOIN users u ON u.id = t.user_id WHERE t.id = cs.teacher_id) teacher
+    FROM class_subjects cs JOIN classes c ON c.id = cs.class_id JOIN subjects s ON s.id = cs.subject_id
+    WHERE cs.school_id = ? AND c.year = ? ORDER BY c.grade, c.name, s.name`, ctx.schoolId, ctx.school.current_year);
+  const classes = all<{ id: number; name: string; grade: number; class_teacher_id: number | null }>("SELECT id, name, grade, class_teacher_id FROM classes WHERE school_id = ? AND year = ? ORDER BY grade, name", ctx.schoolId, ctx.school.current_year);
+
   const fields = (t?: T): Field[] => [
     { name: "title", label: "Title", type: "select", options: ["Mr", "Ms", "Mrs", "Dr", "Prof"].map((v) => ({ value: v, label: v })), defaultValue: t?.title, half: true },
     { name: "gender", label: "Gender", type: "select", options: ["Female", "Male", "Other"].map((v) => ({ value: v, label: v })), defaultValue: t?.gender, half: true },
@@ -37,6 +45,13 @@ export default async function TeachersPage({ searchParams }: { searchParams: Pro
     { name: "persal_number", label: "PERSAL number", defaultValue: t?.persal_number, half: true },
     { name: "sace_number", label: "SACE registration", defaultValue: t?.sace_number, half: true },
     { name: "address", label: "Address", defaultValue: t?.address, half: true },
+    {
+      name: "allocations", label: "Classes & subjects to teach", type: "checkboxes",
+      options: allocation.map((a) => ({ value: a.id, group: `Class ${a.className} · ${gradeLabel(a.grade)}`, label: a.subject, hint: a.teacher_id ? (a.teacher_id === t?.id ? "Teaching now" : `Now: ${a.teacher}`) : "Unallocated" })),
+      defaultValues: t ? allocation.filter((a) => a.teacher_id === t.id).map((a) => a.id) : [],
+      help: "Ticking a subject someone else teaches moves it to this teacher.",
+    },
+    { name: "homeroom_class_id", label: "Register (class) teacher of", type: "select", options: classes.map((c) => ({ value: c.id, label: `${c.name} (${gradeLabel(c.grade)})` })), defaultValue: t ? classes.find((c) => c.class_teacher_id === t.id)?.id : null, half: true, help: "Optional. Takes the register for this class." },
     ...(t ? [] : [{ name: "password", label: "Initial password", type: "password", required: true, help: "8+ characters with a capital letter and a number." } as Field]),
   ];
 

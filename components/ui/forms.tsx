@@ -8,8 +8,11 @@ export type FormAction = (state: ActionResult, form: FormData) => Promise<Action
 
 export type Field = {
   name: string; label: string;
-  type?: "text" | "email" | "number" | "date" | "time" | "select" | "textarea" | "password" | "tel";
-  options?: { value: string | number; label: string }[];
+  type?: "text" | "email" | "number" | "date" | "time" | "select" | "textarea" | "password" | "tel" | "checkboxes";
+  /** For checkboxes: group (e.g. class) and hint (e.g. current teacher) are optional. */
+  options?: { value: string | number; label: string; group?: string; hint?: string }[];
+  /** Pre-ticked values for a checkboxes field. */
+  defaultValues?: (string | number)[];
   required?: boolean; defaultValue?: string | number | null; placeholder?: string; half?: boolean; step?: string; help?: string;
 };
 
@@ -51,6 +54,8 @@ export function FormDialog({ title, fields, action, hidden = {}, trigger = "add"
                       {!f.required && <option value="">-</option>}
                       {f.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
+                  ) : f.type === "checkboxes" ? (
+                    <CheckboxGroup field={f} />
                   ) : f.type === "textarea" ? (
                     <textarea id={`f-${f.name}`} name={f.name} required={f.required} defaultValue={f.defaultValue ?? ""} placeholder={f.placeholder} rows={4} className="input" />
                   ) : (
@@ -130,3 +135,45 @@ export function CsvButton({ filename, rows, label = "Export CSV" }: { filename: 
     }}>{label}</button>
   );
 }
+
+/** Grouped tick-box list with a quick filter; submits every ticked value under the field name. */
+function CheckboxGroup({ field }: { field: Field }) {
+  const [filter, setFilter] = useState("");
+  const [picked, setPicked] = useState<Set<string>>(() => new Set((field.defaultValues ?? []).map(String)));
+  const opts = field.options ?? [];
+  const q = filter.trim().toLowerCase();
+  const visible = q ? opts.filter((o) => `${o.group ?? ""} ${o.label} ${o.hint ?? ""}`.toLowerCase().includes(q)) : opts;
+  const groups = [...new Set(visible.map((o) => o.group ?? ""))];
+  const toggle = (v: string) => setPicked((p) => { const n = new Set(p); if (n.has(v)) n.delete(v); else n.add(v); return n; });
+  if (!opts.length) return <p className="text-sm muted">Nothing to choose yet. Add classes and subjects under Classes &amp; Subjects first.</p>;
+  return (
+    <div className="rounded-2xl border border-line bg-[var(--glass-solid)]">
+      <div className="flex items-center gap-2 p-2 border-b border-line">
+        <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Filter by class or subject" className="input !py-1.5 !text-sm" aria-label={`Filter ${field.label}`} />
+        <span className="chip chip-info shrink-0">{picked.size} selected</span>
+      </div>
+      {/* Hidden inputs carry the ticked values, including ones filtered out of view. */}
+      {[...picked].map((v) => <input key={v} type="hidden" name={field.name} value={v} />)}
+      <div className="max-h-56 overflow-y-auto p-2 space-y-2">
+        {groups.map((g) => (
+          <div key={g}>
+            {g && <p className="text-xs font-semibold muted px-1 mb-1">{g}</p>}
+            <div className="grid sm:grid-cols-2 gap-1">
+              {visible.filter((o) => (o.group ?? "") === g).map((o) => {
+                const v = String(o.value);
+                return (
+                  <label key={v} className={`flex items-start gap-2 rounded-xl px-2 py-1.5 cursor-pointer text-sm ${picked.has(v) ? "bg-brand-100/70 dark:bg-brand-500/15" : "hover:bg-white/50 dark:hover:bg-white/5"}`}>
+                    <input type="checkbox" className="mt-0.5 accent-[var(--color-brand-500)]" checked={picked.has(v)} onChange={() => toggle(v)} />
+                    <span className="min-w-0"><span className="block">{o.label}</span>{o.hint && <span className="block text-[0.7rem] muted">{o.hint}</span>}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+        {!visible.length && <p className="text-sm muted px-1">No matches.</p>}
+      </div>
+    </div>
+  );
+}
+
