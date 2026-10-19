@@ -82,7 +82,7 @@ export default function Sidebar({ role, school }: { role: Role; school: { id: nu
     const Icon = item.icon;
     const kids = item.children?.filter((c) => !c.roles || c.roles.includes(role));
     const active = isActive(item.href);
-    const base = "flex items-center gap-3 rounded-2xl px-4 py-2.5 text-[0.92rem] font-medium transition-colors";
+    const base = "flex items-center gap-3 rounded-2xl px-4 py-2.5 text-base font-normal transition-colors";
     const cls = active ? `${base} bg-gradient-to-r from-brand-200/90 to-gold-200/70 text-slate-900 dark:from-brand-500/25 dark:to-gold-500/20 dark:text-white shadow-sm` : `${base} muted hover:bg-white/50 dark:hover:bg-white/5 hover:text-[var(--ink)]`;
     if (kids && kids.length > 1) {
       const isOpen = expanded === item.href;
@@ -96,7 +96,7 @@ export default function Sidebar({ role, school }: { role: Role; school: { id: nu
             <ul className="ml-6 mt-1 mb-1 border-l-2 border-brand-200 dark:border-brand-500/30 pl-3 space-y-0.5">
               {kids.map((c) => (
                 <li key={c.href}>
-                  <Link href={c.href} className={`block rounded-xl px-3 py-1.5 text-sm ${path === c.href ? "font-semibold text-[var(--ink)] bg-white/50 dark:bg-white/5" : "muted hover:text-[var(--ink)]"}`}>{c.label}</Link>
+                  <Link href={c.href} className={`block rounded-xl px-3 py-1.5 text-[0.95rem] font-normal ${path === c.href ? "text-[var(--ink)] bg-white/50 dark:bg-white/10" : "muted hover:text-[var(--ink)]"}`}>{c.label}</Link>
                 </li>
               ))}
             </ul>
@@ -124,14 +124,14 @@ export default function Sidebar({ role, school }: { role: Role; school: { id: nu
         <p className="text-sm font-semibold leading-snug line-clamp-2">{school.name}</p>
       </div>
       <nav className="flex-1 overflow-y-auto pr-1 -mr-1">
-        <p className="px-4 text-[0.7rem] font-semibold tracking-widest muted mb-2">MENU</p>
+        <p className="px-4 text-[0.7rem] font-normal tracking-widest muted mb-2">MENU</p>
         <ul className="space-y-0.5">{MENU.filter((m) => m.roles.includes(role)).map(renderItem)}</ul>
-        <p className="px-4 text-[0.7rem] font-semibold tracking-widest muted mt-6 mb-2">OTHER</p>
+        <p className="px-4 text-[0.7rem] font-normal tracking-widest muted mt-6 mb-2">OTHER</p>
         <ul className="space-y-0.5">
           {OTHER.filter((m) => m.roles.includes(role)).map(renderItem)}
           <li>
             <form action={logout}>
-              <button className="flex w-full items-center gap-3 rounded-2xl px-4 py-2.5 text-[0.92rem] font-medium muted hover:bg-rose-500/10 hover:text-rose-600">
+              <button className="flex w-full items-center gap-3 rounded-2xl px-4 py-2.5 text-base font-normal muted hover:bg-rose-500/10 hover:text-rose-600">
                 <LogOut className="w-[1.15rem] h-[1.15rem]" /> Log out
               </button>
             </form>
