@@ -11,10 +11,11 @@ export default function LoginPage() {
     <>
       <LoginBackdrop />
       <main className="relative z-10 min-h-screen grid lg:grid-cols-2 gap-6 p-4 sm:p-8">
-        <section className="hidden lg:flex login-hero flex-col justify-between p-10 relative overflow-hidden">
+        <section className="hidden lg:flex login-hero flex-col p-10 relative overflow-hidden">
           {/* Scales with the screen: about 185px wide on small laptops up to 256px on large monitors. */}
           <BrandLogo variant="onDark" className="w-[clamp(11.5rem,18vw,16rem)] drop-shadow-[0_6px_24px_rgb(0_0_0/0.35)]" />
-          <div>
+          {/* Same 2.5rem gap below the logo as the panel padding above it. */}
+          <div className="mt-10">
             <h1 className="text-4xl xl:text-5xl font-bold leading-tight tracking-tight max-w-lg text-white">
               Learning today, <span className="bg-gradient-to-r from-gold-300 via-brand-300 to-sky-300 bg-clip-text text-transparent">leading tomorrow</span>.
             </h1>
@@ -35,7 +36,7 @@ export default function LoginPage() {
               })}
             </ul>
           </div>
-          <p className="text-xs text-sky-100/60">Copyright © Infinite Q Graphics</p>
+          <p className="mt-auto pt-10 text-xs text-sky-100/60">Copyright © Infinite Q Graphics</p>
         </section>
 
         <section className="flex items-center justify-center">
