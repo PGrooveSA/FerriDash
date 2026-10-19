@@ -11,6 +11,16 @@ const CAT_TONE: Record<string, string> = {
 };
 export const catTone = (c: string) => CAT_TONE[c] ?? CAT_TONE.school;
 
+/** Soft, plain card colours that rotate card by card (no coloured edge). */
+const CARD_TONES = [
+  "bg-sky-100/80 border-sky-200/80 dark:bg-sky-500/15 dark:border-sky-400/20",
+  "bg-emerald-100/80 border-emerald-200/80 dark:bg-emerald-500/15 dark:border-emerald-400/20",
+  "bg-gold-100/90 border-gold-200/80 dark:bg-gold-500/15 dark:border-gold-400/20",
+  "bg-brand-100/80 border-brand-200/80 dark:bg-brand-500/15 dark:border-brand-400/20",
+  "bg-charcoal-100/90 border-charcoal-200/80 dark:bg-charcoal-400/15 dark:border-charcoal-300/20",
+];
+export const cardTone = (i: number) => CARD_TONES[i % CARD_TONES.length];
+
 export function MiniCalendar({ schoolId }: { schoolId: number }) {
   const t = today();
   const [y, m] = t.split("-").map(Number);
@@ -44,8 +54,8 @@ export function Agenda({ schoolId, limit = 4 }: { schoolId: number; limit?: numb
   if (!events.length) return <p className="text-sm muted">No upcoming events.</p>;
   return (
     <ul className="space-y-2.5">
-      {events.map((e) => (
-        <li key={e.id} className="rounded-2xl px-4 py-3 bg-white/60 dark:bg-white/5 border border-white/70 dark:border-white/10">
+      {events.map((e, i) => (
+        <li key={e.id} className={`rounded-2xl px-4 py-3 border ${cardTone(i)}`}>
           <p className="text-xs muted">{fmtDate(e.date, { weekday: "short", day: "numeric", month: "short" })}{e.start_time ? ` · ${e.start_time}` : ""}{e.audience ? ` · ${e.audience}` : ""}</p>
           <p className="font-semibold text-sm mt-0.5">{e.title}</p>
         </li>
