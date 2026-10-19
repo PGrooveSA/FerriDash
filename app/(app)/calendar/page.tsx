@@ -79,7 +79,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
           <Card title={fmtDate(selected, { weekday: "long", day: "numeric", month: "long" })}>
             {dayEvents.length === 0 ? <p className="text-sm muted">Nothing scheduled.</p> : (
               <ul className="space-y-3">{dayEvents.map((e) => (
-                <li key={e.id} className={`rounded-2xl border-l-4 p-4 ${catTone(e.category)}`}>
+                <li key={e.id} className="rounded-2xl p-4 bg-white/60 dark:bg-white/5 border border-white/70 dark:border-white/10">
                   <div className="flex justify-between gap-2">
                     <p className="font-semibold">{e.title}</p>
                     {e.start_time && <span className="text-xs muted flex items-center gap-1 shrink-0"><Clock className="w-3 h-3" />{e.start_time}{e.end_time ? `–${e.end_time}` : ""}</span>}

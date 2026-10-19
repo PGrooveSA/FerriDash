@@ -45,7 +45,7 @@ export function Agenda({ schoolId, limit = 4 }: { schoolId: number; limit?: numb
   return (
     <ul className="space-y-2.5">
       {events.map((e) => (
-        <li key={e.id} className={`rounded-2xl border-l-4 px-4 py-3 ${catTone(e.category)}`}>
+        <li key={e.id} className="rounded-2xl px-4 py-3 bg-white/60 dark:bg-white/5 border border-white/70 dark:border-white/10">
           <p className="text-xs muted">{fmtDate(e.date, { weekday: "short", day: "numeric", month: "short" })}{e.start_time ? ` · ${e.start_time}` : ""}{e.audience ? ` · ${e.audience}` : ""}</p>
           <p className="font-semibold text-sm mt-0.5">{e.title}</p>
         </li>
