@@ -36,7 +36,7 @@ export default function ReportCard({ d, editor }: { d: ReportCardData; editor?: 
         </div>
       </header>
 
-      <section className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-2 py-4 text-sm">
+      <section className="rc-grid grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-2 py-4 text-sm">
         <div><p className="text-xs muted">Learner</p><p className="font-semibold">{row.first_name} {row.last_name}</p></div>
         <div><p className="text-xs muted">Admission no.</p><p className="font-mono">{row.admission_number}</p></div>
         <div><p className="text-xs muted">Grade / class</p><p>{gradeLabel(cr.grade)} · {cr.className}</p></div>
@@ -47,7 +47,7 @@ export default function ReportCard({ d, editor }: { d: ReportCardData; editor?: 
         <div><p className="text-xs muted">Date issued</p><p>{fmtDate(today())}</p></div>
       </section>
 
-      <table className="table !text-sm">
+      <table className="table rc-table !text-sm">
         <thead><tr><th>Subject</th><th className="text-center">Mark %</th><th className="text-center">Level</th><th>Achievement descriptor</th><th className="text-center">Class avg</th></tr></thead>
         <tbody>
           {cr.subjects.map((s) => {
@@ -65,7 +65,7 @@ export default function ReportCard({ d, editor }: { d: ReportCardData; editor?: 
         </tbody>
       </table>
 
-      <section className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+      <section className="rc-grid rc-summary grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
         <div className="rounded-2xl bg-brand-100/60 dark:bg-brand-500/10 p-3"><p className="text-xs muted">Average</p><p className="text-xl font-bold">{row.average ?? "-"}%</p></div>
         <div className="rounded-2xl bg-gold-100/60 dark:bg-gold-500/10 p-3"><p className="text-xs muted">Position in class</p><p className="text-xl font-bold">{row.position ?? "-"} <span className="text-sm font-normal muted">/ {cr.learners.length}</span></p></div>
         <div className="rounded-2xl bg-butter-100/70 dark:bg-butter-500/10 p-3"><p className="text-xs muted">Days absent</p><p className="text-xl font-bold">{d.attendance.absent ?? 0} <span className="text-sm font-normal muted">of {d.attendance.total ?? 0}</span></p></div>
@@ -73,13 +73,13 @@ export default function ReportCard({ d, editor }: { d: ReportCardData; editor?: 
       </section>
 
       {row.promotion && (
-        <section className={`mt-4 rounded-2xl p-4 border ${row.promotion.promoted ? "border-emerald-300 bg-emerald-50/60 dark:bg-emerald-500/10" : "border-rose-300 bg-rose-50/60 dark:bg-rose-500/10"}`}>
+        <section className={`rc-box mt-4 rounded-2xl p-4 border ${row.promotion.promoted ? "border-emerald-300 bg-emerald-50/60 dark:bg-emerald-500/10" : "border-rose-300 bg-rose-50/60 dark:bg-rose-500/10"}`}>
           <p className="font-semibold">{row.provisional ? "Provisional outcome" : "Outcome"}: {row.promotion.outcome}</p>
           <ul className="text-xs mt-1 grid sm:grid-cols-2 gap-x-4">{row.promotion.checks.map((c, i) => <li key={i}>{c.ok ? "✓" : "✗"} {c.label}</li>)}</ul>
         </section>
       )}
 
-      <section className="grid sm:grid-cols-2 gap-4 mt-4 text-sm">
+      <section className="rc-grid rc-comments grid sm:grid-cols-2 gap-4 mt-4 text-sm">
         <div><p className="text-xs muted mb-1">Class teacher&apos;s comment</p><p className="min-h-[2.5rem]">{d.comments?.class_teacher_comment ?? "—"}</p></div>
         <div><p className="text-xs muted mb-1">Principal&apos;s comment</p><p className="min-h-[2.5rem]">{d.comments?.principal_comment ?? "—"}</p></div>
       </section>

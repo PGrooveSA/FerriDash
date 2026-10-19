@@ -293,3 +293,22 @@ body {
 }
 .login-card { background: rgb(255 255 255 / 0.86); box-shadow: 0 24px 70px -20px rgb(2 6 23 / 0.65); }
 .dark .login-card { background: rgb(10 16 40 / 0.78); }
+
+/* ---------- Printed report cards: tabulated, black and white ---------- */
+@media print {
+  .print-area { color: #000 !important; }
+  /* Detail, summary and comment blocks become bordered table cells. */
+  .print-area .rc-grid { gap: 0 !important; padding: 0 !important; margin-top: 0.75rem; border-top: 1px solid #000; border-left: 1px solid #000; }
+  .print-area .rc-grid > * { border-right: 1px solid #000; border-bottom: 1px solid #000; padding: 0.35rem 0.55rem !important;
+    border-radius: 0 !important; background: #fff !important; }
+  .print-area .rc-summary > * p:first-child { color: #000 !important; }
+  .print-area .rc-comments > * { min-height: 3.2rem; }
+  .print-area .rc-box { border: 1px solid #000 !important; border-radius: 0 !important; background: #fff !important; }
+  /* Subject results: a full grid with a plain black-and-white header row. */
+  .print-area .rc-table { border-collapse: collapse !important; border-spacing: 0 !important; margin-top: 0.75rem; }
+  .print-area .rc-table th, .print-area .rc-table td { border: 1px solid #000 !important; padding: 0.35rem 0.55rem !important; }
+  .print-area .rc-table thead th { background: #fff !important; color: #000 !important; font-weight: 700 !important;
+    border-radius: 0 !important; text-transform: none; }
+  .print-area .rc-table tbody tr:hover td { background: none !important; }
+  .print-area .rc-table td.muted, .print-area .muted { color: #000 !important; }
+}
