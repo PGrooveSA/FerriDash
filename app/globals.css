@@ -146,8 +146,8 @@ body {
   .label { display: block; font-size: 0.75rem; font-weight: 600; color: var(--muted); margin-bottom: 0.3rem; }
 
   .table { width: 100%; font-size: 0.875rem; border-collapse: separate; border-spacing: 0; }
-  .table thead th { text-align: left; font-weight: 600; font-size: 0.78rem; color: var(--muted); padding: 0.8rem 1rem; background: rgb(255 204 166 / 0.35); white-space: nowrap; }
-  .dark .table thead th { background: rgb(244 96 12 / 0.1); }
+  .table thead th { text-align: left; font-weight: 600; font-size: 0.78rem; color: #fff; padding: 0.8rem 1rem; background: #0f172a; white-space: nowrap; }
+  .dark .table thead th { background: #0f172a; border-bottom: 1px solid rgb(255 255 255 / 0.08); }
   .table thead th:first-child { border-top-left-radius: 1rem; }
   .table thead th:last-child { border-top-right-radius: 1rem; }
   .table tbody td { padding: 0.8rem 1rem; border-top: 1px solid var(--line); vertical-align: middle; }
@@ -314,3 +314,8 @@ body {
   .print-area .rc-table tbody tr:hover td { background: none !important; }
   .print-area .rc-table td.muted, .print-area .muted { color: #000 !important; }
 }
+
+/* Table header rows are dark (#0f172a): keep everything inside them white, even text that carries its own colour class. */
+.table thead th, .table thead th * { color: #fff; }
+.table thead th :where(.font-normal, .muted, [class*="text-[0.6"], [class*="text-[0.7"]) { color: rgb(255 255 255 / 0.72); }
+.table thead th button:hover { color: var(--color-gold-300); }

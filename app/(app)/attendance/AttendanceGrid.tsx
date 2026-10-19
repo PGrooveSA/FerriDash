@@ -44,7 +44,7 @@ export default function AttendanceGrid({ classId, days, learners, initial, edita
             <tr>
               <th className="sticky left-0 z-10 min-w-[12rem]">Learner</th>
               {days.map((d) => (
-                <th key={d.date} className={`text-center !px-2 ${d.weekend ? "opacity-50" : ""}`}>
+                <th key={d.date} className={`text-center !px-2 ${d.weekend ? "[&_*]:!text-white/45" : ""}`}>
                   <div className="text-[0.65rem] uppercase">{d.weekday}</div><div className="text-sm text-[var(--ink)]">{d.label}</div>
                   {!d.weekend && editable.has(d.date) && (
                     <button className="text-[0.65rem] text-brand-600 hover:underline" onClick={() => start(async () => { await markAllPresent(classId, d.date); router.refresh(); })}>all ✓</button>
