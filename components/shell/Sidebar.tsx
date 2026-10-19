@@ -42,6 +42,7 @@ const MENU: Item[] = [
       { href: "/reports/report-cards", label: "Report Cards" },
       { href: "/reports/broadsheet", label: "Broadsheet", roles: STAFF },
       { href: "/reports/promotion", label: "Promotion Schedule", roles: STAFF },
+      { href: "/reports/year-end", label: "Year-end Promotion", roles: ADMIN },
       { href: "/reports/attendance", label: "Attendance Report", roles: STAFF },
       { href: "/reports/finance", label: "Finance Report", roles: ADMIN },
     ],

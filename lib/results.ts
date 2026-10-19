@@ -1,4 +1,5 @@
 import { all, get } from "./db";
+import { classMemberIds } from "./enrolment";
 import { capsLevel, promotion, termMark, yearMark, type AssessmentLite, type MarkLite, type Promotion } from "./caps";
 
 export type Period = number | "year"; // 1-4 or full year
@@ -29,7 +30,9 @@ export function classResults(schoolId: number, classId: number, year: number, pe
   const assessments = all<AssessmentLite & { class_subject_id: number }>(`SELECT id, class_subject_id, term, kind, max_mark, weight FROM assessments WHERE year = ? AND class_subject_id IN (SELECT id FROM class_subjects WHERE class_id = ?)`, year, classId)
     .filter((a) => !opts.publishedOnly || published.has(`${a.class_subject_id}:${a.term}`));
 
-  const learners = all<Omit<LearnerRow, "pct" | "average" | "position" | "provisional" | "promotion">>(`SELECT id, first_name, last_name, admission_number, gender FROM learners WHERE class_id = ? AND status = 'Active' ORDER BY last_name, first_name`, classId);
+  // Members for that year: class history after a year-end rollover, otherwise the active learners in the class.
+  const memberIds = classMemberIds(classId, year);
+  const learners = memberIds.length ? all<Omit<LearnerRow, "pct" | "average" | "position" | "provisional" | "promotion">>(`SELECT id, first_name, last_name, admission_number, gender FROM learners WHERE id IN (${memberIds.map(() => "?").join(",")}) ORDER BY last_name, first_name`, ...memberIds) : [];
 
   const marks = new Map<number, Map<number, MarkLite>>(); // learner -> assessment -> mark
   for (const m of all<{ learner_id: number; assessment_id: number; mark: number | null; absent: number }>(

@@ -4,6 +4,7 @@ import { all, get } from "@/lib/db";
 import { gradeLabel } from "@/lib/format";
 import { parsePeriod, periodLabel } from "@/lib/results";
 import { reportCards } from "@/lib/report-data";
+import { learnerClassForYear, learnerYears, schoolYears } from "@/lib/enrolment";
 import { Card, PageHeader, Empty, LevelBadge } from "@/components/ui/kit";
 import { Filters, PdfButtons, FormDialog } from "@/components/ui/forms";
 import ReportCard from "@/components/ReportCard";
@@ -15,7 +16,8 @@ export default async function ReportCardsPage({ searchParams }: { searchParams: 
   const ctx = await requireCtx();
   const sp = await searchParams;
   const family = ctx.user.role === "learner" || ctx.user.role === "parent";
-  const year = ctx.school.current_year;
+  // Any year with results can be viewed; past years come from the class history written at year-end.
+  const requestedYear = Number(sp.year) || ctx.school.current_year;
   const period = parsePeriod(sp.term, Math.max(1, ctx.school.current_term - 1));
   const periodFilter = { name: "term", label: "Period", value: String(period), options: [...[1, 2, 3, 4].map((t) => ({ value: String(t), label: `Term ${t}` })), { value: "year", label: "Final (year)" }] };
 
@@ -25,15 +27,17 @@ export default async function ReportCardsPage({ searchParams }: { searchParams: 
     const learnerId = ids.includes(Number(sp.learner)) ? Number(sp.learner) : ids[0];
     if (!learnerId) return <Card><Empty title="No learner linked" /></Card>;
     const kids = all<{ id: number; name: string }>(`SELECT id, first_name || ' ' || last_name name FROM learners WHERE id IN (${ids.map(() => "?").join(",")})`, ...ids);
-    const classId = get<{ class_id: number }>("SELECT class_id FROM learners WHERE id = ?", learnerId)!.class_id;
-    const data = reportCards(ctx, classId, period, [learnerId], true);
+    const years = learnerYears(learnerId);
+    const year = years.includes(requestedYear) ? requestedYear : (years[0] ?? ctx.school.current_year);
+    const classId = learnerClassForYear(learnerId, year);
+    const data = classId ? reportCards(ctx, classId, period, [learnerId], true, year) : null;
     const card = data?.cards[0];
     const has = card && Object.values(card.row.pct).some((v) => v != null);
     return (
       <>
-        <div className="no-print"><PageHeader title="Report card" subtitle={periodLabel(period)}>
-          <Filters filters={[...(kids.length > 1 ? [{ name: "learner", label: "Child", value: learnerId, options: kids.map((k) => ({ value: k.id, label: k.name })) }] : []), periodFilter]} />
-          {has && <PdfButtons filename={`Report card - ${card!.row.first_name} ${card!.row.last_name} - ${periodLabel(period)} ${ctx.school.current_year}`} />}
+        <div className="no-print"><PageHeader title="Report card" subtitle={`${periodLabel(period)} · ${year}`}>
+          <Filters filters={[...(kids.length > 1 ? [{ name: "learner", label: "Child", value: learnerId, options: kids.map((k) => ({ value: k.id, label: k.name })) }] : []), ...(years.length > 1 ? [{ name: "year", label: "Year", value: year, options: years.map((y) => ({ value: y, label: String(y) })) }] : []), periodFilter]} />
+          {has && <PdfButtons filename={`Report card - ${card!.row.first_name} ${card!.row.last_name} - ${periodLabel(period)} ${year}`} />}
         </PageHeader></div>
         {has ? <ReportCard d={card!} /> : <Card><Empty title={`The ${periodLabel(period)} report has not been published yet`} /></Card>}
       </>
@@ -41,29 +45,33 @@ export default async function ReportCardsPage({ searchParams }: { searchParams: 
   }
 
   // ---- Staff ----
+  const allYears = schoolYears(ctx.schoolId);
+  const year = allYears.includes(requestedYear) ? requestedYear : ctx.school.current_year;
   const classes = ctx.isAdmin
     ? all<{ id: number; name: string; grade: number }>("SELECT id, name, grade FROM classes WHERE school_id = ? AND year = ? ORDER BY grade, name", ctx.schoolId, year)
     : all<{ id: number; name: string; grade: number }>("SELECT DISTINCT c.id, c.name, c.grade FROM classes c LEFT JOIN class_subjects cs ON cs.class_id = c.id WHERE c.year = ?2 AND (cs.teacher_id = ?1 OR c.class_teacher_id = ?1) ORDER BY c.grade, c.name", ctx.teacherId, year);
   const requestedLearner = Number(sp.learner) || 0;
-  const learnerClass = requestedLearner ? get<{ class_id: number }>("SELECT class_id FROM learners WHERE id = ? AND school_id = ?", requestedLearner, ctx.schoolId)?.class_id : undefined;
+  const learnerClass = requestedLearner && get("SELECT id FROM learners WHERE id = ? AND school_id = ?", requestedLearner, ctx.schoolId) ? learnerClassForYear(requestedLearner, year) ?? undefined : undefined;
   const classId = learnerClass ?? classes.find((c) => c.id === Number(sp.class))?.id ?? classes[0]?.id;
   if (!classId || !classes.some((c) => c.id === classId)) return <Card><Empty title="No classes available" /></Card>;
   const isClassTeacher = !!get("SELECT id FROM classes WHERE id = ? AND class_teacher_id = ?", classId, ctx.teacherId ?? -1);
   const mode = requestedLearner ? "one" : sp.all ? "all" : "list";
-  const data = reportCards(ctx, classId, period, mode === "one" ? [requestedLearner] : null, false)!;
+  const data = reportCards(ctx, classId, period, mode === "one" ? [requestedLearner] : null, false, year)!;
+  const pastYear = year !== ctx.school.current_year;
   const commentTerm = period === "year" ? 4 : period;
 
-  const editor = (learnerId: number, c: { class_teacher_comment: string | null; principal_comment: string | null } | null) => (ctx.isAdmin || isClassTeacher) && (
+  // Comments can only be edited for the current year; past reports are a record.
+  const editor = (learnerId: number, c: { class_teacher_comment: string | null; principal_comment: string | null } | null) => !pastYear && (ctx.isAdmin || isClassTeacher) && (
     <FormDialog trigger="button" triggerLabel="Edit comments" title="Report comments" action={saveComment} hidden={{ learner_id: learnerId, term: commentTerm }}
       fields={[{ name: "class_teacher_comment", label: "Class teacher's comment", type: "textarea", defaultValue: c?.class_teacher_comment }, ...(ctx.isAdmin ? [{ name: "principal_comment", label: "Principal's comment", type: "textarea" as const, defaultValue: c?.principal_comment }] : [])]} />
   );
 
   return (
     <>
-      <div className="no-print"><PageHeader title="Report cards" subtitle={`${data.cr.className} · ${gradeLabel(data.cr.grade)} · ${periodLabel(period)}`}>
-        <Filters filters={[{ name: "class", label: "Class", value: classId, options: classes.map((c) => ({ value: c.id, label: c.name })) }, periodFilter]} />
-        {mode === "list" && <Link href={`/reports/report-cards?class=${classId}&term=${period}&all=1`} className="btn btn-primary">Print whole class</Link>}
-        {mode !== "list" && <><Link href={`/reports/report-cards?class=${classId}&term=${period}`} className="btn btn-ghost no-print">Back to list</Link><PdfButtons filename={mode === "one" && data.cards[0] ? `Report card - ${data.cards[0].row.first_name} ${data.cards[0].row.last_name} - ${periodLabel(period)} ${ctx.school.current_year}` : `Report cards - ${data.cr.className} - ${periodLabel(period)} ${ctx.school.current_year}`} /></>}
+      <div className="no-print"><PageHeader title="Report cards" subtitle={`${data.cr.className} · ${gradeLabel(data.cr.grade)} · ${periodLabel(period)} · ${year}${pastYear ? " (past year)" : ""}`}>
+        <Filters filters={[...(allYears.length > 1 ? [{ name: "year", label: "Year", value: year, options: allYears.map((y) => ({ value: y, label: String(y) })) }] : []), { name: "class", label: "Class", value: classId, options: classes.map((c) => ({ value: c.id, label: c.name })) }, periodFilter]} />
+        {mode === "list" && <Link href={`/reports/report-cards?year=${year}&class=${classId}&term=${period}&all=1`} className="btn btn-primary">Print whole class</Link>}
+        {mode !== "list" && <><Link href={`/reports/report-cards?year=${year}&class=${classId}&term=${period}`} className="btn btn-ghost no-print">Back to list</Link><PdfButtons filename={mode === "one" && data.cards[0] ? `Report card - ${data.cards[0].row.first_name} ${data.cards[0].row.last_name} - ${periodLabel(period)} ${year}` : `Report cards - ${data.cr.className} - ${periodLabel(period)} ${year}`} /></>}
       </PageHeader></div>
       {data.cards.some((c) => c.draft) && <p className="no-print glass p-3 mb-4 text-sm">Some subjects are not yet published for this period, so these reports are marked <b>DRAFT</b>. Learners and parents only see published results.</p>}
 
@@ -78,7 +86,7 @@ export default async function ReportCardsPage({ searchParams }: { searchParams: 
                   <td><p className="font-medium">{c.row.first_name} {c.row.last_name}</p><p className="text-xs muted font-mono">{c.row.admission_number}</p></td>
                   <td>{c.row.average ?? "-"}% <LevelBadge pct={c.row.average} /></td>
                   <td className="text-sm">{c.row.promotion ? <span className={c.row.promotion.promoted ? "text-emerald-600" : "text-rose-600"}>{c.row.promotion.outcome}</span> : <span className="muted">Term report</span>}</td>
-                  <td className="text-right"><Link className="btn btn-ghost btn-sm" href={`/reports/report-cards?learner=${c.row.id}&term=${period}`}>Open</Link></td>
+                  <td className="text-right"><Link className="btn btn-ghost btn-sm" href={`/reports/report-cards?year=${year}&learner=${c.row.id}&term=${period}`}>Open</Link></td>
                 </tr>))}
               </tbody>
             </table>

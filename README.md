@@ -86,6 +86,16 @@ Learners and parents never see unpublished marks.
 - **Reports**: CAPS report cards (one learner or the whole class, print or save as PDF) with comments, attendance,
   position and promotion outcome; class broadsheet (CSV); promotion schedule (CSV); attendance report; finance report with debtors list.
 
+## Year-end promotion
+
+School admins use **Reports → Year-end Promotion** when the year's final results are in:
+
+1. Each learner gets a default action from their CAPS year result: **Promote**, **Repeat grade**, **Graduate** (Grade 12s who achieved the NSC) or **Leaves school**. Change any of them, for example for progression or condonation decisions.
+2. Type the year to confirm. FerriDash then records every learner's class and outcome for the year, creates next year's classes (8A → 9A; same subjects, teachers and register teachers), moves learners, marks graduates, copies term dates and fee structures, and moves the school to Term 1 of the new year.
+3. Past report cards stay available: choose the year under **Report cards**. Graduates and their parents can still open them.
+
+Back up the `data` folder before running it; it cannot be undone.
+
 ## School logo and profile photos
 
 - **School logo**: school admins upload or remove it under **Settings** (no other role can). After sign-in it appears on every role's dashboard, in the sidebar, and on report cards and fee statements. The sign-in page stays generic because all schools share it; its animated dawn-sky background (midnight blue to a tangerine sunrise) shows rising education symbols, an orbiting atom, a learning path and twinkling stars for the future.

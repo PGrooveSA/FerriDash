@@ -104,6 +104,18 @@ CREATE TABLE IF NOT EXISTS learners (
   UNIQUE (school_id, admission_number)
 );
 
+-- Class history: which class each learner was in for a year, and how the year ended.
+-- Written at year-end so past results and report cards stay viewable after learners move on.
+CREATE TABLE IF NOT EXISTS enrolments (
+  learner_id INTEGER NOT NULL REFERENCES learners(id) ON DELETE CASCADE,
+  year INTEGER NOT NULL,
+  class_id INTEGER NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+  outcome TEXT, -- promoted | repeated | graduated | left
+  outcome_note TEXT, -- e.g. "Promoted to Grade 9", "NSC - Diploma pass"
+  PRIMARY KEY (learner_id, year)
+);
+CREATE INDEX IF NOT EXISTS idx_enrolments_class ON enrolments(class_id, year);
+
 CREATE TABLE IF NOT EXISTS guardian_links (
   parent_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   learner_id INTEGER NOT NULL REFERENCES learners(id) ON DELETE CASCADE,
