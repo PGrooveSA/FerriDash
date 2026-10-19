@@ -65,16 +65,16 @@ export default function ReportCard({ d, editor }: { d: ReportCardData; editor?: 
         </tbody>
       </table>
 
-      <section className="rc-grid rc-summary grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+      <section className="rc-grid rc-summary grid grid-cols-3 gap-3 mt-4">
         <div className="rounded-2xl bg-brand-100/60 dark:bg-brand-500/10 p-3"><p className="text-xs muted">Average</p><p className="text-xl font-bold">{row.average ?? "-"}%</p></div>
         <div className="rounded-2xl bg-gold-100/60 dark:bg-gold-500/10 p-3"><p className="text-xs muted">Position in class</p><p className="text-xl font-bold">{row.position ?? "-"} <span className="text-sm font-normal muted">/ {cr.learners.length}</span></p></div>
-        <div className="rounded-2xl bg-butter-100/70 dark:bg-butter-500/10 p-3"><p className="text-xs muted">Days absent</p><p className="text-xl font-bold">{d.attendance.absent ?? 0} <span className="text-sm font-normal muted">of {d.attendance.total ?? 0}</span></p></div>
         <div className="rounded-2xl bg-emerald-100/60 dark:bg-emerald-500/10 p-3"><p className="text-xs muted">Attendance</p><p className="text-xl font-bold">{d.attendance.rate ?? "-"}%</p></div>
       </section>
 
       {row.promotion && (
         <section className={`rc-box mt-4 rounded-2xl p-4 border ${row.promotion.promoted ? "border-emerald-300 bg-emerald-50/60 dark:bg-emerald-500/10" : "border-rose-300 bg-rose-50/60 dark:bg-rose-500/10"}`}>
           <p className="font-semibold">{row.provisional ? "Provisional outcome" : "Outcome"}: {row.promotion.outcome}</p>
+          <p className="text-xs muted">Based on the year mark (school-based assessment across all terms plus the final examination){row.provisional ? ". It stays provisional until the final examination marks are captured and published." : "."}{cr.grade === 12 ? " The official NSC result is issued by the Department of Basic Education." : ""}</p>
           <ul className="text-xs mt-1 grid sm:grid-cols-2 gap-x-4">{row.promotion.checks.map((c, i) => <li key={i}>{c.ok ? "✓" : "✗"} {c.label}</li>)}</ul>
         </section>
       )}

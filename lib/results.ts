@@ -62,9 +62,18 @@ export function classResults(schoolId: number, classId: number, year: number, pe
     }
     const vals = Object.values(pct).filter((v): v is number => v != null);
     const average = vals.length ? Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10 : null;
-    const promo = period === "year" || period === 4
-      ? (vals.length === subjects.length && vals.length > 0 ? promotion(cls.grade, subjects.map((s) => ({ name: s.name, category: s.category, pct: pct[s.csId] }))) : null)
-      : null;
+    // Promotion is always decided on the year mark (all SBA plus the final exam), also on the Term 4 report.
+    let promo: Promotion | null = null;
+    if (period === "year" || period === 4) {
+      const yearPct: Record<number, number | null> = {};
+      for (const s of subjects) {
+        const y = yearMark(cls.grade, byCs.get(s.csId) ?? [], lm);
+        yearPct[s.csId] = y.pct == null ? null : Math.round(y.pct);
+        if (period === 4) provisional ||= y.provisional && y.pct != null;
+      }
+      const yv = Object.values(yearPct).filter((v): v is number => v != null);
+      if (yv.length === subjects.length && yv.length > 0) promo = promotion(cls.grade, subjects.map((s) => ({ name: s.name, category: s.category, pct: yearPct[s.csId] })));
+    }
     return { ...l, pct, average, position: null, provisional, promotion: promo };
   });
 
