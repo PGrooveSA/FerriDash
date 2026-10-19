@@ -18,6 +18,12 @@ type Learner = {
 
 const OUTCOME_TONE: Record<string, string> = { promoted: "chip-green", repeated: "chip-butter", graduated: "chip-info", left: "chip-slate" };
 
+/** Grade 12 learners who passed are "Matriculated"; older rows stored the NSC pass type as the note. */
+function yearEndLabel(outcome: string, note: string | null) {
+  if (outcome === "graduated") return note === "Completed Grade 12" ? note : "Matriculated";
+  return note ?? outcome;
+}
+
 export default async function LearnerRecordPage({ params }: { params: Promise<{ id: string }> }) {
   const ctx = await requireCtx();
   const id = Number((await params).id);
@@ -79,7 +85,7 @@ export default async function LearnerRecordPage({ params }: { params: Promise<{ 
                     <td>{gradeLabel(h.grade)} · {h.className}</td>
                     <td>{h.average != null ? <>{h.average}% <LevelBadge pct={h.average} /></> : <span className="muted">-</span>}</td>
                     <td className="text-sm">{h.result ? <>{h.result}{h.provisional && <span className="chip chip-slate ml-1">provisional</span>}</> : <span className="muted">{family ? "Not published" : "-"}</span>}</td>
-                    <td>{h.outcome ? <span className={`chip ${OUTCOME_TONE[h.outcome] ?? "chip-slate"}`} title={h.note ?? ""}>{h.note ?? h.outcome}</span> : <span className="muted text-sm">In progress</span>}</td>
+                    <td>{h.outcome ? <span className={`chip ${OUTCOME_TONE[h.outcome] ?? "chip-slate"}`} title={h.note ?? ""}>{yearEndLabel(h.outcome, h.note)}</span> : <span className="muted text-sm">In progress</span>}</td>
                     <td className="text-sm">{h.attendanceRate != null ? <span className="flex items-center gap-1"><CalendarCheck className="w-3.5 h-3.5" />{h.attendanceRate}% <span className="muted">({h.daysRecorded} days)</span></span> : <span className="muted">-</span>}</td>
                     <td className="text-right whitespace-nowrap">
                       {[1, 2, 3, 4].map((t) => <Link key={t} href={`/reports/report-cards?year=${h.year}&learner=${id}&term=${t}`} className="text-xs muted hover:text-[var(--ink)] hover:underline mr-2">T{t}</Link>)}

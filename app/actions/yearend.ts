@@ -40,7 +40,7 @@ export async function runYearEnd(_: ActionResult, f: FormData): Promise<ActionRe
           if (action === "promote" && c.grade >= 12) action = "graduate";
           if (action === "graduate" && c.grade < 12) fail(`Only Grade 12 learners can graduate (${l.name}).`);
 
-          const note = action === "promote" ? `Promoted to Grade ${c.grade + 1}` : action === "repeat" ? `Repeating ${c.grade === 0 ? "Grade R" : "Grade " + c.grade}` : action === "graduate" ? (l.promoted ? l.outcome : "Completed Grade 12") : "Left the school";
+          const note = action === "promote" ? `Promoted to Grade ${c.grade + 1}` : action === "repeat" ? `Repeating ${c.grade === 0 ? "Grade R" : "Grade " + c.grade}` : action === "graduate" ? (l.promoted ? "Matriculated" : "Completed Grade 12") : "Left the school";
           run("INSERT INTO enrolments (learner_id, year, class_id, outcome, outcome_note) VALUES (?,?,?,?,?) ON CONFLICT(learner_id, year) DO UPDATE SET class_id = excluded.class_id, outcome = excluded.outcome, outcome_note = excluded.outcome_note",
             l.id, year, c.id, action === "promote" ? "promoted" : action === "repeat" ? "repeated" : action === "graduate" ? "graduated" : "left", note);
 
