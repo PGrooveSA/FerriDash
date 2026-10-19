@@ -1,28 +1,32 @@
+import Link from "next/link";
 import { requireCtx } from "@/lib/auth";
 import { all, get } from "@/lib/db";
-import { fullName, avatarUrl, gradeLabel } from "@/lib/format";
-import { Card, PageHeader, Pager, TableWrap, Empty, hrefWith } from "@/components/ui/kit";
-import { FormDialog, DeleteButton, Filters, type Field } from "@/components/ui/forms";
+import { fullName, avatarUrl, gradeLabel, fmtDate } from "@/lib/format";
+import { EXIT_REASONS } from "@/lib/staff";
+import { Card, PageHeader, Pager, TableWrap, Empty, StatusChip, hrefWith } from "@/components/ui/kit";
+import { FormDialog, DeleteButton, ConfirmButton, Filters, type Field } from "@/components/ui/forms";
 import Avatar from "@/components/ui/Avatar";
-import { saveTeacher, deleteTeacher, resetPassword } from "@/app/actions/people";
+import { saveTeacher, deleteTeacher, resetPassword, exitTeacher, reinstateTeacher } from "@/app/actions/people";
 
 export const metadata = { title: "Teachers" };
 const PER_PAGE = 10;
 
-type T = { id: number; user_id: number; avatar_updated_at: string | null; title: string | null; first_name: string; last_name: string; email: string; phone: string | null; staff_number: string | null; persal_number: string | null; sace_number: string | null; id_number: string | null; gender: string | null; post_level: string | null; address: string | null; subjects: string | null; classes: string | null };
+type T = { id: number; user_id: number; avatar_updated_at: string | null; title: string | null; first_name: string; last_name: string; email: string; phone: string | null; staff_number: string | null; persal_number: string | null; sace_number: string | null; id_number: string | null; gender: string | null; post_level: string | null; address: string | null; subjects: string | null; classes: string | null; status: string; left_on: string | null; exit_note: string | null };
 
 export default async function TeachersPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const ctx = await requireCtx(["school_admin"]);
   const sp = await searchParams;
   const q = sp.q?.trim() ?? "", page = Math.max(1, Number(sp.page) || 1);
-  const where = "t.school_id = ?1 AND (?2 = '' OR u.first_name || ' ' || u.last_name LIKE '%' || ?2 || '%' OR t.staff_number LIKE '%' || ?2 || '%' OR u.email LIKE '%' || ?2 || '%')";
-  const total = get<{ n: number }>(`SELECT COUNT(*) n FROM teachers t JOIN users u ON u.id = t.user_id WHERE ${where}`, ctx.schoolId, q)!.n;
+  // Current staff by default; teachers who resigned, transferred or retired stay on record under "Former".
+  const status = ["current", "former", "all"].includes(sp.status ?? "") ? sp.status! : "current";
+  const where = "t.school_id = ?1 AND (?5 = 'all' OR (?5 = 'current') = (t.status = 'Active')) AND (?2 = '' OR u.first_name || ' ' || u.last_name LIKE '%' || ?2 || '%' OR t.staff_number LIKE '%' || ?2 || '%' OR u.email LIKE '%' || ?2 || '%')";
+  const total = get<{ n: number }>(`SELECT COUNT(*) n FROM teachers t JOIN users u ON u.id = t.user_id WHERE ${where}`, ctx.schoolId, q, null, null, status)!.n;
   const rows = all<T>(`
     SELECT t.*, u.title, u.first_name, u.last_name, u.email, u.phone, u.avatar_updated_at,
-      (SELECT GROUP_CONCAT(DISTINCT s.name) FROM class_subjects cs JOIN subjects s ON s.id = cs.subject_id WHERE cs.teacher_id = t.id) subjects,
-      (SELECT GROUP_CONCAT(DISTINCT c.name) FROM class_subjects cs JOIN classes c ON c.id = cs.class_id WHERE cs.teacher_id = t.id) classes
+      (SELECT GROUP_CONCAT(DISTINCT s.name) FROM class_subjects cs JOIN subjects s ON s.id = cs.subject_id JOIN classes c ON c.id = cs.class_id WHERE cs.teacher_id = t.id AND c.year = ?6) subjects,
+      (SELECT GROUP_CONCAT(DISTINCT c.name) FROM class_subjects cs JOIN classes c ON c.id = cs.class_id WHERE cs.teacher_id = t.id AND c.year = ?6) classes
     FROM teachers t JOIN users u ON u.id = t.user_id WHERE ${where}
-    ORDER BY u.last_name, u.first_name LIMIT ?3 OFFSET ?4`, ctx.schoolId, q, PER_PAGE, (page - 1) * PER_PAGE);
+    ORDER BY u.last_name, u.first_name LIMIT ?3 OFFSET ?4`, ctx.schoolId, q, PER_PAGE, (page - 1) * PER_PAGE, status, ctx.school.current_year);
 
   // Teaching allocation choices: every class-subject this year, with who teaches it now.
   const allocation = all<{ id: number; className: string; grade: number; subject: string; teacher_id: number | null; teacher: string | null }>(`
@@ -32,6 +36,28 @@ export default async function TeachersPage({ searchParams }: { searchParams: Pro
     WHERE cs.school_id = ? AND c.year = ? ORDER BY c.grade, c.name, s.name`, ctx.schoolId, ctx.school.current_year);
   const subjects = all<{ id: number; name: string }>("SELECT id, name FROM subjects WHERE school_id = ? ORDER BY name", ctx.schoolId);
   const classes = all<{ id: number; name: string; grade: number; class_teacher_id: number | null }>("SELECT id, name, grade, class_teacher_id FROM classes WHERE school_id = ? AND year = ? ORDER BY grade, name", ctx.schoolId, ctx.school.current_year);
+
+  const activeTeachers = all<{ id: number; name: string }>("SELECT t.id, COALESCE(u.title || ' ', '') || u.first_name || ' ' || u.last_name name FROM teachers t JOIN users u ON u.id = t.user_id WHERE t.school_id = ? AND t.status = 'Active' ORDER BY u.last_name, u.first_name", ctx.schoolId);
+
+  // "Leaves school": why and when, then who takes over each of this year's classes.
+  const exitFields = (t: T): Field[] => {
+    const others = activeTeachers.filter((o) => o.id !== t.id).map((o) => ({ value: o.id, label: o.name }));
+    const teaching = allocation.filter((a) => a.teacher_id === t.id);
+    const registers = classes.filter((c) => c.class_teacher_id === t.id);
+    return [
+      { name: "reason", label: "Reason for leaving", type: "select", required: true, options: EXIT_REASONS.map((v) => ({ value: v, label: v === "Left" ? "Other / left" : v })), half: true },
+      { name: "left_on", label: "Last working day", type: "date", required: true, defaultValue: new Date().toISOString().slice(0, 10), half: true },
+      { name: "transferred_to", label: "New school (if transferred)", placeholder: "e.g. Pretoria High School", half: true },
+      ...(teaching.length + registers.length ? [
+        { name: "handover_all", label: "Hand all teaching over to", type: "select", options: others, half: true, help: "Or choose per class below. Empty means unallocated." } as Field,
+        ...teaching.map((a) => ({ name: `handover_${a.id}`, label: `Class ${a.className} · ${a.subject}`, type: "select", half: true,
+          options: [{ value: 0, label: "Leave unallocated" }, ...others] } as Field)),
+        ...registers.map((c) => ({ name: `register_${c.id}`, label: `Register teacher of ${c.name}`, type: "select", half: true,
+          options: [{ value: 0, label: "Leave unallocated" }, ...others] } as Field)),
+      ] : []),
+      { name: "note", label: "Note (optional)", type: "textarea", help: "Their login is switched off. Marks, report cards, attendance and teaching history are kept, and they can be reinstated later." },
+    ];
+  };
 
   const fields = (t?: T): Field[] => [
     { name: "title", label: "Title", type: "select", options: ["Mr", "Ms", "Mrs", "Dr", "Prof"].map((v) => ({ value: v, label: v })), defaultValue: t?.title, half: true },
@@ -66,22 +92,23 @@ export default async function TeachersPage({ searchParams }: { searchParams: Pro
 
   return (
     <>
-      <PageHeader title="All Teachers" subtitle={`${total} educators at ${ctx.school.name}`}>
-        <Filters filters={[]} search={{ name: "q", placeholder: "Search by name, staff no. or email", value: q }} />
+      <PageHeader title="All Teachers" subtitle={`${total} ${status === "former" ? "former " : ""}educator${total === 1 ? "" : "s"} at ${ctx.school.name}`}>
+        <Filters filters={[{ name: "status", label: "Status", value: status, options: [{ value: "current", label: "Current staff" }, { value: "former", label: "Former (left)" }, { value: "all", label: "Everyone" }] }]}
+          search={{ name: "q", placeholder: "Search by name, staff no. or email", value: q }} />
         <FormDialog title="Add teacher" triggerLabel="Add teacher" fields={fields()} action={saveTeacher} size="lg" />
       </PageHeader>
       <Card>
         {rows.length === 0 ? <Empty title="No teachers found" /> : (
           <TableWrap>
             <table className="table">
-              <thead><tr><th>Teacher</th><th>Staff no.</th><th>Subject(s)</th><th>Class(es)</th><th>Phone</th><th>Post level</th><th className="text-right">Action</th></tr></thead>
+              <thead><tr><th>Teacher</th><th>Staff no.</th><th>Subject(s)</th><th>Class(es)</th><th>Phone</th><th>Post level</th><th>Status</th><th className="text-right">Action</th></tr></thead>
               <tbody>
                 {rows.map((t) => (
                   <tr key={t.id}>
                     <td>
                       <div className="flex items-center gap-3">
                         <Avatar first={t.first_name} last={t.last_name} size={40} photo={avatarUrl(t.user_id, t.avatar_updated_at)} />
-                        <div><p className="font-semibold">{fullName(t, true)}</p><p className="text-xs muted">{t.email}</p></div>
+                        <div><Link href={`/teachers/${t.id}`} className="font-semibold hover:underline">{fullName(t, true)}</Link><p className="text-xs muted">{t.email}</p></div>
                       </div>
                     </td>
                     <td className="font-mono text-xs">{t.staff_number}</td>
@@ -89,13 +116,20 @@ export default async function TeachersPage({ searchParams }: { searchParams: Pro
                     <td className="text-sm">{t.classes?.split(",").join(", ") ?? "-"}</td>
                     <td className="whitespace-nowrap">{t.phone}</td>
                     <td><span className="chip chip-gold">{t.post_level}</span></td>
+                    <td className="whitespace-nowrap"><StatusChip status={t.status} />{t.left_on && <p className="text-xs muted mt-0.5">{fmtDate(t.left_on)}</p>}</td>
                     <td>
-                      <div className="flex justify-end gap-1.5">
+                      {t.status !== "Active" ? (
+                        <div className="flex justify-end gap-1.5">
+                          <Link href={`/teachers/${t.id}`} className="btn btn-ghost btn-sm">Record</Link>
+                          <ConfirmButton action={reinstateTeacher.bind(null, t.id)} label="Reinstate" confirmText={`Re-employ ${fullName(t)}? Their login works again; allocate their classes with Edit.`} />
+                        </div>
+                      ) : <div className="flex justify-end gap-1.5">
                         <FormDialog trigger="edit" title={`Edit ${t.first_name}`} fields={fields(t)} hidden={{ id: t.id }} action={saveTeacher} size="lg" />
                         <FormDialog trigger="button" triggerLabel="Password" title={`Reset password · ${t.first_name} ${t.last_name}`} hidden={{ user_id: t.user_id }} action={resetPassword} submitLabel="Set password"
                           fields={[{ name: "password", label: "New password", type: "password", required: true, help: "8+ characters with a capital letter and a number." }]} />
+                        <FormDialog trigger="button" triggerLabel="Leaves school" title={`${fullName(t)} leaves the school`} hidden={{ id: t.id }} action={exitTeacher} submitLabel="Confirm departure" fields={exitFields(t)} size="lg" />
                         <DeleteButton action={deleteTeacher.bind(null, t.id)} label={fullName(t)} />
-                      </div>
+                      </div>}
                     </td>
                   </tr>
                 ))}

@@ -19,7 +19,7 @@ export default async function AcademicsPage({ searchParams }: { searchParams: Pr
   const ctx = await requireCtx(["school_admin"]);
   const sp = await searchParams;
   const tab = sp.tab ?? "classes";
-  const teachers = all<{ id: number; name: string }>("SELECT t.id, COALESCE(u.title || ' ', '') || u.first_name || ' ' || u.last_name name FROM teachers t JOIN users u ON u.id = t.user_id WHERE t.school_id = ? ORDER BY u.last_name", ctx.schoolId);
+  const teachers = all<{ id: number; name: string }>("SELECT t.id, COALESCE(u.title || ' ', '') || u.first_name || ' ' || u.last_name name FROM teachers t JOIN users u ON u.id = t.user_id WHERE t.school_id = ? AND t.status = 'Active' ORDER BY u.last_name", ctx.schoolId);
   const teacherOpts = teachers.map((t) => ({ value: t.id, label: t.name }));
   const classes = all<{ id: number; grade: number; name: string; room: string | null; class_teacher_id: number | null; teacher: string | null; learners: number; subjects: number }>(`
     SELECT c.*, (SELECT COALESCE(u.title || ' ', '') || u.last_name FROM teachers t JOIN users u ON u.id = t.user_id WHERE t.id = c.class_teacher_id) teacher,

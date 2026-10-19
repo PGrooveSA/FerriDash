@@ -13,7 +13,7 @@ type S = { id: number; name: string; emis_number: string | null; province: strin
 
 export default async function SchoolsPage() {
   const ctx = await requireCtx(["super_admin"]);
-  const schools = all<S>(`SELECT s.*, (SELECT COUNT(*) FROM learners l WHERE l.school_id = s.id AND l.status = 'Active') learners, (SELECT COUNT(*) FROM teachers t WHERE t.school_id = s.id) teachers FROM schools s ORDER BY s.province, s.name`);
+  const schools = all<S>(`SELECT s.*, (SELECT COUNT(*) FROM learners l WHERE l.school_id = s.id AND l.status = 'Active') learners, (SELECT COUNT(*) FROM teachers t WHERE t.school_id = s.id AND t.status = 'Active') teachers FROM schools s ORDER BY s.province, s.name`);
   const fields = (s?: S): Field[] => [
     { name: "name", label: "School name", required: true, defaultValue: s?.name },
     { name: "emis_number", label: "EMIS number", defaultValue: s?.emis_number, half: true },

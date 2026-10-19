@@ -52,8 +52,25 @@ CREATE TABLE IF NOT EXISTS teachers (
   gender TEXT,
   address TEXT,
   post_level TEXT DEFAULT 'PL1',
-  employed_since TEXT
+  employed_since TEXT,
+  status TEXT NOT NULL DEFAULT 'Active', -- Active | Resigned | Transferred | Retired | Contract ended | Left
+  left_on TEXT,
+  exit_note TEXT -- e.g. the school they transferred to
 );
+
+-- Teaching a teacher handed over when they left (current-year allocations are moved to someone else,
+-- so this keeps the record of who taught the class before). register = 1 for the register class.
+CREATE TABLE IF NOT EXISTS teaching_handovers (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  teacher_id INTEGER NOT NULL REFERENCES teachers(id) ON DELETE CASCADE,
+  class_id INTEGER NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+  subject_id INTEGER REFERENCES subjects(id) ON DELETE CASCADE,
+  register INTEGER NOT NULL DEFAULT 0,
+  ended_on TEXT NOT NULL,
+  handed_to INTEGER REFERENCES teachers(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS idx_handovers_teacher ON teaching_handovers(teacher_id);
 
 CREATE TABLE IF NOT EXISTS classes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

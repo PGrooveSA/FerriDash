@@ -102,6 +102,24 @@ export function DeleteButton({ action, label = "this record" }: { action: () => 
   );
 }
 
+/** A small button that runs a server action after the user confirms (e.g. "Reinstate"). */
+export function ConfirmButton({ action, label, confirmText }: { action: () => Promise<ActionResult | void>; label: string; confirmText: string }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  return (
+    <button type="button" disabled={busy} className="btn btn-ghost btn-sm"
+      onClick={async () => {
+        if (!confirm(confirmText)) return;
+        setBusy(true);
+        const r = await action();
+        setBusy(false);
+        if (r && "error" in r && r.error) alert(r.error); else router.refresh();
+      }}>
+      {busy ? "Working..." : label}
+    </button>
+  );
+}
+
 /** A row of GET filters that updates the URL as soon as a value changes. */
 export function Filters({ filters, search }: { filters: { name: string; label: string; options: { value: string | number; label: string }[]; value?: string | number | null; allLabel?: string }[]; search?: { name: string; placeholder: string; value?: string } }) {
   const router = useRouter();

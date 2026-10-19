@@ -4,7 +4,8 @@ import { randomBytes } from "node:crypto";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { AVATAR_DIR, MAX_AVATAR_BYTES, avatarFile, imageType } from "@/lib/uploads";
 import { revalidatePath } from "next/cache";
-import { audit, get, run, tx } from "@/lib/db";
+import { all, audit, get, run, tx } from "@/lib/db";
+import { EXIT_REASONS } from "@/lib/staff";
 import { parseSaId } from "@/lib/format";
 import { ADMIN, STAFF, fail, guarded, num, opt, str, type ActionResult } from "@/lib/action-utils";
 
@@ -100,9 +101,76 @@ export async function saveTeacher(_: ActionResult, f: FormData) {
   });
 }
 
+/**
+ * A teacher leaves the school (resigns, transfers, retires...). Nothing is deleted: their login is
+ * switched off, this year's classes and register class are handed over (or left unallocated), and
+ * every handover is logged so the school can still see who taught what.
+ */
+export async function exitTeacher(_: ActionResult, f: FormData) {
+  return guarded(ADMIN, (ctx) => {
+    const id = num(f, "id");
+    const t = get<{ user_id: number; status: string }>("SELECT user_id, status FROM teachers WHERE id = ? AND school_id = ?", id, ctx.schoolId) ?? fail("Teacher not found.");
+    if (t.status !== "Active") fail("This teacher has already left the school.");
+    const reason = str(f, "reason");
+    if (!(EXIT_REASONS as readonly string[]).includes(reason)) fail("Choose why the teacher is leaving.");
+    const leftOn = opt(f, "left_on") ?? new Date().toISOString().slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(leftOn)) fail("Enter a valid last working day.");
+    const destination = opt(f, "transferred_to");
+    const note = [reason === "Transferred" && destination ? `Transferred to ${destination}` : null, opt(f, "note")].filter(Boolean).join(" · ") || null;
+
+    // Who takes over: a per-class choice, else the "everything" choice, else unallocated.
+    const target = (key: string) => {
+      const v = num(f, key) ?? num(f, "handover_all");
+      if (!v) return null;
+      if (v === id || !get("SELECT id FROM teachers WHERE id = ? AND school_id = ? AND status = 'Active'", v, ctx.schoolId)) fail("Hand over only to a current teacher at this school.");
+      return v;
+    };
+    const teaching = all<{ id: number; class_id: number; subject_id: number }>(
+      "SELECT cs.id, cs.class_id, cs.subject_id FROM class_subjects cs JOIN classes c ON c.id = cs.class_id WHERE cs.teacher_id = ? AND c.year >= ?", id, ctx.school.current_year);
+    const registers = all<{ id: number }>("SELECT id FROM classes WHERE class_teacher_id = ? AND year >= ?", id, ctx.school.current_year);
+
+    tx(() => {
+      for (const cs of teaching) {
+        const to = target(`handover_${cs.id}`);
+        run("INSERT INTO teaching_handovers (school_id, teacher_id, class_id, subject_id, register, ended_on, handed_to) VALUES (?,?,?,?,0,?,?)", ctx.schoolId, id, cs.class_id, cs.subject_id, leftOn, to);
+        run("UPDATE class_subjects SET teacher_id = ? WHERE id = ?", to, cs.id);
+      }
+      for (const c of registers) {
+        const to = target(`register_${c.id}`);
+        run("INSERT INTO teaching_handovers (school_id, teacher_id, class_id, subject_id, register, ended_on, handed_to) VALUES (?,?,?,NULL,1,?,?)", ctx.schoolId, id, c.id, leftOn, to);
+        run("UPDATE classes SET class_teacher_id = ? WHERE id = ?", to, c.id);
+      }
+      run("UPDATE teachers SET status = ?, left_on = ?, exit_note = ? WHERE id = ?", reason, leftOn, note, id);
+      run("UPDATE users SET active = 0 WHERE id = ?", t.user_id);
+      audit(ctx.schoolId, ctx.user.id, "exit", "teacher", id, `${reason} ${leftOn}: ${teaching.length} subject(s), ${registers.length} register class(es) handed over`);
+    });
+    revalidatePath("/teachers");
+    return { ok: true, message: "Teacher marked as left." };
+  });
+}
+
+/** Re-employ a teacher who left: login works again; teaching is allocated afresh with Edit. */
+export async function reinstateTeacher(id: number) {
+  return guarded(ADMIN, (ctx) => {
+    const t = get<{ user_id: number; status: string }>("SELECT user_id, status FROM teachers WHERE id = ? AND school_id = ?", id, ctx.schoolId) ?? fail("Teacher not found.");
+    if (t.status === "Active") fail("This teacher is already active.");
+    tx(() => {
+      run("UPDATE teachers SET status = 'Active', left_on = NULL, exit_note = NULL, employed_since = date('now') WHERE id = ?", id);
+      run("UPDATE users SET active = 1 WHERE id = ?", t.user_id);
+    });
+    audit(ctx.schoolId, ctx.user.id, "reinstate", "teacher", id);
+    revalidatePath("/teachers");
+  });
+}
+
 export async function deleteTeacher(id: number) {
   return guarded(ADMIN, (ctx) => {
     const t = get<{ user_id: number }>("SELECT user_id FROM teachers WHERE id = ? AND school_id = ?", id, ctx.schoolId) ?? fail("Teacher not found.");
+    // Deleting is only for teachers added by mistake: anyone with teaching history keeps their record.
+    const history = get(`SELECT 1 FROM class_subjects cs JOIN classes c ON c.id = cs.class_id WHERE cs.teacher_id = ?1 AND c.year < ?2
+      UNION SELECT 1 FROM classes WHERE class_teacher_id = ?1 AND year < ?2 UNION SELECT 1 FROM teaching_handovers WHERE teacher_id = ?1
+      UNION SELECT 1 FROM marks WHERE updated_by = ?3 UNION SELECT 1 FROM attendance WHERE recorded_by = ?3 LIMIT 1`, id, ctx.school.current_year, t.user_id);
+    if (history) fail("This teacher has teaching records, so they can't be deleted. Use \"Leaves school\" instead: their history is kept and their login is switched off.");
     tx(() => { run("DELETE FROM teachers WHERE id = ?", id); run("DELETE FROM users WHERE id = ?", t.user_id); });
     removeAvatarFile(t.user_id);
     audit(ctx.schoolId, ctx.user.id, "delete", "teacher", id);

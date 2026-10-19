@@ -16,7 +16,7 @@ export default function AdminDashboard({ ctx }: { ctx: Ctx }) {
     SELECT (SELECT COUNT(*) FROM learners WHERE school_id = ?1 AND status='Active') learners,
            (SELECT COUNT(*) FROM learners WHERE school_id = ?1 AND status='Active' AND gender='Male') boys,
            (SELECT COUNT(*) FROM learners WHERE school_id = ?1 AND status='Active' AND gender='Female') girls,
-           (SELECT COUNT(*) FROM teachers WHERE school_id = ?1) teachers,
+           (SELECT COUNT(*) FROM teachers WHERE school_id = ?1 AND status = 'Active') teachers,
            (SELECT COUNT(*) FROM users WHERE school_id = ?1 AND role='parent') parents`, sid)!;
   const fees = get<{ billed: number; paid: number }>(`SELECT
       (SELECT COALESCE(SUM(tuition+activities+other),0) FROM invoices WHERE school_id = ?1 AND year = ?2) billed,

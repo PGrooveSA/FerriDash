@@ -22,6 +22,7 @@ function migrate(db: DatabaseSync) {
   if (!has("users", "notices_seen_at")) db.exec("ALTER TABLE users ADD COLUMN notices_seen_at TEXT");
   if (!has("schools", "logo_updated_at")) db.exec("ALTER TABLE schools ADD COLUMN logo_updated_at TEXT");
   if (!has("expenses", "document_name")) db.exec("ALTER TABLE expenses ADD COLUMN document_name TEXT");
+  if (!has("teachers", "status")) db.exec("ALTER TABLE teachers ADD COLUMN status TEXT NOT NULL DEFAULT 'Active'; ALTER TABLE teachers ADD COLUMN left_on TEXT; ALTER TABLE teachers ADD COLUMN exit_note TEXT;");
 }
 
 export function db(): DatabaseSync {
