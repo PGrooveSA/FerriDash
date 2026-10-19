@@ -307,8 +307,10 @@ body {
   /* Subject results: a full grid with a plain black-and-white header row. */
   .print-area .rc-table { border-collapse: collapse !important; border-spacing: 0 !important; margin-top: 0.75rem; }
   .print-area .rc-table th, .print-area .rc-table td { border: 1px solid #000 !important; padding: 0.35rem 0.55rem !important; }
-  .print-area .rc-table thead th { background: #fff !important; color: #000 !important; font-weight: 700 !important;
-    border-radius: 0 !important; text-transform: none; }
+  /* Header row: solid black with white text. print-color-adjust makes browsers print the background
+     even when "Background graphics" is switched off in the print dialog. */
+  .print-area .rc-table thead th { background: #000 !important; color: #fff !important; font-weight: 700 !important;
+    border-radius: 0 !important; text-transform: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .print-area .rc-table tbody tr:hover td { background: none !important; }
   .print-area .rc-table td.muted, .print-area .muted { color: #000 !important; }
 }
