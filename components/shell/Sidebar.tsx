@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { logout } from "@/app/actions/auth";
 import SchoolCrest from "@/components/SchoolCrest";
+import BrandLogo from "@/components/BrandLogo";
 
 type Role = "super_admin" | "school_admin" | "teacher" | "learner" | "parent";
 type Item = { href: string; label: string; icon: typeof LayoutDashboard; roles: Role[]; children?: { href: string; label: string; roles?: Role[] }[] };
@@ -115,8 +116,7 @@ export default function Sidebar({ role, school }: { role: Role; school: { id: nu
   const nav = (
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-2 px-3 pt-1 pb-4">
-        <img src="/icon.svg" alt="" className="w-7 h-7" />
-        <p className="text-lg font-bold tracking-tight">Sekolo</p>
+        <BrandLogo className="w-[11.5rem]" />
         <button className="ml-auto lg:hidden icon-btn" onClick={() => setOpen(false)} aria-label="Close menu"><X className="w-4 h-4" /></button>
       </div>
       <div className="flex items-center gap-3 mx-1 mb-5 p-2.5 rounded-2xl bg-white/45 dark:bg-white/5 border border-white/60 dark:border-white/10">

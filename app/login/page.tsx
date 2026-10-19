@@ -1,6 +1,7 @@
 import LoginForm from "./LoginForm";
 import { GraduationCap, ShieldCheck, LineChart, Users } from "lucide-react";
 import LoginBackdrop from "@/components/LoginBackdrop";
+import BrandLogo from "@/components/BrandLogo";
 
 export const metadata = { title: "Sign in" };
 
@@ -11,10 +12,8 @@ export default function LoginPage() {
       <LoginBackdrop />
       <main className="relative z-10 min-h-screen grid lg:grid-cols-2 gap-6 p-4 sm:p-8">
         <section className="hidden lg:flex login-hero flex-col justify-between p-10 relative overflow-hidden">
-          <div className="flex items-center gap-3">
-            <img src="/icon.svg" alt="" className="w-11 h-11" />
-            <span className="text-2xl font-bold tracking-tight text-white">Sekolo</span>
-          </div>
+          {/* Large on desktop, scaling with the screen; never smaller than 15rem here. */}
+          <BrandLogo variant="onDark" className="w-[clamp(15rem,30vw,28rem)] drop-shadow-[0_6px_24px_rgb(0_0_0/0.35)]" />
           <div>
             <h1 className="text-4xl xl:text-5xl font-bold leading-tight tracking-tight max-w-lg text-white">
               Learning today, <span className="bg-gradient-to-r from-gold-300 via-brand-300 to-sky-300 bg-clip-text text-transparent">leading tomorrow</span>.
@@ -41,9 +40,9 @@ export default function LoginPage() {
 
         <section className="flex items-center justify-center">
           <div className="glass login-card w-full max-w-md p-8 sm:p-10">
-            <div className="flex items-center gap-3 lg:hidden mb-6">
-              <img src="/icon.svg" alt="" className="w-10 h-10" />
-              <span className="text-xl font-bold">Sekolo</span>
+            {/* Phones and tablets (the welcome panel is hidden): smaller on phones, larger on tablets. */}
+            <div className="lg:hidden mb-7 flex justify-center">
+              <BrandLogo className="w-[clamp(11rem,55vw,18rem)]" />
             </div>
             <h2 className="text-2xl font-bold tracking-tight">Welcome back</h2>
             <p className="muted text-sm mt-1">Sign in with your school email address.</p>

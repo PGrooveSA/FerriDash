@@ -11,4 +11,5 @@ export async function middleware(req: NextRequest) {
   return NextResponse.next();
 }
 
-export const config = { matcher: ["/((?!_next/static|_next/image|favicon.ico|icon.svg).*)"] };
+// Static brand assets (logos) are public: the sign-in page shows them before anyone logs in.
+export const config = { matcher: ["/((?!_next/static|_next/image|favicon.ico|icon.svg|brand/).*)"] };
