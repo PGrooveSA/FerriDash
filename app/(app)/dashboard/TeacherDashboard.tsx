@@ -43,7 +43,7 @@ export default function TeacherDashboard({ ctx }: { ctx: Ctx }) {
   return (
     <div className="grid grid-cols-1 xl:grid-cols-[1fr_22rem] gap-6">
       <div className="space-y-6 min-w-0">
-        <div className="glass p-6 sm:p-8 flex flex-wrap items-center gap-6 bg-gradient-to-r from-brand-300/70 via-brand-200/60 to-gold-200/60 dark:from-brand-500/25 dark:to-gold-500/15">
+        <div className="glass p-6 sm:p-8 flex flex-wrap items-center gap-6 bg-gradient-to-r from-sky-200/80 via-brand-100/50 to-emerald-200/70 dark:from-sky-500/20 dark:to-emerald-500/15">
           <div className="flex-1 min-w-[16rem]">
           <p className="text-sm muted">Sawubona · Dumela · Welcome</p>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mt-1">{fullName(ctx.user, true)}</h1>
@@ -58,13 +58,13 @@ export default function TeacherDashboard({ ctx }: { ctx: Ctx }) {
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard label="Subjects taught" value={my.length} icon={BookOpen} tone="sky" />
-          <StatCard label="Learners" value={[...new Map(my.map((m) => [m.classId, m.learners])).values()].reduce((a, b) => a + b, 0)} icon={Users} tone="gold" />
-          <StatCard label="To capture" value={toCapture} icon={ClipboardList} tone="butter" />
-          <StatCard label="Register class" value={homeroom?.name ?? "-"} icon={CalendarCheck} tone="green" hint={homeroom ? (registerDone ? "Taken today" : "Not yet taken") : undefined} />
+          <StatCard label="Learners" value={[...new Map(my.map((m) => [m.classId, m.learners])).values()].reduce((a, b) => a + b, 0)} icon={Users} tone="green" />
+          <StatCard label="To capture" value={toCapture} icon={ClipboardList} tone="gold" />
+          <StatCard label="Register class" value={homeroom?.name ?? "-"} icon={CalendarCheck} tone="orange" hint={homeroom ? (registerDone ? "Taken today" : "Not yet taken") : undefined} />
         </div>
 
         <Card title={`My classes · Term ${prev} averages`}>
-          <Bars data={perf} xKey="name" yMax={100} unit="%" series={[{ key: "average", name: "Average", color: "#ffdf55" }]} />
+          <Bars data={perf} xKey="name" yMax={100} unit="%" series={[{ key: "average", name: "Average", color: "#38bdf8" }]} />
         </Card>
 
         <Card title="My mark sheets" action={<span className="text-xs muted">Term {term}</span>}>

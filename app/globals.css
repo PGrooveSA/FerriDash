@@ -73,16 +73,16 @@ body {
   position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
   background:
     radial-gradient(40rem 32rem at 8% 10%, rgb(255 168 109 / 0.55), transparent 60%),
-    radial-gradient(36rem 30rem at 92% 6%, rgb(255 223 85 / 0.55), transparent 60%),
+    radial-gradient(36rem 30rem at 92% 6%, rgb(125 211 252 / 0.5), transparent 60%),
     radial-gradient(40rem 34rem at 78% 92%, rgb(253 230 138 / 0.55), transparent 60%),
-    radial-gradient(34rem 28rem at 18% 88%, rgb(228 223 218 / 0.45), transparent 60%);
+    radial-gradient(34rem 28rem at 18% 88%, rgb(110 231 183 / 0.42), transparent 60%);
 }
 .dark .mesh {
   background:
     radial-gradient(40rem 32rem at 8% 10%, rgb(244 96 12 / 0.28), transparent 60%),
-    radial-gradient(36rem 30rem at 92% 6%, rgb(226 169 0 / 0.28), transparent 60%),
+    radial-gradient(36rem 30rem at 92% 6%, rgb(56 189 248 / 0.22), transparent 60%),
     radial-gradient(40rem 34rem at 78% 92%, rgb(234 179 8 / 0.16), transparent 60%),
-    radial-gradient(34rem 28rem at 18% 88%, rgb(59 53 49 / 0.16), transparent 60%);
+    radial-gradient(34rem 28rem at 18% 88%, rgb(16 185 129 / 0.18), transparent 60%);
 }
 .mesh .blob {
   position: absolute; width: 28rem; height: 28rem; border-radius: 9999px; filter: blur(70px); opacity: 0.45;

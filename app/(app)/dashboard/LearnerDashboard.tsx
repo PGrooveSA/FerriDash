@@ -45,14 +45,14 @@ export default function LearnerDashboard({ ctx }: { ctx: Ctx }) {
   const bars = latest ? latest.cr!.subjects.map((s) => {
     const v = latest.row!.pct[s.csId];
     const lv = capsLevel(v)?.level ?? 0;
-    return { name: s.name.replace(" Home Language", " HL").replace(" First Additional Language", " FAL"), value: v, color: lv >= 6 ? "#86efac" : lv >= 4 ? "#ffdf55" : lv === 3 ? "#fde68a" : "#fda4af" };
+    return { name: s.name.replace(" Home Language", " HL").replace(" First Additional Language", " FAL"), value: v, color: lv >= 6 ? "#34d399" : lv >= 4 ? "#38bdf8" : lv === 3 ? "#fde68a" : "#fda4af" };
   }) : [];
   const trend = snap.terms.filter((x) => x.row?.average != null).map((x) => ({ term: `Term ${x.term}`, average: x.row!.average }));
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-[1fr_22rem] gap-6">
       <div className="space-y-6 min-w-0">
-        <div className="glass p-6 sm:p-8 flex flex-wrap items-center gap-6 bg-gradient-to-r from-brand-200/80 to-brand-100/40 dark:from-brand-500/20 dark:to-transparent">
+        <div className="glass p-6 sm:p-8 flex flex-wrap items-center gap-6 bg-gradient-to-r from-sky-200/80 via-brand-100/40 to-emerald-200/70 dark:from-sky-500/20 dark:to-emerald-500/10">
           <Avatar first={l.first_name} last={l.last_name} size={88} photo={avatarUrl(l.user_id, l.av)} />
           <div className="flex-1 min-w-[14rem]">
             <h1 className="text-2xl font-bold tracking-tight">Welcome, {l.first_name}</h1>
@@ -66,15 +66,15 @@ export default function LearnerDashboard({ ctx }: { ctx: Ctx }) {
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard label="Attendance" value={att.rate != null ? `${att.rate}%` : "-"} icon={CalendarCheck} tone="sky" hint={`${att.absent ?? 0} days absent this year`} />
-          <StatCard label={latest ? `Term ${latest.term} average` : "Average"} value={latest?.row?.average != null ? `${latest.row.average}%` : "-"} icon={Award} tone="gold" hint={latest?.row?.position ? `Position ${latest.row.position} of ${latest.cr!.learners.length}` : undefined} />
-          <StatCard label="Homework due" value={homework.length} icon={ClipboardList} tone="butter" />
-          <StatCard label="Library books out" value={loans} icon={Library} tone="green" />
+          <StatCard label={latest ? `Term ${latest.term} average` : "Average"} value={latest?.row?.average != null ? `${latest.row.average}%` : "-"} icon={Award} tone="green" hint={latest?.row?.position ? `Position ${latest.row.position} of ${latest.cr!.learners.length}` : undefined} />
+          <StatCard label="Homework due" value={homework.length} icon={ClipboardList} tone="gold" />
+          <StatCard label="Library books out" value={loans} icon={Library} tone="orange" />
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_20rem] gap-6">
           <Card title={latest ? `Marks by subject · Term ${latest.term}` : "Marks by subject"}>
             {bars.length ? <HBars data={bars} /> : <Empty title="No published results yet" />}
           </Card>
-          <Card title="Progress">{trend.length ? <Trend data={trend} xKey="term" series={[{ key: "average", name: "Average %", color: "#e2a900" }]} /> : <Empty />}</Card>
+          <Card title="Progress">{trend.length ? <Trend data={trend} xKey="term" series={[{ key: "average", name: "Average %", color: "#38bdf8" }]} /> : <Empty />}</Card>
         </div>
         <Card title="Homework">
           {homework.length ? (

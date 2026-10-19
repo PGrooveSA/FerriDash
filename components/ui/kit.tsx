@@ -29,10 +29,12 @@ export function PageHeader({ title, subtitle, children }: { title: string; subti
 }
 
 const TONES = {
-  sky: "from-brand-200/80 to-brand-100/40 dark:from-brand-500/25 dark:to-brand-500/5",
+  sky: "from-sky-200/80 to-sky-100/40 dark:from-sky-500/25 dark:to-sky-500/5",
+  green: "from-emerald-200/80 to-emerald-100/40 dark:from-emerald-500/25 dark:to-emerald-500/5",
+  orange: "from-brand-200/80 to-brand-100/40 dark:from-brand-500/25 dark:to-brand-500/5",
   gold: "from-gold-200/80 to-gold-100/40 dark:from-gold-500/25 dark:to-gold-500/5",
   butter: "from-butter-300/80 to-butter-100/40 dark:from-butter-500/25 dark:to-butter-500/5",
-  green: "from-charcoal-200/80 to-charcoal-100/40 dark:from-charcoal-500/20 dark:to-charcoal-500/5",
+  charcoal: "from-charcoal-200/80 to-charcoal-100/40 dark:from-charcoal-500/20 dark:to-charcoal-500/5",
 } as const;
 
 export function StatCard({ label, value, icon: Icon, tone = "sky", delta, hint }: { label: string; value: React.ReactNode; icon?: LucideIcon; tone?: keyof typeof TONES; delta?: number; hint?: string }) {

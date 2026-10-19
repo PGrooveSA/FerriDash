@@ -71,30 +71,30 @@ export default function AdminDashboard({ ctx }: { ctx: Ctx }) {
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_22rem] gap-6">
         <div className="space-y-6 min-w-0">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard label="Learners" value={c.learners.toLocaleString("en-ZA")} icon={Users} tone="gold" hint={`${ctx.school.school_type} · Quintile ${ctx.school.quintile}`} />
-            <StatCard label="Educators" value={c.teachers} icon={GraduationCap} tone="butter" hint={`Ratio 1:${c.teachers ? Math.round(c.learners / c.teachers) : 0}`} />
-            <StatCard label="Parents / Guardians" value={c.parents} icon={UsersRound} tone="sky" />
+            <StatCard label="Learners" value={c.learners.toLocaleString("en-ZA")} icon={Users} tone="sky" hint={`${ctx.school.school_type} · Quintile ${ctx.school.quintile}`} />
+            <StatCard label="Educators" value={c.teachers} icon={GraduationCap} tone="gold" hint={`Ratio 1:${c.teachers ? Math.round(c.learners / c.teachers) : 0}`} />
+            <StatCard label="Parents / Guardians" value={c.parents} icon={UsersRound} tone="green" />
             {ctx.school.fee_paying
-              ? <StatCard label="Fees collected" value={zar(fees.paid, true)} icon={Wallet} tone="green" hint={`${fees.billed ? Math.round((fees.paid / fees.billed) * 100) : 0}% of ${zar(fees.billed, true)}`} />
+              ? <StatCard label="Fees collected" value={zar(fees.paid, true)} icon={Wallet} tone="orange" hint={`${fees.billed ? Math.round((fees.paid / fees.billed) * 100) : 0}% of ${zar(fees.billed, true)}`} />
               : <StatCard label="No-fee school" value="R 0" icon={Wallet} tone="green" hint="Funded via norms & standards" />}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-[20rem_1fr] gap-6">
             <Card title="Learners">
-              <Donut data={[{ name: "Boys", value: c.boys, color: "#ffa86d" }, { name: "Girls", value: c.girls, color: "#fde68a" }]} center={String(c.learners)} sub="enrolled" />
+              <Donut data={[{ name: "Boys", value: c.boys, color: "#7dd3fc" }, { name: "Girls", value: c.girls, color: "#ffdf55" }]} center={String(c.learners)} sub="enrolled" />
               <div className="grid grid-cols-2 mt-4 text-center">
-                <div><span className="inline-block w-3 h-3 rounded-full bg-brand-300" /><p className="text-xl font-bold">{c.boys}</p><p className="text-xs muted">Boys ({c.learners ? Math.round((c.boys / c.learners) * 100) : 0}%)</p></div>
+                <div><span className="inline-block w-3 h-3 rounded-full bg-sky-300" /><p className="text-xl font-bold">{c.boys}</p><p className="text-xs muted">Boys ({c.learners ? Math.round((c.boys / c.learners) * 100) : 0}%)</p></div>
                 <div><span className="inline-block w-3 h-3 rounded-full bg-butter-300" /><p className="text-xl font-bold">{c.girls}</p><p className="text-xs muted">Girls ({c.learners ? Math.round((c.girls / c.learners) * 100) : 0}%)</p></div>
               </div>
             </Card>
             <Card title="Attendance" action={<Link href="/attendance" className="text-xs muted hover:text-[var(--ink)]">View register</Link>}>
-              <Bars data={att} xKey="day" yMax={100} unit="%" series={[{ key: "present", name: "Present", color: "#fde68a" }, { key: "absent", name: "Absent", color: "#ffa86d" }]} />
+              <Bars data={att} xKey="day" yMax={100} unit="%" series={[{ key: "present", name: "Present", color: "#6ee7b7" }, { key: "absent", name: "Absent", color: "#ffa86d" }]} />
             </Card>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_20rem] gap-6">
             <Card title={ctx.school.fee_paying ? "Income vs expenses" : "Expenses"}>
-              <AreaTrend money data={money} xKey="name" series={ctx.school.fee_paying ? [{ key: "income", name: "Fee income", color: "#ff8236" }, { key: "expense", name: "Expenses", color: "#fcca1c" }] : [{ key: "expense", name: "Expenses", color: "#fcca1c" }]} />
+              <AreaTrend money data={money} xKey="name" series={ctx.school.fee_paying ? [{ key: "income", name: "Fee income", color: "#34d399" }, { key: "expense", name: "Expenses", color: "#fcca1c" }] : [{ key: "expense", name: "Expenses", color: "#fcca1c" }]} />
             </Card>
             <div className="grid gap-6">
               <Link href="/results/moderation" className="glass p-5 block hover:scale-[1.01] transition-transform">
@@ -111,7 +111,7 @@ export default function AdminDashboard({ ctx }: { ctx: Ctx }) {
           </div>
 
           <Card title={`Academic performance by class · Term ${term}`} action={<Link href="/results/analysis" className="text-xs muted hover:text-[var(--ink)]">Analysis</Link>}>
-            <Bars data={perf} xKey="name" yMax={100} unit="%" series={[{ key: "average", name: "Class average", color: "#ffdf55" }, { key: "pass", name: "Learners averaging 50%+", color: "#ffa86d" }]} />
+            <Bars data={perf} xKey="name" yMax={100} unit="%" series={[{ key: "average", name: "Class average", color: "#38bdf8" }, { key: "pass", name: "Learners averaging 50%+", color: "#6ee7b7" }]} />
             <p className="text-xs muted mt-2">Averages use CAPS phase weighting: School-Based Assessment blended with examinations.</p>
           </Card>
         </div>
