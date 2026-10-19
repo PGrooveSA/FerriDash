@@ -1,14 +1,16 @@
 "use client";
-import { useActionState, useEffect, useRef, useState } from "react";
+import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { ChevronDown, Pencil, Plus, Trash2, X } from "lucide-react";
+import { ChevronDown, FileText, Pencil, Plus, Trash2, X } from "lucide-react";
 
 export type ActionResult = { error?: string; ok?: boolean; message?: string };
 export type FormAction = (state: ActionResult, form: FormData) => Promise<ActionResult>;
 
 export type Field = {
   name: string; label: string;
-  type?: "text" | "email" | "number" | "date" | "time" | "select" | "textarea" | "password" | "tel" | "checkboxes";
+  type?: "text" | "email" | "number" | "date" | "time" | "select" | "textarea" | "password" | "tel" | "checkboxes" | "file";
+  /** For file fields: allowed types (e.g. ".pdf,application/pdf") and size limit in MB. */
+  accept?: string; maxMb?: number;
   /** For checkboxes: group (e.g. class) and hint (e.g. current teacher) are optional. */
   options?: { value: string | number; label: string; group?: string; hint?: string }[];
   /** Pre-ticked values for a checkboxes field. */
@@ -40,8 +42,10 @@ export function FormDialog({ title, fields, action, hidden = {}, trigger = "add"
       {trigger === "button" && <button type="button" onClick={() => setOpen(true)} className="btn btn-ghost btn-sm">{triggerLabel}</button>}
       {trigger === "edit" && <button type="button" onClick={() => setOpen(true)} className="icon-btn !w-8 !h-8" aria-label={`Edit ${title}`}><Pencil className="w-3.5 h-3.5" /></button>}
       <dialog ref={ref} onClose={() => setOpen(false)} className={`m-auto w-[calc(100%-2rem)] ${size === "lg" ? "max-w-2xl" : "max-w-lg"} bg-transparent backdrop:bg-slate-900/30 backdrop:backdrop-blur-sm`}>
+        {/* Submitting through onSubmit (not the action prop) stops React from clearing every field
+            after the server replies, so entries survive a validation error. */}
         {open && (
-          <form action={formAction} className="glass-solid p-6 text-[var(--ink)]">
+          <form onSubmit={(e) => { e.preventDefault(); const data = new FormData(e.currentTarget); startTransition(() => formAction(data)); }} className="glass-solid p-6 text-[var(--ink)]">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">{title}</h3>
               <button type="button" className="icon-btn !w-8 !h-8" onClick={() => setOpen(false)} aria-label="Close"><X className="w-4 h-4" /></button>
@@ -56,6 +60,8 @@ export function FormDialog({ title, fields, action, hidden = {}, trigger = "add"
                       {!f.required && <option value="">-</option>}
                       {f.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
+                  ) : f.type === "file" ? (
+                    <FileField field={f} />
                   ) : f.type === "checkboxes" ? (
                     <CheckboxGroup field={f} />
                   ) : f.type === "textarea" ? (
@@ -253,6 +259,32 @@ export function PdfButtons({ filename, label = "Download PDF" }: { filename: str
         ))}
       </div>
       <button type="button" onClick={download} className="btn btn-primary">{label}</button>
+    </div>
+  );
+}
+
+/** File picker that only accepts the given type (checked again on the server) and shows the chosen file. */
+function FileField({ field }: { field: Field }) {
+  const [name, setName] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const pdfOnly = (field.accept ?? "").includes("pdf");
+  return (
+    <div>
+      <label className={`flex items-center gap-3 rounded-2xl border border-dashed px-3 py-2.5 cursor-pointer transition ${error ? "border-rose-400 bg-rose-50/60 dark:bg-rose-500/10" : "border-line hover:border-brand-400 bg-[var(--glass-solid)]"}`}>
+        <FileText className="w-5 h-5 shrink-0 text-rose-500" />
+        <span className={`flex-1 truncate text-sm ${name ? "" : "muted"}`}>{name ?? field.placeholder ?? "Choose a file"}</span>
+        <span className="btn btn-ghost btn-sm">Browse</span>
+        <input id={`f-${field.name}`} name={field.name} type="file" accept={field.accept} className="sr-only"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            setError(null); setName(file?.name ?? null);
+            if (!file) return;
+            const isPdfFile = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+            if (pdfOnly && !isPdfFile) { setError("Only PDF documents can be uploaded."); setName(null); e.target.value = ""; return; }
+            if (field.maxMb && file.size > field.maxMb * 1024 * 1024) { setError(`That file is larger than ${field.maxMb} MB.`); setName(null); e.target.value = ""; }
+          }} />
+      </label>
+      {error && <p role="alert" className="text-xs text-rose-600 mt-1">{error}</p>}
     </div>
   );
 }

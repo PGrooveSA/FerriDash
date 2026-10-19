@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Profile photos are resized in the browser, but allow some headroom for uploads.
-  experimental: { serverActions: { bodySizeLimit: "3mb" } },
+  // Uploads: profile photos and logos are resized in the browser; expense PDFs may be up to 10 MB.
+  experimental: { serverActions: { bodySizeLimit: "11mb" } },
   // node:sqlite is a Node built-in; keep it out of the bundle.
   webpack: (config, { isServer }) => {
     if (isServer) {

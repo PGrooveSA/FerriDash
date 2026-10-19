@@ -7,3 +7,4 @@ data/*.db-*
 next-env.d.ts
 data/avatars/
 data/logos/
+data/expense-docs/

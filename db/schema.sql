@@ -236,7 +236,8 @@ CREATE TABLE IF NOT EXISTS expenses (
   quantity TEXT,
   amount REAL NOT NULL,
   paid_on TEXT NOT NULL,
-  supplier TEXT
+  supplier TEXT,
+  document_name TEXT -- original file name of the attached PDF (stored in data/expense-docs)
 );
 
 CREATE TABLE IF NOT EXISTS notices (

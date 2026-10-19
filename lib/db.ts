@@ -21,6 +21,7 @@ function migrate(db: DatabaseSync) {
   if (!has("users", "avatar_updated_at")) db.exec("ALTER TABLE users ADD COLUMN avatar_updated_at TEXT");
   if (!has("users", "notices_seen_at")) db.exec("ALTER TABLE users ADD COLUMN notices_seen_at TEXT");
   if (!has("schools", "logo_updated_at")) db.exec("ALTER TABLE schools ADD COLUMN logo_updated_at TEXT");
+  if (!has("expenses", "document_name")) db.exec("ALTER TABLE expenses ADD COLUMN document_name TEXT");
 }
 
 export function db(): DatabaseSync {

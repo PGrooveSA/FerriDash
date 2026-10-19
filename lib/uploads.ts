@@ -13,6 +13,13 @@ export const LOGO_DIR = join(DATA_DIR, "logos");
 export const MAX_LOGO_BYTES = 2 * 1024 * 1024;
 export const logoFile = (schoolId: number) => join(LOGO_DIR, `${schoolId}.img`);
 
+// Expense documents (PDF only): one file per expense.
+export const EXPENSE_DOC_DIR = join(DATA_DIR, "expense-docs");
+export const MAX_EXPENSE_DOC_BYTES = 10 * 1024 * 1024;
+export const expenseDocFile = (expenseId: number) => join(EXPENSE_DOC_DIR, `${expenseId}.pdf`);
+/** A real PDF starts with "%PDF-" (checked instead of trusting the file name or browser type). */
+export const isPdf = (buf: Uint8Array) => buf.length > 5 && String.fromCharCode(...buf.slice(0, 5)) === "%PDF-";
+
 /** Recognises JPEG, PNG and WebP by their magic bytes (never trust the browser's file type). */
 export function imageType(buf: Uint8Array): "image/jpeg" | "image/png" | "image/webp" | null {
   if (buf.length < 12) return null;

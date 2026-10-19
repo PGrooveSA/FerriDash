@@ -2,6 +2,8 @@
 import { revalidatePath } from "next/cache";
 import { audit, get, run, tx } from "@/lib/db";
 import { ADMIN, fail, guarded, num, opt, str, type ActionResult } from "@/lib/action-utils";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { EXPENSE_DOC_DIR, MAX_EXPENSE_DOC_BYTES, expenseDocFile, isPdf } from "@/lib/uploads";
 
 export async function recordPayment(_: ActionResult, f: FormData) {
   return guarded(ADMIN, (ctx) => {
@@ -51,20 +53,41 @@ export async function generateInvoices() {
 }
 
 export async function saveExpense(_: ActionResult, f: FormData) {
-  return guarded(ADMIN, (ctx) => {
+  return guarded(ADMIN, async (ctx) => {
     const id = num(f, "id"), amount = num(f, "amount");
     if (!amount || amount <= 0) fail("Enter an amount greater than R0.");
+    // Optional supporting document: PDF only (checked by content, not just the name), up to 10 MB.
+    const file = f.get("document");
+    let pdf: Uint8Array | null = null, pdfName: string | null = null;
+    if (file instanceof File && file.size > 0) {
+      if (file.size > MAX_EXPENSE_DOC_BYTES) fail("That PDF is too large. Please upload a file under 10 MB.");
+      pdf = new Uint8Array(await file.arrayBuffer());
+      if (!/\.pdf$/i.test(file.name) || !isPdf(pdf)) fail("Only PDF documents can be uploaded.");
+      pdfName = file.name.replace(/[^\w.\- ()]/g, "_").slice(-120);
+    }
     const vals = [opt(f, "reference"), str(f, "category"), str(f, "description"), opt(f, "quantity"), amount, str(f, "paid_on"), opt(f, "supplier")];
-    if (id) run("UPDATE expenses SET reference=?, category=?, description=?, quantity=?, amount=?, paid_on=?, supplier=? WHERE id = ? AND school_id = ?", ...vals, id, ctx.schoolId);
-    else run("INSERT INTO expenses (reference, category, description, quantity, amount, paid_on, supplier, school_id) VALUES (?,?,?,?,?,?,?,?)", ...vals, ctx.schoolId);
-    audit(ctx.schoolId, ctx.user.id, id ? "update" : "create", "expense", id);
+    let expenseId = id;
+    if (id) {
+      if (!run("UPDATE expenses SET reference=?, category=?, description=?, quantity=?, amount=?, paid_on=?, supplier=? WHERE id = ? AND school_id = ?", ...vals, id, ctx.schoolId).changes) fail("Expense not found.");
+    }
+    else expenseId = run("INSERT INTO expenses (reference, category, description, quantity, amount, paid_on, supplier, school_id) VALUES (?,?,?,?,?,?,?,?)", ...vals, ctx.schoolId).id;
+    if (pdf && expenseId) {
+      mkdirSync(EXPENSE_DOC_DIR, { recursive: true });
+      writeFileSync(expenseDocFile(expenseId), pdf);
+      run("UPDATE expenses SET document_name = ? WHERE id = ?", pdfName, expenseId);
+    }
+    if (id && str(f, "remove_document") === "1" && !pdf) {
+      rmSync(expenseDocFile(id), { force: true });
+      run("UPDATE expenses SET document_name = NULL WHERE id = ?", id);
+    }
+    audit(ctx.schoolId, ctx.user.id, id ? "update" : "create", "expense", expenseId, pdfName ? `document: ${pdfName}` : undefined);
     revalidatePath("/finance/expenses");
   });
 }
 
 export async function deleteExpense(id: number) {
   return guarded(ADMIN, (ctx) => {
-    run("DELETE FROM expenses WHERE id = ? AND school_id = ?", id, ctx.schoolId);
+    if (run("DELETE FROM expenses WHERE id = ? AND school_id = ?", id, ctx.schoolId).changes) rmSync(expenseDocFile(id), { force: true });
     audit(ctx.schoolId, ctx.user.id, "delete", "expense", id);
     revalidatePath("/finance/expenses");
   });
