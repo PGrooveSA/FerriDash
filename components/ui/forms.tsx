@@ -145,7 +145,7 @@ function CheckboxGroup({ field }: { field: Field }) {
   const visible = q ? opts.filter((o) => `${o.group ?? ""} ${o.label} ${o.hint ?? ""}`.toLowerCase().includes(q)) : opts;
   const groups = [...new Set(visible.map((o) => o.group ?? ""))];
   const toggle = (v: string) => setPicked((p) => { const n = new Set(p); if (n.has(v)) n.delete(v); else n.add(v); return n; });
-  if (!opts.length) return <p className="text-sm muted">Nothing to choose yet. Add classes and subjects under Classes &amp; Subjects first.</p>;
+  if (!opts.length) return <p className="text-sm muted rounded-2xl border border-dashed border-line px-3 py-2">{field.placeholder ?? "Nothing to choose yet."}</p>;
   return (
     <div className="rounded-2xl border border-line bg-[var(--glass-solid)]">
       <div className="flex items-center gap-2 p-2 border-b border-line">

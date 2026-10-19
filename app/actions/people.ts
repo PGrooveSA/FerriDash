@@ -16,6 +16,26 @@ function checkId(id: string | null) {
 }
 
 // ---------------- Teachers ----------------
+/** Grade from a class name: "10A" -> 10, "8 B" -> 8, "R1"/"RA" -> 0 (Grade R). */
+function gradeOfClassName(name: string): number | null {
+  if (/^R(?![A-Z]{2})/i.test(name)) return 0;
+  const m = name.match(/^(\d{1,2})/);
+  const g = m ? Number(m[1]) : NaN;
+  return g >= 1 && g <= 12 ? g : null;
+}
+
+/** Best-guess CAPS category for a new subject name (can be changed under Classes & Subjects). */
+function subjectCategory(name: string): string {
+  const n = name.toLowerCase();
+  if (n.includes("home language")) return "HL";
+  if (n.includes("first additional")) return "FAL";
+  if (n.includes("second additional")) return "SAL";
+  if (n.includes("mathematical literacy") || n === "maths lit") return "MLIT";
+  if (/^(mathematics|maths|math)$/.test(n)) return "MATH";
+  if (n.includes("life orientation") || n === "life skills") return "LO";
+  return "OTHER";
+}
+
 export async function saveTeacher(_: ActionResult, f: FormData) {
   return guarded(ADMIN, (ctx) => {
     const id = num(f, "id");
@@ -26,6 +46,16 @@ export async function saveTeacher(_: ActionResult, f: FormData) {
     const allocations = [...new Set(f.getAll("allocations").map(Number).filter(Boolean))];
     for (const cs of allocations) if (!get("SELECT id FROM class_subjects WHERE id = ? AND school_id = ?", cs, ctx.schoolId)) fail("One of the chosen classes/subjects is not valid.");
     const homeroom = num(f, "homeroom_class_id");
+    // "Add teaching": chosen or newly typed classes x subjects.
+    const ids = (k: string) => [...new Set(f.getAll(k).map(Number).filter(Boolean))];
+    const names = (k: string) => [...new Set(str(f, k).split(/[,;\n]/).map((x) => x.trim().replace(/\s+/g, " ")).filter(Boolean))];
+    const teachClasses = ids("teach_classes"), teachSubjects = ids("teach_subjects");
+    const newClasses = names("new_classes").map((n) => n.toUpperCase().replace(/^GRADE\s*/, "").replace(/\s+/g, "")), newSubjects = names("new_subjects");
+    for (const c of teachClasses) if (!get("SELECT id FROM classes WHERE id = ? AND school_id = ?", c, ctx.schoolId)) fail("One of the chosen classes is not valid.");
+    for (const x of teachSubjects) if (!get("SELECT id FROM subjects WHERE id = ? AND school_id = ?", x, ctx.schoolId)) fail("One of the chosen subjects is not valid.");
+    for (const n of newClasses) if (gradeOfClassName(n) == null) fail(`Start new class names with the grade, e.g. 10A or R1 ("${n}").`);
+    const anyClass = teachClasses.length + newClasses.length > 0, anySubject = teachSubjects.length + newSubjects.length > 0;
+    if (anyClass !== anySubject) fail(anyClass ? "Choose or type at least one subject for the chosen classes." : "Choose or type at least one class for the chosen subjects.");
     if (homeroom && !get("SELECT id FROM classes WHERE id = ? AND school_id = ?", homeroom, ctx.schoolId)) fail("Choose a valid register class.");
     tx(() => {
       let teacherId = id;
@@ -44,6 +74,18 @@ export async function saveTeacher(_: ActionResult, f: FormData) {
           ctx.schoolId, u.id, opt(f, "staff_number"), opt(f, "persal_number"), opt(f, "sace_number"), opt(f, "id_number"), opt(f, "gender"), opt(f, "post_level"), opt(f, "address"));
         audit(ctx.schoolId, ctx.user.id, "create", "teacher", t.id);
         teacherId = t.id;
+      }
+      // Create any new classes/subjects, then the class-subject pairs for every combination.
+      const classIds = [...teachClasses, ...newClasses.map((n) =>
+        get<{ id: number }>("SELECT id FROM classes WHERE school_id = ? AND name = ? AND year = ?", ctx.schoolId, n, ctx.school.current_year)?.id
+        ?? run("INSERT INTO classes (school_id, grade, name, year) VALUES (?,?,?,?)", ctx.schoolId, gradeOfClassName(n)!, n, ctx.school.current_year).id)];
+      const subjectIds = [...teachSubjects, ...newSubjects.map((n) =>
+        get<{ id: number }>("SELECT id FROM subjects WHERE school_id = ? AND lower(name) = lower(?)", ctx.schoolId, n)?.id
+        ?? run("INSERT INTO subjects (school_id, name, code, category) VALUES (?,?,?,?)", ctx.schoolId, n, n.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 4), subjectCategory(n)).id)];
+      for (const c of classIds) for (const x of subjectIds) {
+        const cs = get<{ id: number }>("SELECT id FROM class_subjects WHERE class_id = ? AND subject_id = ?", c, x)?.id
+          ?? run("INSERT INTO class_subjects (school_id, class_id, subject_id) VALUES (?,?,?)", ctx.schoolId, c, x).id;
+        if (!allocations.includes(cs)) allocations.push(cs);
       }
       // Teaching allocation: unticked subjects become unallocated; ticked ones move to this teacher.
       const keep = allocations.length ? allocations : [-1];

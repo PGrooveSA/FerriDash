@@ -30,6 +30,7 @@ export default async function TeachersPage({ searchParams }: { searchParams: Pro
       (SELECT COALESCE(u.title || ' ', '') || u.last_name FROM teachers t JOIN users u ON u.id = t.user_id WHERE t.id = cs.teacher_id) teacher
     FROM class_subjects cs JOIN classes c ON c.id = cs.class_id JOIN subjects s ON s.id = cs.subject_id
     WHERE cs.school_id = ? AND c.year = ? ORDER BY c.grade, c.name, s.name`, ctx.schoolId, ctx.school.current_year);
+  const subjects = all<{ id: number; name: string }>("SELECT id, name FROM subjects WHERE school_id = ? ORDER BY name", ctx.schoolId);
   const classes = all<{ id: number; name: string; grade: number; class_teacher_id: number | null }>("SELECT id, name, grade, class_teacher_id FROM classes WHERE school_id = ? AND year = ? ORDER BY grade, name", ctx.schoolId, ctx.school.current_year);
 
   const fields = (t?: T): Field[] => [
@@ -45,12 +46,20 @@ export default async function TeachersPage({ searchParams }: { searchParams: Pro
     { name: "persal_number", label: "PERSAL number", defaultValue: t?.persal_number, half: true },
     { name: "sace_number", label: "SACE registration", defaultValue: t?.sace_number, half: true },
     { name: "address", label: "Address", defaultValue: t?.address, half: true },
-    {
+    // Existing class-subject pairs (only shown when the school already has some).
+    ...(allocation.length ? [{
       name: "allocations", label: "Classes & subjects to teach", type: "checkboxes",
       options: allocation.map((a) => ({ value: a.id, group: `Class ${a.className} · ${gradeLabel(a.grade)}`, label: a.subject, hint: a.teacher_id ? (a.teacher_id === t?.id ? "Teaching now" : `Now: ${a.teacher}`) : "Unallocated" })),
       defaultValues: t ? allocation.filter((a) => a.teacher_id === t.id).map((a) => a.id) : [],
       help: "Ticking a subject someone else teaches moves it to this teacher.",
-    },
+    } as Field] : []),
+    // Add more teaching: every ticked/new subject is assigned in every ticked/new class.
+    { name: "teach_classes", label: allocation.length ? "Add teaching: classes" : "Classes they will teach", type: "checkboxes", half: true, placeholder: "No classes yet. Type new ones below.",
+      options: classes.map((c) => ({ value: c.id, label: c.name, hint: gradeLabel(c.grade) })) },
+    { name: "teach_subjects", label: allocation.length ? "Add teaching: subjects" : "Subjects they will teach", type: "checkboxes", half: true, placeholder: "No subjects yet. Type new ones below.",
+      options: subjects.map((x) => ({ value: x.id, label: x.name })) },
+    { name: "new_classes", label: "New classes (optional)", placeholder: "e.g. 10A, 11B", half: true, help: "Start with the grade: 10A, 8B, R1." },
+    { name: "new_subjects", label: "New subjects (optional)", placeholder: "e.g. Mathematics, Physical Sciences", half: true, help: "Each chosen subject is taught in each chosen class." },
     { name: "homeroom_class_id", label: "Register (class) teacher of", type: "select", options: classes.map((c) => ({ value: c.id, label: `${c.name} (${gradeLabel(c.grade)})` })), defaultValue: t ? classes.find((c) => c.class_teacher_id === t.id)?.id : null, half: true, help: "Optional. Takes the register for this class." },
     ...(t ? [] : [{ name: "password", label: "Initial password", type: "password", required: true, help: "8+ characters with a capital letter and a number." } as Field]),
   ];
