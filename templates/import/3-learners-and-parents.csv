@@ -1,0 +1,4 @@
+﻿admission_number,first_name,last_name,id_number,gender,date_of_birth,class,home_language,address,enrolled_on,learner_login_email,parent_title,parent_first_name,parent_last_name,parent_email,parent_cell,relationship,parent2_title,parent2_first_name,parent2_last_name,parent2_email,parent2_cell,parent2_relationship
+2026-0001,Lerato,Mokoena,1205091041081,Female,2012-05-09,8A,Sepedi,"45 Protea Road, Soshanguve, 0152",2026-01-14,lerato.mokoena@yourschool.co.za,Mrs,Palesa,Mokoena,palesa.mokoena@example.com,+27 72 555 0303,Mother,Mr,Tumelo,Mokoena,tumelo.mokoena@example.com,+27 73 555 0404,Father
+2026-0002,Ethan,Naidoo,1211235052083,Male,2012-11-23,8A,English,,2026-01-14,,Mr,Kevin,Naidoo,kevin.naidoo@example.com,+27 84 555 0505,Father,,,,,,
+2024-0117,Ayanda,Khumalo,1002171063089,Female,2010-02-17,10B,isiZulu,"8 Aloe Close, Mamelodi, 0122",2024-01-17,,Ms,Zanele,Khumalo,zanele.khumalo@example.com,+27 71 555 0606,Guardian,,,,,,

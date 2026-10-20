@@ -1,0 +1,8 @@
+﻿class,grade,room,subject,subject_code,caps_category,teacher_email
+8A,8,Room 12,English Home Language,ENG-HL,HL,n.dlamini@yourschool.co.za
+8A,8,Room 12,Afrikaans First Additional Language,AFR-FAL,FAL,
+8A,8,Room 12,Mathematics,MATH,MATH,j.vanwyk@yourschool.co.za
+8A,8,Room 12,Life Orientation,LO,LO,
+8A,8,Room 12,Natural Sciences,NS,OTHER,
+10B,10,Lab 2,Physical Sciences,PHSC,OTHER,j.vanwyk@yourschool.co.za
+R1,R,,Life Skills,LS,LO,
