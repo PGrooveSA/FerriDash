@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="4 4 92 92" width="100" height="100" role="img" aria-label="FerriDash"><title>FerriDash</title><g transform="translate(2.00 3.75)"><g>
+  <g stroke="#FCCA1C" stroke-width="4.5" stroke-linecap="round"><line x1="21.32" y1="67.35" x2="13.55" y2="65.41"/><line x1="29.25" y1="53.89" x2="23.79" y2="48.04"/><line x1="66.75" y1="53.89" x2="72.21" y2="48.04"/><line x1="74.68" y1="67.35" x2="82.45" y2="65.41"/></g>
+  <path d="M26 74 A22 22 0 0 1 70 74 Z" fill="#F4600C"/>
+  <line x1="15" y1="80" x2="81" y2="80" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round"/>
+  <path d="M29.5 31.5 V41.5 C37.5 48 58.5 48 66.5 41.5 V31.5 L48 38.8 Z" fill="#CBD5E1"/>
+  <polygon points="48,10 86,25.2 48,40.4 10,25.2" fill="#FFFFFF"/>
+  <polyline points="48,25.2 79,29 79,43" fill="none" stroke="#FCCA1C" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="79" cy="46" r="3.6" fill="#FCCA1C"/>
+</g></g></svg>

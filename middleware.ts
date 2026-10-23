@@ -11,5 +11,6 @@ export async function middleware(req: NextRequest) {
   return NextResponse.next();
 }
 
-// Static brand assets (logos) are public: the sign-in page shows them before anyone logs in.
-export const config = { matcher: ["/((?!_next/static|_next/image|favicon.ico|icon.svg|brand/).*)"] };
+// Static brand assets (logos, app icons, web app manifest) are public: the sign-in page and the
+// browser use them before anyone logs in.
+export const config = { matcher: ["/((?!_next/static|_next/image|favicon.ico|favicon-32.png|icon.svg|icon-192.png|icon-512.png|icon-maskable-512.png|apple-icon.png|manifest.webmanifest|brand/).*)"] };

@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: { default: "FerriDash", template: "%s · FerriDash" },
   description: "School management for South African schools - CAPS results, reports, attendance and finance.",
-  icons: { icon: "/icon.svg" },
+  icons: { icon: [{ url: "/icon.svg", type: "image/svg+xml" }, { url: "/favicon-32.png", sizes: "32x32", type: "image/png" }], apple: "/apple-icon.png" },
 };
 
 // Applies the saved theme before paint to avoid a flash.

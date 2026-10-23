@@ -14,8 +14,8 @@ export default function LoginPage() {
         <section className="hidden lg:flex login-hero flex-col items-center p-10 relative overflow-hidden">
           {/* Logo, heading, text and chips sit centred in the panel; the copyright stays at the bottom. */}
           <div className="my-auto flex flex-col items-center text-center">
-            {/* Scales with the screen: about 185px wide on small laptops up to 256px on large monitors. */}
-            <BrandLogo variant="onDark" className="w-[clamp(11.5rem,18vw,16rem)] drop-shadow-[0_6px_24px_rgb(0_0_0/0.35)]" />
+            {/* Scales with the screen: about 225px wide on small laptops up to 320px on large monitors. */}
+            <BrandLogo variant="onDark" className="w-[clamp(14rem,22vw,20rem)] drop-shadow-[0_6px_24px_rgb(0_0_0/0.35)]" />
             <h1 className="mt-10 text-4xl xl:text-5xl font-bold leading-tight tracking-tight max-w-lg text-white">
               Learning today, <span className="bg-gradient-to-r from-gold-300 via-brand-300 to-sky-300 bg-clip-text text-transparent">leading tomorrow</span>.
             </h1>
@@ -43,7 +43,7 @@ export default function LoginPage() {
           <div className="glass login-card w-full max-w-md p-8 sm:p-10">
             {/* Phones and tablets (the welcome panel is hidden): smaller on phones, larger on tablets. */}
             <div className="lg:hidden mb-7 flex justify-center">
-              <BrandLogo className="w-[clamp(9.5rem,45vw,13rem)]" />
+              <BrandLogo className="w-[clamp(12rem,58vw,16rem)]" />
             </div>
             <h2 className="text-2xl font-bold tracking-tight">Welcome back</h2>
             <p className="muted text-sm mt-1">Sign in with your school email address.</p>

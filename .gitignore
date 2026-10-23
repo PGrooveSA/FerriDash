@@ -8,3 +8,6 @@ next-env.d.ts
 data/avatars/
 data/logos/
 data/expense-docs/
+
+# Presentation and user-guide build tooling
+docs/.build/
