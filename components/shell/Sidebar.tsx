@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   LayoutDashboard, Building2, GraduationCap, Users, UsersRound, BookOpen, CalendarCheck, Award, FileBarChart,
-  Wallet, Megaphone, CalendarDays, Library, MessageSquare, UserCircle, Settings, LogOut, ChevronDown, X, Menu,
+  Wallet, Megaphone, CalendarDays, Library, MessageSquare, UserCircle, Settings, Upload, LogOut, ChevronDown, X, Menu,
 } from "lucide-react";
 import { logout } from "@/app/actions/auth";
 import SchoolCrest from "@/components/SchoolCrest";
@@ -64,6 +64,7 @@ const MENU: Item[] = [
 
 const OTHER: Item[] = [
   { href: "/profile", label: "Profile", icon: UserCircle, roles: ALL },
+  { href: "/import", label: "Import Data", icon: Upload, roles: ADMIN },
   { href: "/settings", label: "Setting", icon: Settings, roles: ADMIN },
 ];
 

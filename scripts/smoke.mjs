@@ -12,7 +12,7 @@ const env = Object.fromEntries(readFileSync(join(root, ".env.local"), "utf8").sp
 const key = new TextEncoder().encode(env.SESSION_SECRET || "dev-only-insecure-secret-change-me");
 const db = new DatabaseSync(process.env.DB_PATH || join(root, "data", "school-hub.db"));
 
-const ADMIN_PAGES = ["/dashboard", "/teachers", "/teachers?status=former", "/teachers?status=all", "/teachers/1", "/learners", "/learners?status=all", "/learners/1", "/parents", "/academics", "/academics?tab=subjects", "/academics?tab=allocation", "/attendance", "/results", "/results?term=3", "/results/moderation", "/results/analysis", "/results/analysis?term=year", "/reports", "/reports/report-cards", "/reports/report-cards?term=3&all=1", "/reports/report-cards?term=year&all=1", "/reports/broadsheet", "/reports/broadsheet?term=year", "/reports/promotion", "/reports/year-end", "/reports/attendance", "/reports/attendance?range=year", "/reports/finance", "/finance/fees", "/finance/fees?status=overdue", "/finance/expenses", "/notices", "/calendar", "/library", "/messages", "/profile", "/settings", "/search?q=th"];
+const ADMIN_PAGES = ["/dashboard", "/teachers", "/teachers?status=former", "/teachers?status=all", "/teachers/1", "/learners", "/learners?status=all", "/learners/1", "/parents", "/academics", "/academics?tab=subjects", "/academics?tab=allocation", "/attendance", "/results", "/results?term=3", "/results/moderation", "/results/analysis", "/results/analysis?term=year", "/reports", "/reports/report-cards", "/reports/report-cards?term=3&all=1", "/reports/report-cards?term=year&all=1", "/reports/broadsheet", "/reports/broadsheet?term=year", "/reports/promotion", "/reports/year-end", "/reports/attendance", "/reports/attendance?range=year", "/reports/finance", "/finance/fees", "/finance/fees?status=overdue", "/finance/expenses", "/notices", "/calendar", "/library", "/messages", "/profile", "/settings", "/import", "/search?q=th"];
 const ROLES = {
   super_admin: ["/schools", ...ADMIN_PAGES],
   school_admin: ADMIN_PAGES,
@@ -21,7 +21,7 @@ const ROLES = {
   parent: ["/dashboard", "/attendance", "/results/my", "/reports/report-cards", "/finance/statement", "/notices", "/calendar", "/library", "/messages", "/profile"],
 };
 // Pages a role must NOT reach (should redirect away).
-const FORBIDDEN = { teacher: ["/teachers", "/teachers/1", "/finance/fees", "/settings", "/reports/year-end"], learner: ["/learners", "/results/moderation", "/finance/fees"], parent: ["/teachers", "/reports/broadsheet"] };
+const FORBIDDEN = { teacher: ["/teachers", "/teachers/1", "/import", "/finance/fees", "/settings", "/reports/year-end"], learner: ["/learners", "/results/moderation", "/finance/fees"], parent: ["/teachers", "/reports/broadsheet"] };
 
 let failures = 0;
 for (const [role, pages] of Object.entries(ROLES)) {
