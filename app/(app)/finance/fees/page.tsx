@@ -3,6 +3,8 @@ import { requireCtx } from "@/lib/auth";
 import { all, get } from "@/lib/db";
 import { zar, gradeLabel, avatarUrl } from "@/lib/format";
 import { MONTHS, today } from "@/lib/today";
+import { OnlinePaymentsList } from "../statement/PayOnline";
+import { ozowConfig } from "@/lib/online-payments";
 import { Card, PageHeader, Pager, Empty, StatusChip, StatCard, hrefWith } from "@/components/ui/kit";
 import { FormDialog, Filters } from "@/components/ui/forms";
 import { AreaTrend } from "@/components/charts";
@@ -46,6 +48,10 @@ export default async function FeesPage({ searchParams }: { searchParams: Promise
   const outstanding = sums.billed - sums.paid - sums.exempt;
   const statusOf = (r: Row) => r.total - r.paid <= 0.5 ? (r.exempt ? "Exempt" : "Paid") : r.due_date < t ? "Overdue" : r.paid > 0 ? "Partial" : "Pending";
 
+  const ozow = ozowConfig(ctx.schoolId);
+  const online = all<{ id: number; amount: number; status: string; reason: string | null; created_at: string; merchant_reference: string; who: string }>(`
+    SELECT o.id, o.amount, o.status, o.reason, o.created_at, o.merchant_reference, l.first_name || ' ' || l.last_name || ' · ' || l.admission_number who
+    FROM online_payments o JOIN learners l ON l.id = o.learner_id WHERE o.school_id = ? AND o.provider_payment_id IS NOT NULL ORDER BY o.id DESC LIMIT 15`, ctx.schoolId);
   return (
     <>
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_26rem] gap-6 mb-6">
@@ -95,6 +101,8 @@ export default async function FeesPage({ searchParams }: { searchParams: Promise
         )}
         <Pager page={page} pages={Math.ceil(total / PER_PAGE)} makeHref={(p) => hrefWith("/finance/fees", sp, { page: p })} />
       </Card>
+
+      {online.length > 0 && <div className="mt-6"><OnlinePaymentsList title="Online payments (Ozow)" hint={ozow ? `Parents pay from the fee statement${ozow.testMode ? ". Test mode: no real money." : "."} Successful payments are added to the learner's account automatically.` : "Online payments are switched off in Settings."} rows={online} autoCheck={ozow ? online.filter((o) => o.status === "Created" || o.status === "Pending").map((o) => o.id) : []} /></div>}
 
       <Card title={`Fee structure · ${year}`} className="mt-6" action={<div className="flex gap-2"><GenerateInvoicesButton action={generateInvoices} /><FormDialog title="Set grade fees" triggerLabel="Set fees" action={saveFeeStructure} fields={[
         { name: "grade", label: "Grade", type: "select", required: true, options: Array.from({ length: 13 }, (_, g) => ({ value: g, label: gradeLabel(g) })) },

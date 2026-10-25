@@ -251,10 +251,44 @@ CREATE TABLE IF NOT EXISTS payments (
   invoice_id INTEGER NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
   amount REAL NOT NULL,
   paid_on TEXT NOT NULL,
-  method TEXT NOT NULL DEFAULT 'EFT' CHECK (method IN ('EFT','Cash','Card','Debit order','Exemption')),
+  method TEXT NOT NULL DEFAULT 'EFT' CHECK (method IN ('EFT','Cash','Card','Debit order','Exemption','Ozow')),
   reference TEXT,
-  recorded_by INTEGER REFERENCES users(id) ON DELETE SET NULL
+  recorded_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  online_payment_id INTEGER -- set when the payment came from an online (Ozow) payment
 );
+
+-- A school's own Ozow merchant account (One API). The client secret is stored encrypted.
+CREATE TABLE IF NOT EXISTS payment_settings (
+  school_id INTEGER PRIMARY KEY REFERENCES schools(id) ON DELETE CASCADE,
+  enabled INTEGER NOT NULL DEFAULT 0,
+  site_code TEXT,
+  client_id TEXT,
+  client_secret_enc TEXT,
+  test_mode INTEGER NOT NULL DEFAULT 1, -- 1 = Ozow staging, no real money
+  public_url TEXT, -- optional internet address of this server, so Ozow can send parents back after paying
+  updated_at TEXT
+);
+
+-- Parent-initiated online payments. A payment is only written to `payments` once Ozow reports it Successful.
+CREATE TABLE IF NOT EXISTS online_payments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  learner_id INTEGER NOT NULL REFERENCES learners(id) ON DELETE CASCADE,
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  amount REAL NOT NULL,
+  merchant_reference TEXT NOT NULL UNIQUE,
+  provider TEXT NOT NULL DEFAULT 'Ozow',
+  provider_payment_id TEXT,
+  provider_transaction_id TEXT,
+  test_mode INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'Created', -- Created | Pending | Successful | Failed
+  reason TEXT,
+  expires_at TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  checked_at TEXT,
+  completed_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_online_payments_learner ON online_payments(learner_id, status);
 
 CREATE TABLE IF NOT EXISTS expenses (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

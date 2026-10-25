@@ -96,6 +96,19 @@ School admins use **Reports → Year-end Promotion** when the year's final resul
 
 Back up the `data` folder before running it; it cannot be undone.
 
+## Online fee payments (Ozow)
+
+Fee-paying schools can let parents pay school fees from their banking app with [Ozow](https://ozow.com):
+
+1. The school signs up with Ozow and creates a One API client (dash.ozow.com → One API → Clients).
+2. A school admin enters the **site code**, **client ID** and **client secret** under **Settings → Online payments (Ozow)**, starts in **Test** mode (Ozow staging, no real money), clicks **Test connection**, then switches to **Live**. The secret is stored encrypted with `SESSION_SECRET`; if that changes, enter the secret again.
+3. Parents see **Pay now** on their dashboard and fee statement, choose an amount up to the balance, and pay on Ozow's secure page.
+4. FerriDash confirms each payment by asking Ozow (outbound internet only), then records it on the statement, oldest invoice first, exactly once. Open payments are re-checked when the statement or Fees page is opened; **Check status** does it on demand. Admins see online payments on **Finance → Fees Collection**.
+
+The server needs internet access for this. Ozow only sends parents straight back to FerriDash if the optional **public address** (an `https://` address reachable from the internet) is set; without it, payments are confirmed when the parent returns to the statement. No-fee schools don't see any of this.
+
+To try it without an Ozow account: run `node scripts/mock-ozow.mjs`, start FerriDash with `OZOW_BASE_URL=http://127.0.0.1:4010`, and use client ID `test-client` and secret `test-secret`.
+
 ## School logo and profile photos
 
 - **School logo**: school admins upload or remove it under **Settings** (no other role can). After sign-in it appears on every role's dashboard, in the sidebar, and on report cards and fee statements. The sign-in page stays generic because all schools share it; its animated dawn-sky background (midnight blue to a tangerine sunrise) shows rising education symbols, an orbiting atom, a learning path and twinkling stars for the future.

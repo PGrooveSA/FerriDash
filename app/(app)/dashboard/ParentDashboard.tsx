@@ -7,8 +7,10 @@ import { MiniCalendar, Agenda, NoticeList, RecentMessages } from "@/components/w
 import Avatar from "@/components/ui/Avatar";
 import { SchoolMark } from "@/components/SchoolCrest";
 import { learnerSnapshot } from "./LearnerDashboard";
+import { ozowConfig } from "@/lib/online-payments";
 
 export default function ParentDashboard({ ctx }: { ctx: Ctx }) {
+  const payOnline = !!ctx.school.fee_paying && !!ozowConfig(ctx.schoolId);
   const kids = (ownLearnerIds(ctx) ?? []).map((id) => learnerSnapshot(ctx, id)).filter((x): x is NonNullable<typeof x> => !!x);
   return (
     <div className="grid grid-cols-1 xl:grid-cols-[1fr_22rem] gap-6">
@@ -39,7 +41,9 @@ export default function ParentDashboard({ ctx }: { ctx: Ctx }) {
               <div className="glass-strong rounded-2xl p-4"><p className="text-xs muted">Attendance</p><p className="text-2xl font-bold">{att.rate != null ? `${att.rate}%` : "-"}</p><p className="text-xs muted">{att.absent ?? 0} absent days</p></div>
               <div className="glass-strong rounded-2xl p-4"><p className="text-xs muted">{latest ? `Term ${latest.term} average` : "Average"}</p><p className="text-2xl font-bold">{latest?.row?.average != null ? `${latest.row.average}%` : "-"}</p><p className="text-xs muted">{latest?.row?.position ? `Position ${latest.row.position}` : "Not yet published"}</p></div>
               <div className="glass-strong rounded-2xl p-4"><p className="text-xs muted">Subjects</p><p className="text-2xl font-bold">{latest?.cr?.subjects.length ?? "-"}</p><p className="text-xs muted">CAPS curriculum</p></div>
-              <div className="glass-strong rounded-2xl p-4"><p className="text-xs muted">Fee balance</p><p className={`text-2xl font-bold ${balance > 0 ? "text-rose-600" : ""}`}>{zar(Math.max(balance, 0), true)}</p><Link href="/finance/statement" className="text-xs muted underline">Statement</Link></div>
+              <div className="glass-strong rounded-2xl p-4"><p className="text-xs muted">Fee balance</p><p className={`text-2xl font-bold ${balance > 0 ? "text-rose-600" : ""}`}>{zar(Math.max(balance, 0), true)}</p>{payOnline && balance > 0
+                ? <Link href={`/finance/statement?learner=${l.id}`} className="btn btn-primary btn-sm mt-1">Pay now</Link>
+                : <Link href={`/finance/statement?learner=${l.id}`} className="text-xs muted underline">Statement</Link>}</div>
             </div>
             {latest && (
               <div className="flex flex-wrap gap-2 mt-4">

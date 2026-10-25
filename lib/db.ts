@@ -22,6 +22,27 @@ function migrate(db: DatabaseSync) {
   if (!has("users", "notices_seen_at")) db.exec("ALTER TABLE users ADD COLUMN notices_seen_at TEXT");
   if (!has("schools", "logo_updated_at")) db.exec("ALTER TABLE schools ADD COLUMN logo_updated_at TEXT");
   if (!has("expenses", "document_name")) db.exec("ALTER TABLE expenses ADD COLUMN document_name TEXT");
+  // Online payments: allow the 'Ozow' method (SQLite can't alter a CHECK, so rebuild the table once).
+  const paymentsSql = (db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'payments'").get() as { sql: string } | undefined)?.sql ?? "";
+  if (paymentsSql && !paymentsSql.includes("'Ozow'")) {
+    db.exec(`BEGIN;
+      CREATE TABLE payments_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+        invoice_id INTEGER NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
+        amount REAL NOT NULL,
+        paid_on TEXT NOT NULL,
+        method TEXT NOT NULL DEFAULT 'EFT' CHECK (method IN ('EFT','Cash','Card','Debit order','Exemption','Ozow')),
+        reference TEXT,
+        recorded_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        online_payment_id INTEGER
+      );
+      INSERT INTO payments_new (id, school_id, invoice_id, amount, paid_on, method, reference, recorded_by)
+        SELECT id, school_id, invoice_id, amount, paid_on, method, reference, recorded_by FROM payments;
+      DROP TABLE payments;
+      ALTER TABLE payments_new RENAME TO payments;
+      COMMIT;`);
+  }
   if (!has("teachers", "status")) db.exec("ALTER TABLE teachers ADD COLUMN status TEXT NOT NULL DEFAULT 'Active'; ALTER TABLE teachers ADD COLUMN left_on TEXT; ALTER TABLE teachers ADD COLUMN exit_note TEXT;");
 }
 
