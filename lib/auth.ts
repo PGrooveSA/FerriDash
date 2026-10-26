@@ -30,6 +30,12 @@ export type Ctx = {
   isAdmin: boolean;
 };
 
+/** Stands in for a school in the platform admin's context before any school exists. */
+const NO_SCHOOL: School = {
+  id: 0, name: "FerriDash", emis_number: "", province: "", district: "", quintile: 0, school_type: "", fee_paying: 0,
+  address: "", phone: "", email: "", principal: "", motto: "", current_year: new Date().getFullYear(), current_term: 1, logo_updated_at: null,
+};
+
 export async function getCtx(): Promise<Ctx | null> {
   const store = await cookies();
   const session = await verifySession(store.get(SESSION_COOKIE)?.value);
@@ -38,9 +44,10 @@ export async function getCtx(): Promise<Ctx | null> {
   if (!user) return null;
 
   // Platform admins don't belong to a school and never act inside one; the first school only fills
-  // the context's school field (school pages and actions refuse platform admins).
+  // the context's school field (school pages and actions refuse platform admins). On a new installation
+  // there is no school yet: the platform admin still signs in, to add the first one.
   const schoolId = user.role === "super_admin" ? ((await get<{ id: number }>("SELECT id FROM schools ORDER BY id LIMIT 1"))?.id ?? null) : user.school_id;
-  if (!schoolId) return null;
+  if (!schoolId) return user.role === "super_admin" ? { user, school: NO_SCHOOL, schoolId: 0, teacherId: null, learnerId: null, isAdmin: false } : null;
   const school = (await get<School & { active: number }>("SELECT * FROM schools WHERE id = ?", schoolId))!;
   // A suspended school's users are signed out straight away, not only at their next login.
   if (user.role !== "super_admin" && !school.active) return null;
