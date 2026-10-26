@@ -20,24 +20,24 @@ export default async function TeachersPage({ searchParams }: { searchParams: Pro
   // Current staff by default; teachers who resigned, transferred or retired stay on record under "Former".
   const status = ["current", "former", "all"].includes(sp.status ?? "") ? sp.status! : "current";
   const where = "t.school_id = ?1 AND (?5 = 'all' OR (?5 = 'current') = (t.status = 'Active')) AND (?2 = '' OR u.first_name || ' ' || u.last_name LIKE '%' || ?2 || '%' OR t.staff_number LIKE '%' || ?2 || '%' OR u.email LIKE '%' || ?2 || '%')";
-  const total = get<{ n: number }>(`SELECT COUNT(*) n FROM teachers t JOIN users u ON u.id = t.user_id WHERE ${where}`, ctx.schoolId, q, null, null, status)!.n;
-  const rows = all<T>(`
+  const total = (await get<{ n: number }>(`SELECT COUNT(*) n FROM teachers t JOIN users u ON u.id = t.user_id WHERE ${where}`, ctx.schoolId, q, null, null, status))!.n;
+  const rows = await all<T>(`
     SELECT t.*, u.title, u.first_name, u.last_name, u.email, u.phone, u.avatar_updated_at,
-      (SELECT GROUP_CONCAT(DISTINCT s.name) FROM class_subjects cs JOIN subjects s ON s.id = cs.subject_id JOIN classes c ON c.id = cs.class_id WHERE cs.teacher_id = t.id AND c.year = ?6) subjects,
-      (SELECT GROUP_CONCAT(DISTINCT c.name) FROM class_subjects cs JOIN classes c ON c.id = cs.class_id WHERE cs.teacher_id = t.id AND c.year = ?6) classes
+      (SELECT string_agg(DISTINCT s.name, ',') FROM class_subjects cs JOIN subjects s ON s.id = cs.subject_id JOIN classes c ON c.id = cs.class_id WHERE cs.teacher_id = t.id AND c.year = ?6) subjects,
+      (SELECT string_agg(DISTINCT c.name, ',') FROM class_subjects cs JOIN classes c ON c.id = cs.class_id WHERE cs.teacher_id = t.id AND c.year = ?6) classes
     FROM teachers t JOIN users u ON u.id = t.user_id WHERE ${where}
     ORDER BY u.last_name, u.first_name LIMIT ?3 OFFSET ?4`, ctx.schoolId, q, PER_PAGE, (page - 1) * PER_PAGE, status, ctx.school.current_year);
 
   // Teaching allocation choices: every class-subject this year, with who teaches it now.
-  const allocation = all<{ id: number; className: string; grade: number; subject: string; teacher_id: number | null; teacher: string | null }>(`
+  const allocation = await all<{ id: number; className: string; grade: number; subject: string; teacher_id: number | null; teacher: string | null }>(`
     SELECT cs.id, c.name className, c.grade, s.name subject, cs.teacher_id,
       (SELECT COALESCE(u.title || ' ', '') || u.last_name FROM teachers t JOIN users u ON u.id = t.user_id WHERE t.id = cs.teacher_id) teacher
     FROM class_subjects cs JOIN classes c ON c.id = cs.class_id JOIN subjects s ON s.id = cs.subject_id
     WHERE cs.school_id = ? AND c.year = ? ORDER BY c.grade, c.name, s.name`, ctx.schoolId, ctx.school.current_year);
-  const subjects = all<{ id: number; name: string }>("SELECT id, name FROM subjects WHERE school_id = ? ORDER BY name", ctx.schoolId);
-  const classes = all<{ id: number; name: string; grade: number; class_teacher_id: number | null }>("SELECT id, name, grade, class_teacher_id FROM classes WHERE school_id = ? AND year = ? ORDER BY grade, name", ctx.schoolId, ctx.school.current_year);
+  const subjects = await all<{ id: number; name: string }>("SELECT id, name FROM subjects WHERE school_id = ? ORDER BY name", ctx.schoolId);
+  const classes = await all<{ id: number; name: string; grade: number; class_teacher_id: number | null }>("SELECT id, name, grade, class_teacher_id FROM classes WHERE school_id = ? AND year = ? ORDER BY grade, name", ctx.schoolId, ctx.school.current_year);
 
-  const activeTeachers = all<{ id: number; name: string }>("SELECT t.id, COALESCE(u.title || ' ', '') || u.first_name || ' ' || u.last_name name FROM teachers t JOIN users u ON u.id = t.user_id WHERE t.school_id = ? AND t.status = 'Active' ORDER BY u.last_name, u.first_name", ctx.schoolId);
+  const activeTeachers = await all<{ id: number; name: string }>("SELECT t.id, COALESCE(u.title || ' ', '') || u.first_name || ' ' || u.last_name name FROM teachers t JOIN users u ON u.id = t.user_id WHERE t.school_id = ? AND t.status = 'Active' ORDER BY u.last_name, u.first_name", ctx.schoolId);
 
   // "Leaves school": why and when, then who takes over each of this year's classes.
   const exitFields = (t: T): Field[] => {

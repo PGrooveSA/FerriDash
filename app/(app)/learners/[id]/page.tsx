@@ -27,16 +27,16 @@ function yearEndLabel(outcome: string, note: string | null) {
 export default async function LearnerRecordPage({ params }: { params: Promise<{ id: string }> }) {
   const ctx = await requireCtx();
   const id = Number((await params).id);
-  if (!id || !canViewLearner(ctx, id)) notFound();
-  const family = !!ownLearnerIds(ctx);
-  const l = get<Learner>(`SELECT l.*, (SELECT avatar_updated_at FROM users WHERE id = l.user_id) av, c.name className, c.grade, c.year classYear
-    FROM learners l LEFT JOIN classes c ON c.id = l.class_id WHERE l.id = ?`, id)!;
-  const guardians = all<{ title: string | null; first_name: string; last_name: string; relationship: string; phone: string | null; email: string }>(
-    "SELECT u.title, u.first_name, u.last_name, g.relationship, u.phone, u.email FROM guardian_links g JOIN users u ON u.id = g.parent_user_id WHERE g.learner_id = ?", id);
+  if (!id || !(await canViewLearner(ctx, id))) notFound();
+  const family = !!(await ownLearnerIds(ctx));
+  const l = (await get<Learner>(`SELECT l.*, (SELECT avatar_updated_at FROM users WHERE id = l.user_id) av, c.name className, c.grade, c.year classYear
+    FROM learners l LEFT JOIN classes c ON c.id = l.class_id WHERE l.id = ?`, id))!;
+  const guardians = await all<{ title: string | null; first_name: string; last_name: string; relationship: string; phone: string | null; email: string }>(
+      "SELECT u.title, u.first_name, u.last_name, g.relationship, u.phone, u.email FROM guardian_links g JOIN users u ON u.id = g.parent_user_id WHERE g.learner_id = ?", id);
   // Families only ever see published results; staff see everything.
-  const history = learnerHistory(ctx, id, family);
+  const history = await learnerHistory(ctx, id, family);
   const graduated = history.find((h) => h.outcome === "graduated");
-  const siblings = family ? all<{ id: number; name: string }>(`SELECT id, first_name || ' ' || last_name name FROM learners WHERE id IN (${(ownLearnerIds(ctx) ?? []).map(() => "?").join(",") || "NULL"})`, ...(ownLearnerIds(ctx) ?? [])) : [];
+  const siblings = family ? (await all<{ id: number; name: string }>(`SELECT id, first_name || ' ' || last_name name FROM learners WHERE id IN (${((await ownLearnerIds(ctx)) ?? []).map(() => "?").join(",") || "NULL"})`, ...((await ownLearnerIds(ctx)) ?? []))) : [];
 
   const placement = l.status === "Active"
     ? (l.className ? `${gradeLabel(l.grade!)} · Class ${l.className} (${l.classYear})` : "No class")

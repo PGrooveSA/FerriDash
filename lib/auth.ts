@@ -34,18 +34,18 @@ export async function getCtx(): Promise<Ctx | null> {
   const store = await cookies();
   const session = await verifySession(store.get(SESSION_COOKIE)?.value);
   if (!session) return null;
-  const user = get<User>("SELECT id, school_id, role, title, first_name, last_name, email, phone, avatar_updated_at FROM users WHERE id = ? AND active = 1", session.uid);
+  const user = await get<User>("SELECT id, school_id, role, title, first_name, last_name, email, phone, avatar_updated_at FROM users WHERE id = ? AND active = 1", session.uid);
   if (!user) return null;
 
   // Platform admins don't belong to a school and never act inside one; the first school only fills
   // the context's school field (school pages and actions refuse platform admins).
-  const schoolId = user.role === "super_admin" ? (get<{ id: number }>("SELECT id FROM schools ORDER BY id LIMIT 1")?.id ?? null) : user.school_id;
+  const schoolId = user.role === "super_admin" ? ((await get<{ id: number }>("SELECT id FROM schools ORDER BY id LIMIT 1"))?.id ?? null) : user.school_id;
   if (!schoolId) return null;
-  const school = get<School & { active: number }>("SELECT * FROM schools WHERE id = ?", schoolId)!;
+  const school = (await get<School & { active: number }>("SELECT * FROM schools WHERE id = ?", schoolId))!;
   // A suspended school's users are signed out straight away, not only at their next login.
   if (user.role !== "super_admin" && !school.active) return null;
-  const teacherId = user.role === "teacher" ? (get<{ id: number }>("SELECT id FROM teachers WHERE user_id = ?", user.id)?.id ?? null) : null;
-  const learnerId = user.role === "learner" ? (get<{ id: number }>("SELECT id FROM learners WHERE user_id = ?", user.id)?.id ?? null) : null;
+  const teacherId = user.role === "teacher" ? ((await get<{ id: number }>("SELECT id FROM teachers WHERE user_id = ?", user.id))?.id ?? null) : null;
+  const learnerId = user.role === "learner" ? ((await get<{ id: number }>("SELECT id FROM learners WHERE user_id = ?", user.id))?.id ?? null) : null;
   return { user, school, schoolId, teacherId, learnerId, isAdmin: user.role === "school_admin" };
 }
 
@@ -60,10 +60,10 @@ export async function requireCtx(roles?: Role[]): Promise<Ctx> {
 }
 
 /** Learner ids the current user may see (own child/children for parents, self for learners). */
-export function ownLearnerIds(ctx: Ctx): number[] | null {
+export async function ownLearnerIds(ctx: Ctx): Promise<number[] | null> {
   if (ctx.user.role === "learner") return ctx.learnerId ? [ctx.learnerId] : [];
   if (ctx.user.role === "parent") {
-    return all<{ learner_id: number }>("SELECT learner_id FROM guardian_links WHERE parent_user_id = ?", ctx.user.id).map((r) => r.learner_id);
+    return (await all<{ learner_id: number }>("SELECT learner_id FROM guardian_links WHERE parent_user_id = ?", ctx.user.id)).map((r) => r.learner_id);
   }
   return null; // staff: no restriction at learner level
 }

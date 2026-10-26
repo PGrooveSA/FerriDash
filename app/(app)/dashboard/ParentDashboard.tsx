@@ -9,9 +9,9 @@ import { SchoolMark } from "@/components/SchoolCrest";
 import { learnerSnapshot } from "./LearnerDashboard";
 import { ozowConfig } from "@/lib/online-payments";
 
-export default function ParentDashboard({ ctx }: { ctx: Ctx }) {
-  const payOnline = !!ctx.school.fee_paying && !!ozowConfig(ctx.schoolId);
-  const kids = (ownLearnerIds(ctx) ?? []).map((id) => learnerSnapshot(ctx, id)).filter((x): x is NonNullable<typeof x> => !!x);
+export default async function ParentDashboard({ ctx }: { ctx: Ctx }) {
+  const payOnline = !!ctx.school.fee_paying && !!(await ozowConfig(ctx.schoolId));
+  const kids = (await Promise.all(((await ownLearnerIds(ctx)) ?? []).map((id) => learnerSnapshot(ctx, id)))).filter((x): x is NonNullable<typeof x> => !!x);
   return (
     <div className="grid grid-cols-1 xl:grid-cols-[1fr_22rem] gap-6">
       <div className="space-y-6 min-w-0">

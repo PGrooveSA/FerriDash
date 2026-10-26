@@ -21,13 +21,13 @@ const CARD_TONES = [
 ];
 export const cardTone = (i: number) => CARD_TONES[i % CARD_TONES.length];
 
-export function MiniCalendar({ schoolId }: { schoolId: number }) {
+export async function MiniCalendar({ schoolId }: { schoolId: number }) {
   const t = today();
   const [y, m] = t.split("-").map(Number);
   const first = new Date(Date.UTC(y, m - 1, 1));
   const startPad = first.getUTCDay();
   const days = new Date(Date.UTC(y, m, 0)).getUTCDate();
-  const eventDays = new Set(all<{ date: string }>("SELECT DISTINCT date FROM events WHERE school_id = ? AND date LIKE ?", schoolId, `${y}-${String(m).padStart(2, "0")}-%`).map((e) => Number(e.date.slice(8))));
+  const eventDays = new Set((await all<{ date: string }>("SELECT DISTINCT date FROM events WHERE school_id = ? AND date LIKE ?", schoolId, `${y}-${String(m).padStart(2, "0")}-%`)).map((e) => Number(e.date.slice(8))));
   const cells = [...Array(startPad).fill(null), ...Array.from({ length: days }, (_, i) => i + 1)];
   return (
     <div>
@@ -48,9 +48,9 @@ export function MiniCalendar({ schoolId }: { schoolId: number }) {
   );
 }
 
-export function Agenda({ schoolId, limit = 4 }: { schoolId: number; limit?: number }) {
-  const events = all<{ id: number; title: string; date: string; start_time: string | null; category: string; audience: string | null }>(
-    "SELECT * FROM events WHERE school_id = ? AND date >= ? ORDER BY date, start_time LIMIT ?", schoolId, today(), limit);
+export async function Agenda({ schoolId, limit = 4 }: { schoolId: number; limit?: number }) {
+  const events = await all<{ id: number; title: string; date: string; start_time: string | null; category: string; audience: string | null }>(
+      "SELECT * FROM events WHERE school_id = ? AND date >= ? ORDER BY date, start_time LIMIT ?", schoolId, today(), limit);
   if (!events.length) return <p className="text-sm muted">No upcoming events.</p>;
   return (
     <ul className="space-y-2.5">
@@ -64,9 +64,9 @@ export function Agenda({ schoolId, limit = 4 }: { schoolId: number; limit?: numb
   );
 }
 
-export function RecentMessages({ userId, limit = 4 }: { userId: number; limit?: number }) {
+export async function RecentMessages({ userId, limit = 4 }: { userId: number; limit?: number }) {
   // For direct chats, show the other person rather than the last sender.
-  const rows = all<{ conversation_id: number; body: string; created_at: string; first_name: string; last_name: string; title: string | null; conv_title: string | null; is_group: number; uid: number; av: string | null }>(`
+  const rows = await all<{ conversation_id: number; body: string; created_at: string; first_name: string; last_name: string; title: string | null; conv_title: string | null; is_group: number; uid: number; av: string | null }>(`
     SELECT m.conversation_id, m.body, m.created_at, c.title AS conv_title, c.is_group,
       COALESCE(o.id, u.id) uid, COALESCE(o.avatar_updated_at, u.avatar_updated_at) av,
       COALESCE(o.first_name, u.first_name) first_name, COALESCE(o.last_name, u.last_name) last_name, COALESCE(o.title, u.title) title
@@ -95,9 +95,9 @@ export function RecentMessages({ userId, limit = 4 }: { userId: number; limit?: 
   );
 }
 
-export function NoticeList({ schoolId, audiences, limit = 4 }: { schoolId: number; audiences: string[]; limit?: number }) {
-  const rows = all<{ id: number; title: string; body: string; created_at: string; views: number; tags: string | null }>(
-    `SELECT id, title, body, created_at, views, tags FROM notices WHERE school_id = ? AND audience IN (${audiences.map(() => "?").join(",")}) ORDER BY created_at DESC LIMIT ?`, schoolId, ...audiences, limit);
+export async function NoticeList({ schoolId, audiences, limit = 4 }: { schoolId: number; audiences: string[]; limit?: number }) {
+  const rows = await all<{ id: number; title: string; body: string; created_at: string; views: number; tags: string | null }>(
+      `SELECT id, title, body, created_at, views, tags FROM notices WHERE school_id = ? AND audience IN (${audiences.map(() => "?").join(",")}) ORDER BY created_at DESC LIMIT ?`, schoolId, ...audiences, limit);
   return (
     <ul className="divide-line">
       {rows.map((n) => (

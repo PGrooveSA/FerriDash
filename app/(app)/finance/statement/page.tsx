@@ -16,15 +16,15 @@ export default async function StatementPage({ searchParams }: { searchParams: Pr
   const sp = await searchParams;
   let ids: number[];
   if (ctx.isAdmin) ids = sp.learner ? [Number(sp.learner)] : [];
-  else ids = ownLearnerIds(ctx) ?? [];
+  else ids = (await ownLearnerIds(ctx)) ?? [];
   const learnerId = ids.includes(Number(sp.learner)) ? Number(sp.learner) : ids[0];
   if (!learnerId) return <Card><Empty title="Choose a learner" hint={ctx.isAdmin ? "Open a statement from Fees Collection." : "No learner is linked to your account."} /></Card>;
-  const l = get<{ first_name: string; last_name: string; admission_number: string; className: string; grade: number }>("SELECT l.first_name, l.last_name, l.admission_number, c.name className, c.grade FROM learners l LEFT JOIN classes c ON c.id = l.class_id WHERE l.id = ? AND l.school_id = ?", learnerId, ctx.schoolId);
+  const l = await get<{ first_name: string; last_name: string; admission_number: string; className: string; grade: number }>("SELECT l.first_name, l.last_name, l.admission_number, c.name className, c.grade FROM learners l LEFT JOIN classes c ON c.id = l.class_id WHERE l.id = ? AND l.school_id = ?", learnerId, ctx.schoolId);
   if (!l) return <Card><Empty title="Learner not found" /></Card>;
-  const kids = !ctx.isAdmin && ids.length > 1 ? all<{ id: number; name: string }>(`SELECT id, first_name || ' ' || last_name name FROM learners WHERE id IN (${ids.map(() => "?").join(",")})`, ...ids) : [];
+  const kids = !ctx.isAdmin && ids.length > 1 ? (await all<{ id: number; name: string }>(`SELECT id, first_name || ' ' || last_name name FROM learners WHERE id IN (${ids.map(() => "?").join(",")})`, ...ids)) : [];
 
   // Running ledger: invoices are debits, payments are credits.
-  const lines = all<{ id: number; kind: "invoice" | "payment"; date: string; description: string; debit: number; credit: number }>(`
+  const lines = await all<{ id: number; kind: "invoice" | "payment"; date: string; description: string; debit: number; credit: number }>(`
     SELECT id, 'invoice' kind, created_at date, description, tuition + activities + other debit, 0 credit FROM invoices WHERE learner_id = ?1
     UNION ALL
     SELECT p.id, 'payment', p.paid_on, p.method || COALESCE(' · ' || p.reference, ''), 0, p.amount FROM payments p JOIN invoices i ON i.id = p.invoice_id WHERE i.learner_id = ?1
@@ -34,9 +34,9 @@ export default async function StatementPage({ searchParams }: { searchParams: Pr
   bal = Math.round(bal * 100) / 100;
 
   // Online payments (fee-paying schools with Ozow switched on). Open ones are checked with Ozow on load.
-  const ozow = ctx.school.fee_paying ? ozowConfig(ctx.schoolId) : null;
-  const online = all<{ id: number; amount: number; status: string; reason: string | null; created_at: string; merchant_reference: string }>(
-    "SELECT id, amount, status, reason, created_at, merchant_reference FROM online_payments WHERE learner_id = ? AND provider_payment_id IS NOT NULL ORDER BY id DESC LIMIT 8", learnerId);
+  const ozow = ctx.school.fee_paying ? (await ozowConfig(ctx.schoolId)) : null;
+  const online = await all<{ id: number; amount: number; status: string; reason: string | null; created_at: string; merchant_reference: string }>(
+      "SELECT id, amount, status, reason, created_at, merchant_reference FROM online_payments WHERE learner_id = ? AND provider_payment_id IS NOT NULL ORDER BY id DESC LIMIT 8", learnerId);
   const openIds = online.filter((o) => o.status === "Created" || o.status === "Pending").map((o) => o.id);
 
   return (

@@ -6,35 +6,60 @@ notices, calendar, library and messaging, with a modern glass interface in light
 
 Copyright © Infinite Q Graphics
 
-## Run it (offline)
+## Database: Supabase (PostgreSQL)
 
-Requires **Node.js 22.13+** (uses the built-in `node:sqlite`; no database server and no internet connection needed once installed).
+FerriDash stores everything in PostgreSQL: Supabase in production, a local Postgres in development. Uploaded logos,
+profile photos and expense PDFs go to a private Supabase Storage bucket (`ferridash-uploads`, created on first upload).
 
-**Windows:** double-click `start.bat`. It checks Node.js, installs packages and builds the app on first run, then opens http://localhost:3100 in your browser. Use `start.bat rebuild` after code changes, `start.bat dev` for live-reload development, or `start.bat reset` to reload the demo data.
+`.env.local` (never committed) holds:
 
-**Any platform:**
+| Variable | What it is |
+|---|---|
+| `DATABASE_URL` | Supabase connection string, transaction pooler (port 6543). Percent-encode special characters in the password (`@` is `%40`). |
+| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | For Storage (server side only, never sent to browsers) |
+| `SESSION_SECRET` | Long random string that signs session cookies; use a new one per installation |
+
+Row-level security is on for every table with no policies, so Supabase's public API exposes nothing; the app connects
+as the database owner and scopes every query to the signed-in user's school.
+
+### Go live with an empty database
+
+1. Put the variables above in `.env.local` (and in your host's environment settings).
+2. Create the first platform administrator. This also creates the tables if the database is empty. It asks for name,
+   email and password (hidden, at least 12 characters); there are no demo accounts:
+
+   ```bash
+   npm run db:admin
+   ```
+
+3. `npm run build` then `npm start` (or deploy to your host), sign in, and add the first school under **Dashboard**.
+
+### Develop locally
 
 ```bash
 npm install
-npm run dev
+npm run db:local
 ```
 
-Open http://localhost:3100. On first start the database (`data/school-hub.db`) is created and filled with demo data.
+`db:local` runs Postgres in-process (PGlite, data in `data/local-pg`) on port 54329. In another terminal, with
+`DATABASE_URL=postgres://postgres:postgres@127.0.0.1:54329/postgres` and `DB_POOL_MAX=1`, run `npm run dev`. To load the demo
+data: `DB_PATH=data/demo-seed.db npm run seed`, then
+`node scripts/sqlite-to-pg.mjs data/demo-seed.db --reset`. Never point either at the live database.
 
 | Command | What it does |
 |---|---|
-| `npm run dev` | Development server on port 3100 (seeds automatically if empty) |
+| `npm run dev` | Development server on port 3100 |
 | `npm run build` then `npm start` | Production build and server |
-| `npm run seed:reset` | Wipe and reload the demo data (safe while the app is running) |
+| `npm run db:admin` | Create a platform administrator (`-- --another` to add one more) |
 | `npm run typecheck` | TypeScript check |
 | `node scripts/smoke.mjs` | Loads every page as every role and checks role restrictions (app must be running) |
+| `node scripts/sqlite-to-pg.mjs <file>` | Copy an older offline (SQLite) FerriDash database and its files into Postgres |
 
-`.env.local` holds `SESSION_SECRET` (generate a new one per installation). `DB_PATH` can point the database elsewhere.
-To serve other devices on the school LAN over plain HTTP in production, set `INSECURE_COOKIES=1`.
+`DB_DEBUG=1` logs failing SQL to the server log.
 
 ## Demo accounts
 
-All demo accounts use the password **`Demo@2026`**. Change or remove them before real use.
+Only in the local demo data (never on the live database). All demo accounts use the password **`Demo@2026`**.
 
 | Role | Email |
 |---|---|
@@ -113,7 +138,7 @@ To try it without an Ozow account: run `node scripts/mock-ozow.mjs`, start Ferri
 
 - **School logo**: school admins upload or remove it under **Settings** (no other role can). After sign-in it appears on every role's dashboard, in the sidebar, and on report cards and fee statements. The sign-in page stays generic because all schools share it; its animated dawn-sky background (midnight blue to a tangerine sunrise) shows rising education symbols, an orbiting atom, a learning path and twinkling stars for the future.
 - **Profile photos**: every user can upload one under **Profile**.
-- Images are resized in the browser and stored offline in `data/logos` and `data/avatars`. Logos are public; profile photos are only visible to signed-in users of the same school.
+- Images are resized in the browser and stored in Supabase Storage (`data/uploads` when no Supabase keys are set). Logos are public; profile photos are only visible to signed-in users of the same school.
 
 ## South African details
 
@@ -126,8 +151,8 @@ languages plus SA Sign Language, four-term calendar, and a POPIA privacy notice.
 - **Next.js 15 (App Router) + React 19 + TypeScript**, server components and server actions
 - **Tailwind CSS 4** glass design system (`app/globals.css`) in a sunrise palette (tangerine, sunshine yellow and warm charcoal): `.glass`, `.glass-strong`, `.glass-solid`, light and dark
   themes, and support for `prefers-reduced-transparency` and `prefers-reduced-motion`
-- **SQLite via `node:sqlite`** (`db/schema.sql`). Every tenant table carries `school_id`; all queries are scoped to the
-  signed-in user's school. The SQL stays close to standard so it can move to PostgreSQL or Supabase later.
+- **PostgreSQL / Supabase** via `postgres` (`db/schema.pg.sql`, `lib/db.ts`). Every tenant table carries `school_id`; all
+  queries are scoped to the signed-in user's school. Files are in Supabase Storage (`lib/storage.ts`).
 - **Auth**: bcrypt password hashes, signed JWT session cookie (`jose`), middleware guard, a role check in every page
   and action, login throttling, audit log
 - **Charts**: Recharts. **PDF**: browser print with dedicated print styles (works offline).
@@ -138,8 +163,8 @@ app/actions/      server actions (all mutations, each role-checked)
 lib/caps.ts       CAPS levels, weighting, promotion rules
 lib/results.ts    term/year marks, rankings, class results
 components/       shell, UI kit, charts, report card
-db/schema.sql     database schema
-scripts/          seed and smoke test
+db/schema.pg.sql  database schema
+scripts/          admin bootstrap, local Postgres, seed, data copy, smoke test
 ```
 
 ## Suggested next steps

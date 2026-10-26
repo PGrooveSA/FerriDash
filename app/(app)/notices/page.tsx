@@ -19,15 +19,15 @@ export default async function NoticesPage({ searchParams }: { searchParams: Prom
   const role = ctx.user.role;
   const audiences = noticeAudiences(ctx);
   // Opening the notice board marks every notice up to now as read (clears the bell dot).
-  markNoticesSeen(ctx.user.id);
+  await markNoticesSeen(ctx.user.id);
   const q = sp.q?.trim() ?? "", page = Math.max(1, Number(sp.page) || 1);
   const where = `n.school_id = ? AND n.audience IN (${audiences.map(() => "?").join(",")}) AND (? = '' OR n.title LIKE '%' || ? || '%' OR u.last_name LIKE '%' || ? || '%')`;
   const args = [ctx.schoolId, ...audiences, q, q, q];
-  const total = get<{ n: number }>(`SELECT COUNT(*) n FROM notices n LEFT JOIN users u ON u.id = n.author_id WHERE ${where}`, ...args)!.n;
-  const rows = all<N>(`SELECT n.*, u.title title_, u.first_name, u.last_name FROM notices n LEFT JOIN users u ON u.id = n.author_id WHERE ${where} ORDER BY n.created_at DESC LIMIT ? OFFSET ?`, ...args, PER_PAGE, (page - 1) * PER_PAGE);
+  const total = (await get<{ n: number }>(`SELECT COUNT(*) n FROM notices n LEFT JOIN users u ON u.id = n.author_id WHERE ${where}`, ...args))!.n;
+  const rows = await all<N>(`SELECT n.*, u.title title_, u.first_name, u.last_name FROM notices n LEFT JOIN users u ON u.id = n.author_id WHERE ${where} ORDER BY n.created_at DESC LIMIT ? OFFSET ?`, ...args, PER_PAGE, (page - 1) * PER_PAGE);
   const selectedId = Number(sp.id) || rows[0]?.id;
-  const selected = selectedId ? get<N>(`SELECT n.*, u.title title_, u.first_name, u.last_name FROM notices n LEFT JOIN users u ON u.id = n.author_id WHERE n.id = ? AND n.school_id = ? AND n.audience IN (${audiences.map(() => "?").join(",")})`, selectedId, ctx.schoolId, ...audiences) : undefined;
-  if (selected && sp.id) run("UPDATE notices SET views = views + 1 WHERE id = ?", selected.id);
+  const selected = selectedId ? (await get<N>(`SELECT n.*, u.title title_, u.first_name, u.last_name FROM notices n LEFT JOIN users u ON u.id = n.author_id WHERE n.id = ? AND n.school_id = ? AND n.audience IN (${audiences.map(() => "?").join(",")})`, selectedId, ctx.schoolId, ...audiences)) : undefined;
+  if (selected && sp.id) await run("UPDATE notices SET views = views + 1 WHERE id = ?", selected.id);
   const staff = ctx.isAdmin || role === "teacher";
   const by = (n: N) => n.first_name ? fullName({ title: n.title_, first_name: n.first_name, last_name: n.last_name! }, true) : "School office";
 

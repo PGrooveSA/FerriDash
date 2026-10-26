@@ -13,18 +13,19 @@ const COLORS = ["#ffa86d", "#ffdf55", "#fde68a", "#86efac", "#fda4af", "#e8906c"
 export default async function FinanceReport() {
   const ctx = await requireCtx(["school_admin"]);
   const year = ctx.school.current_year;
-  const byGrade = all<{ grade: number; learners: number; billed: number; paid: number }>(`
+  const byGrade = await all<{ grade: number; learners: number; billed: number; paid: number }>(`
     SELECT c.grade, COUNT(DISTINCT i.learner_id) learners, SUM(i.tuition + i.activities + i.other) billed,
       SUM((SELECT COALESCE(SUM(p.amount), 0) FROM payments p WHERE p.invoice_id = i.id)) paid
     FROM invoices i JOIN learners l ON l.id = i.learner_id JOIN classes c ON c.id = l.class_id
     WHERE i.school_id = ? AND i.year = ? GROUP BY c.grade ORDER BY c.grade`, ctx.schoolId, year);
-  const debtors = all<{ id: number; name: string; className: string; billed: number; paid: number; parent: string | null }>(`
-    SELECT l.id, l.first_name || ' ' || l.last_name name, c.name className, SUM(i.tuition + i.activities + i.other) billed,
+  const debtors = await all<{ id: number; name: string; className: string; billed: number; paid: number; parent: string | null }>(`
+    SELECT * FROM (SELECT l.id, l.first_name || ' ' || l.last_name name, c.name className, SUM(i.tuition + i.activities + i.other) billed,
       (SELECT COALESCE(SUM(p.amount), 0) FROM payments p JOIN invoices i2 ON i2.id = p.invoice_id WHERE i2.learner_id = l.id AND i2.year = ?2) paid,
       (SELECT u.first_name || ' ' || u.last_name || ' · ' || COALESCE(u.phone, u.email) FROM guardian_links g JOIN users u ON u.id = g.parent_user_id WHERE g.learner_id = l.id LIMIT 1) parent
     FROM invoices i JOIN learners l ON l.id = i.learner_id JOIN classes c ON c.id = l.class_id
-    WHERE i.school_id = ?1 AND i.year = ?2 GROUP BY l.id HAVING billed - paid > 0.5 ORDER BY billed - paid DESC`, ctx.schoolId, year);
-  const expenses = all<{ category: string; total: number }>("SELECT category, SUM(amount) total FROM expenses WHERE school_id = ? AND paid_on LIKE ? GROUP BY category ORDER BY total DESC", ctx.schoolId, `${year}-%`);
+    WHERE i.school_id = ?1 AND i.year = ?2 GROUP BY l.id, c.name) x
+    WHERE billed - paid > 0.5 ORDER BY billed - paid DESC`, ctx.schoolId, year);
+  const expenses = await all<{ category: string; total: number }>("SELECT category, SUM(amount) total FROM expenses WHERE school_id = ? AND paid_on LIKE ? GROUP BY category ORDER BY total DESC", ctx.schoolId, `${year}-%`);
   const billed = byGrade.reduce((a, r) => a + r.billed, 0), paid = byGrade.reduce((a, r) => a + r.paid, 0), spent = expenses.reduce((a, r) => a + r.total, 0);
 
   const csv = [

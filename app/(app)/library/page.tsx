@@ -19,10 +19,10 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
   const base = `SELECT b.*, (SELECT COUNT(*) FROM book_loans l WHERE l.book_id = b.id AND l.returned_on IS NULL) out FROM books b
     WHERE b.school_id = ?1 AND (?2 = '' OR b.title LIKE '%' || ?2 || '%' OR b.code LIKE '%' || ?2 || '%' OR b.subject LIKE '%' || ?2 || '%' OR b.author LIKE '%' || ?2 || '%')`;
   const filter = avail === "available" ? "WHERE out < copies" : avail === "out" ? "WHERE out >= copies" : "";
-  const total = get<{ n: number }>(`SELECT COUNT(*) n FROM (${base}) ${filter}`, ctx.schoolId, q)!.n;
-  const rows = all<B>(`SELECT * FROM (${base}) ${filter} ORDER BY title LIMIT ?3 OFFSET ?4`, ctx.schoolId, q, PER_PAGE, (page - 1) * PER_PAGE);
-  const ids = ownLearnerIds(ctx);
-  const loans = all<{ id: number; title: string; learner: string; className: string | null; borrowed_on: string; due_on: string }>(`
+  const total = (await get<{ n: number }>(`SELECT COUNT(*) n FROM (${base}) x ${filter}`, ctx.schoolId, q))!.n;
+  const rows = await all<B>(`SELECT * FROM (${base}) x ${filter} ORDER BY title LIMIT ?3 OFFSET ?4`, ctx.schoolId, q, PER_PAGE, (page - 1) * PER_PAGE);
+  const ids = await ownLearnerIds(ctx);
+  const loans = await all<{ id: number; title: string; learner: string; className: string | null; borrowed_on: string; due_on: string }>(`
     SELECT bl.id, b.title, l.first_name || ' ' || l.last_name learner, c.name className, bl.borrowed_on, bl.due_on
     FROM book_loans bl JOIN books b ON b.id = bl.book_id JOIN learners l ON l.id = bl.learner_id LEFT JOIN classes c ON c.id = l.class_id
     WHERE bl.school_id = ? AND bl.returned_on IS NULL ${ids ? `AND bl.learner_id IN (${ids.map(() => "?").join(",") || "NULL"})` : ""} ORDER BY bl.due_on`, ctx.schoolId, ...(ids ?? []));

@@ -9,11 +9,11 @@ export const metadata = { title: "Import data" };
 export default async function ImportPage() {
   const ctx = await requireCtx(["school_admin"]);
   const year = ctx.school.current_year;
-  const n = (sql: string, ...p: (string | number)[]) => get<{ n: number }>(sql, ...p)!.n;
+  const n = async (sql: string, ...p: (string | number)[]) => (await get<{ n: number }>(sql, ...p))!.n;
   const counts = {
-    teachers: n("SELECT COUNT(*) n FROM teachers WHERE school_id = ? AND status = 'Active'", ctx.schoolId),
-    classes: n("SELECT COUNT(*) n FROM classes WHERE school_id = ? AND year = ?", ctx.schoolId, year),
-    learners: n("SELECT COUNT(*) n FROM learners WHERE school_id = ? AND status = 'Active'", ctx.schoolId),
+    teachers: await n("SELECT COUNT(*) n FROM teachers WHERE school_id = ? AND status = 'Active'", ctx.schoolId),
+    classes: await n("SELECT COUNT(*) n FROM classes WHERE school_id = ? AND year = ?", ctx.schoolId, year),
+    learners: await n("SELECT COUNT(*) n FROM learners WHERE school_id = ? AND status = 'Active'", ctx.schoolId),
   };
   return (
     <>

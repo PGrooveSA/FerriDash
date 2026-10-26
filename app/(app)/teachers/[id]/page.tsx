@@ -19,14 +19,14 @@ type Row = { year: number; className: string; grade: number; subject: string | n
 export default async function TeacherRecordPage({ params }: { params: Promise<{ id: string }> }) {
   const ctx = await requireCtx(["school_admin"]);
   const id = Number((await params).id);
-  const t = id ? get<Teacher>(`SELECT t.*, u.title, u.first_name, u.last_name, u.email, u.phone, u.avatar_updated_at
-    FROM teachers t JOIN users u ON u.id = t.user_id WHERE t.id = ? AND t.school_id = ?`, id, ctx.schoolId) : undefined;
+  const t = id ? (await get<Teacher>(`SELECT t.*, u.title, u.first_name, u.last_name, u.email, u.phone, u.avatar_updated_at
+    FROM teachers t JOIN users u ON u.id = t.user_id WHERE t.id = ? AND t.school_id = ?`, id, ctx.schoolId)) : undefined;
   if (!t) notFound();
 
   // Everything they taught: subjects and register classes still allocated to them (this and past years),
   // plus what they handed over when they left.
   const name = "COALESCE(u.title || ' ', '') || u.first_name || ' ' || u.last_name";
-  const rows = all<Row>(`
+  const rows = await all<Row>(`
     SELECT c.year, c.name className, c.grade, s.name subject, 0 register, NULL until, NULL handedTo
       FROM class_subjects cs JOIN classes c ON c.id = cs.class_id JOIN subjects s ON s.id = cs.subject_id WHERE cs.teacher_id = ?1
     UNION ALL SELECT c.year, c.name, c.grade, NULL, 1, NULL, NULL FROM classes c WHERE c.class_teacher_id = ?1

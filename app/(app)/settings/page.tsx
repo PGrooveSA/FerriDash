@@ -13,9 +13,9 @@ export const metadata = { title: "Settings" };
 
 export default async function SettingsPage() {
   const ctx = await requireCtx(["school_admin"]);
-  const terms = all<{ number: number; start_date: string; end_date: string }>("SELECT number, start_date, end_date FROM terms WHERE school_id = ? AND year = ? ORDER BY number", ctx.schoolId, ctx.school.current_year);
-  const pay = paymentSettings(ctx.schoolId);
-  const logs = all<{ action: string; entity: string; created_at: string; name: string | null; detail: string | null }>(`SELECT a.action, a.entity, a.created_at, a.detail, u.first_name || ' ' || u.last_name name FROM audit_log a LEFT JOIN users u ON u.id = a.user_id WHERE a.school_id = ? ORDER BY a.id DESC LIMIT 15`, ctx.schoolId);
+  const terms = await all<{ number: number; start_date: string; end_date: string }>("SELECT number, start_date, end_date FROM terms WHERE school_id = ? AND year = ? ORDER BY number", ctx.schoolId, ctx.school.current_year);
+  const pay = await paymentSettings(ctx.schoolId);
+  const logs = await all<{ action: string; entity: string; created_at: string; name: string | null; detail: string | null }>(`SELECT a.action, a.entity, a.created_at, a.detail, u.first_name || ' ' || u.last_name name FROM audit_log a LEFT JOIN users u ON u.id = a.user_id WHERE a.school_id = ? ORDER BY a.id DESC LIMIT 15`, ctx.schoolId);
   return (
     <>
       <PageHeader title="School settings" subtitle="Profile, academic calendar and CAPS assessment configuration." />

@@ -23,14 +23,14 @@ export default async function ReportCardsPage({ searchParams }: { searchParams: 
 
   // ---- Learners and parents: own report cards, published results only ----
   if (family) {
-    const ids = ownLearnerIds(ctx) ?? [];
+    const ids = (await ownLearnerIds(ctx)) ?? [];
     const learnerId = ids.includes(Number(sp.learner)) ? Number(sp.learner) : ids[0];
     if (!learnerId) return <Card><Empty title="No learner linked" /></Card>;
-    const kids = all<{ id: number; name: string }>(`SELECT id, first_name || ' ' || last_name name FROM learners WHERE id IN (${ids.map(() => "?").join(",")})`, ...ids);
-    const years = learnerYears(learnerId);
+    const kids = await all<{ id: number; name: string }>(`SELECT id, first_name || ' ' || last_name name FROM learners WHERE id IN (${ids.map(() => "?").join(",")})`, ...ids);
+    const years = await learnerYears(learnerId);
     const year = years.includes(requestedYear) ? requestedYear : (years[0] ?? ctx.school.current_year);
-    const classId = learnerClassForYear(learnerId, year);
-    const data = classId ? reportCards(ctx, classId, period, [learnerId], true, year) : null;
+    const classId = await learnerClassForYear(learnerId, year);
+    const data = classId ? (await reportCards(ctx, classId, period, [learnerId], true, year)) : null;
     const card = data?.cards[0];
     const has = card && Object.values(card.row.pct).some((v) => v != null);
     return (
@@ -45,18 +45,18 @@ export default async function ReportCardsPage({ searchParams }: { searchParams: 
   }
 
   // ---- Staff ----
-  const allYears = schoolYears(ctx.schoolId);
+  const allYears = await schoolYears(ctx.schoolId);
   const year = allYears.includes(requestedYear) ? requestedYear : ctx.school.current_year;
   const classes = ctx.isAdmin
-    ? all<{ id: number; name: string; grade: number }>("SELECT id, name, grade FROM classes WHERE school_id = ? AND year = ? ORDER BY grade, name", ctx.schoolId, year)
-    : all<{ id: number; name: string; grade: number }>("SELECT DISTINCT c.id, c.name, c.grade FROM classes c LEFT JOIN class_subjects cs ON cs.class_id = c.id WHERE c.year = ?2 AND (cs.teacher_id = ?1 OR c.class_teacher_id = ?1) ORDER BY c.grade, c.name", ctx.teacherId, year);
+    ? (await all<{ id: number; name: string; grade: number }>("SELECT id, name, grade FROM classes WHERE school_id = ? AND year = ? ORDER BY grade, name", ctx.schoolId, year))
+    : (await all<{ id: number; name: string; grade: number }>("SELECT DISTINCT c.id, c.name, c.grade FROM classes c LEFT JOIN class_subjects cs ON cs.class_id = c.id WHERE c.year = ?2 AND (cs.teacher_id = ?1 OR c.class_teacher_id = ?1) ORDER BY c.grade, c.name", ctx.teacherId, year));
   const requestedLearner = Number(sp.learner) || 0;
-  const learnerClass = requestedLearner && get("SELECT id FROM learners WHERE id = ? AND school_id = ?", requestedLearner, ctx.schoolId) ? learnerClassForYear(requestedLearner, year) ?? undefined : undefined;
+  const learnerClass = requestedLearner && (await get("SELECT id FROM learners WHERE id = ? AND school_id = ?", requestedLearner, ctx.schoolId)) ? (await learnerClassForYear(requestedLearner, year)) ?? undefined : undefined;
   const classId = learnerClass ?? classes.find((c) => c.id === Number(sp.class))?.id ?? classes[0]?.id;
   if (!classId || !classes.some((c) => c.id === classId)) return <Card><Empty title="No classes available" /></Card>;
-  const isClassTeacher = !!get("SELECT id FROM classes WHERE id = ? AND class_teacher_id = ?", classId, ctx.teacherId ?? -1);
+  const isClassTeacher = !!(await get("SELECT id FROM classes WHERE id = ? AND class_teacher_id = ?", classId, ctx.teacherId ?? -1));
   const mode = requestedLearner ? "one" : sp.all ? "all" : "list";
-  const data = reportCards(ctx, classId, period, mode === "one" ? [requestedLearner] : null, false, year)!;
+  const data = (await reportCards(ctx, classId, period, mode === "one" ? [requestedLearner] : null, false, year))!;
   const pastYear = year !== ctx.school.current_year;
   const commentTerm = period === "year" ? 4 : period;
 

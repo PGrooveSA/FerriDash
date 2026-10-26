@@ -11,3 +11,5 @@ data/expense-docs/
 
 # Presentation and user-guide build tooling
 docs/.build/
+data/local-pg/
+data/uploads/

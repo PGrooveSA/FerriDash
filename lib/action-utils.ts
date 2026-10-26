@@ -13,8 +13,10 @@ export async function guarded(roles: Role[] | undefined, fn: (ctx: Awaited<Retur
     return (await fn(ctx)) ?? { ok: true };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    if (msg.includes("UNIQUE")) return { error: "That record already exists (duplicate email, code or number)." };
-    if (msg.includes("FOREIGN KEY")) return { error: "This record is still linked to other data." };
+    // Postgres: 23505 unique violation, 23503 foreign key violation.
+    const code = (e as { code?: string })?.code;
+    if (code === "23505" || msg.includes("UNIQUE") || msg.includes("duplicate key")) return { error: "That record already exists (duplicate email, code or number)." };
+    if (code === "23503" || msg.includes("FOREIGN KEY") || msg.includes("foreign key")) return { error: "This record is still linked to other data." };
     if (msg.startsWith("!")) return { error: msg.slice(1) };
     console.error(e);
     return { error: "Something went wrong. Please try again." };

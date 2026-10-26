@@ -1,22 +1,9 @@
-import { join } from "node:path";
+// Upload limits and file-type checks. Where files are stored: lib/storage.ts.
 
-/** Uploaded images live on disk next to the database. */
-const DATA_DIR = process.env.DB_PATH ? join(process.env.DB_PATH, "..") : join(process.cwd(), "data");
+export const MAX_AVATAR_BYTES = 2 * 1024 * 1024; // profile photos
+export const MAX_LOGO_BYTES = 2 * 1024 * 1024; // school logos
+export const MAX_EXPENSE_DOC_BYTES = 10 * 1024 * 1024; // expense PDFs
 
-// Profile photos: one file per user.
-export const AVATAR_DIR = join(DATA_DIR, "avatars");
-export const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
-export const avatarFile = (userId: number) => join(AVATAR_DIR, `${userId}.img`);
-
-// School logos: one file per school.
-export const LOGO_DIR = join(DATA_DIR, "logos");
-export const MAX_LOGO_BYTES = 2 * 1024 * 1024;
-export const logoFile = (schoolId: number) => join(LOGO_DIR, `${schoolId}.img`);
-
-// Expense documents (PDF only): one file per expense.
-export const EXPENSE_DOC_DIR = join(DATA_DIR, "expense-docs");
-export const MAX_EXPENSE_DOC_BYTES = 10 * 1024 * 1024;
-export const expenseDocFile = (expenseId: number) => join(EXPENSE_DOC_DIR, `${expenseId}.pdf`);
 /** A real PDF starts with "%PDF-" (checked instead of trusting the file name or browser type). */
 export const isPdf = (buf: Uint8Array) => buf.length > 5 && String.fromCharCode(...buf.slice(0, 5)) === "%PDF-";
 

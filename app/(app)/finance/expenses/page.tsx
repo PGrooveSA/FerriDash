@@ -18,9 +18,9 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
   const q = sp.q?.trim() ?? "", cat = sp.category ?? "", month = sp.month ?? "", page = Math.max(1, Number(sp.page) || 1);
   const where = "school_id = ?1 AND (?2 = '' OR category = ?2) AND (?3 = '' OR paid_on LIKE ?3 || '%') AND (?4 = '' OR description LIKE '%' || ?4 || '%' OR reference LIKE '%' || ?4 || '%' OR supplier LIKE '%' || ?4 || '%')";
   const args = [ctx.schoolId, cat, month, q] as const;
-  const agg = get<{ n: number; total: number }>(`SELECT COUNT(*) n, COALESCE(SUM(amount), 0) total FROM expenses WHERE ${where}`, ...args)!;
-  const rows = all<E>(`SELECT * FROM expenses WHERE ${where} ORDER BY paid_on DESC LIMIT ?5 OFFSET ?6`, ...args, PER_PAGE, (page - 1) * PER_PAGE);
-  const months = all<{ m: string }>("SELECT DISTINCT substr(paid_on, 1, 7) m FROM expenses WHERE school_id = ? ORDER BY m DESC", ctx.schoolId);
+  const agg = (await get<{ n: number; total: number }>(`SELECT COUNT(*) n, COALESCE(SUM(amount), 0) total FROM expenses WHERE ${where}`, ...args))!;
+  const rows = await all<E>(`SELECT * FROM expenses WHERE ${where} ORDER BY paid_on DESC LIMIT ?5 OFFSET ?6`, ...args, PER_PAGE, (page - 1) * PER_PAGE);
+  const months = await all<{ m: string }>("SELECT DISTINCT substr(paid_on, 1, 7) m FROM expenses WHERE school_id = ? ORDER BY m DESC", ctx.schoolId);
   const fields = (e?: E): Field[] => [
     { name: "category", label: "Category", type: "select", required: true, options: CATEGORIES.map((c) => ({ value: c, label: c })), defaultValue: e?.category, half: true },
     { name: "reference", label: "Reference / voucher no.", defaultValue: e?.reference, half: true },

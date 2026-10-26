@@ -15,16 +15,16 @@ export async function login(_: unknown, form: FormData): Promise<{ error?: strin
   const a = attempts.get(email);
   if (a && a.until > Date.now()) return { error: "Too many attempts. Try again in a few minutes." };
 
-  const user = get<{ id: number; role: string; password_hash: string; school_id: number | null }>(
-    "SELECT u.id, u.role, u.password_hash, u.school_id FROM users u LEFT JOIN schools s ON s.id = u.school_id WHERE lower(u.email) = ? AND u.active = 1 AND (s.id IS NULL OR s.active = 1)", email);
+  const user = await get<{ id: number; role: string; password_hash: string; school_id: number | null }>(
+      "SELECT u.id, u.role, u.password_hash, u.school_id FROM users u LEFT JOIN schools s ON s.id = u.school_id WHERE lower(u.email) = ? AND u.active = 1 AND (s.id IS NULL OR s.active = 1)", email);
   if (!user || !bcrypt.compareSync(password, user.password_hash)) {
     const n = (a?.n ?? 0) + 1;
     attempts.set(email, { n, until: n >= 5 ? Date.now() + 5 * 60_000 : 0 });
     return { error: "Incorrect email or password." };
   }
   attempts.delete(email);
-  run("UPDATE users SET last_login = datetime('now') WHERE id = ?", user.id);
-  audit(user.school_id, user.id, "login", "user", user.id);
+  await run("UPDATE users SET last_login = datetime('now') WHERE id = ?", user.id);
+  await audit(user.school_id, user.id, "login", "user", user.id);
 
   // "Remember me": stay signed in for 30 days. Otherwise the cookie ends when the browser closes
   // (and the session expires after 12 hours either way).
@@ -48,11 +48,11 @@ export async function logout() {
 export async function changePassword(_: unknown, form: FormData): Promise<{ error?: string; ok?: string }> {
   const ctx = await requireCtx(EVERYONE);
   const current = String(form.get("current") || ""), next = String(form.get("next") || ""), confirm = String(form.get("confirm") || "");
-  const row = get<{ password_hash: string }>("SELECT password_hash FROM users WHERE id = ?", ctx.user.id)!;
+  const row = (await get<{ password_hash: string }>("SELECT password_hash FROM users WHERE id = ?", ctx.user.id))!;
   if (!bcrypt.compareSync(current, row.password_hash)) return { error: "Current password is incorrect." };
   if (next.length < 8 || !/[A-Z]/.test(next) || !/\d/.test(next)) return { error: "Use at least 8 characters with a capital letter and a number." };
   if (next !== confirm) return { error: "The new passwords do not match." };
-  run("UPDATE users SET password_hash = ? WHERE id = ?", bcrypt.hashSync(next, 10), ctx.user.id);
-  audit(ctx.schoolId, ctx.user.id, "change_password", "user", ctx.user.id);
+  await run("UPDATE users SET password_hash = ? WHERE id = ?", bcrypt.hashSync(next, 10), ctx.user.id);
+  await audit(ctx.schoolId, ctx.user.id, "change_password", "user", ctx.user.id);
   return { ok: "Password updated." };
 }

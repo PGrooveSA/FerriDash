@@ -13,11 +13,11 @@ export const metadata = { title: "Payment" };
 export default async function PaymentReturnPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const ctx = await requireCtx(["parent"]);
   const ref = (await searchParams).ref ?? "";
-  let op = get<OnlinePayment>("SELECT * FROM online_payments WHERE merchant_reference = ? AND school_id = ?", ref, ctx.schoolId);
-  if (!op || !(ownLearnerIds(ctx) ?? []).includes(op.learner_id)) return <Card><Empty title="Payment not found" /></Card>;
+  let op = await get<OnlinePayment>("SELECT * FROM online_payments WHERE merchant_reference = ? AND school_id = ?", ref, ctx.schoolId);
+  if (!op || !((await ownLearnerIds(ctx)) ?? []).includes(op.learner_id)) return <Card><Empty title="Payment not found" /></Card>;
   let problem: string | null = null;
   try { op = await checkOnlinePayment(op.id); } catch (e) { problem = e instanceof Error ? e.message : "Could not check the payment."; }
-  const child = get<{ name: string }>("SELECT first_name || ' ' || last_name name FROM learners WHERE id = ?", op.learner_id)!.name;
+  const child = (await get<{ name: string }>("SELECT first_name || ' ' || last_name name FROM learners WHERE id = ?", op.learner_id))!.name;
   const [Icon, tone, head, text] = op.status === "Successful"
     ? [CheckCircle2, "text-emerald-600", "Payment received", `Thank you. ${zar(op.amount)} has been paid towards ${child}'s school fees.`]
     : op.status === "Failed"

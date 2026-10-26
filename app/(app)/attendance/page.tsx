@@ -18,9 +18,9 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
   if (ctx.user.role === "learner" || ctx.user.role === "parent") return <FamilyAttendance ctx={ctx} sp={sp} />;
 
   const classes = ctx.isAdmin
-    ? all<{ id: number; name: string }>("SELECT id, name FROM classes WHERE school_id = ? AND year = ? ORDER BY grade, name", ctx.schoolId, ctx.school.current_year)
-    : all<{ id: number; name: string }>("SELECT id, name FROM classes WHERE year = ?2 AND (class_teacher_id = ?1 OR id IN (SELECT class_id FROM class_subjects WHERE teacher_id = ?1)) ORDER BY grade, name", ctx.teacherId, ctx.school.current_year);
-  const homeroom = ctx.teacherId ? get<{ id: number }>("SELECT id FROM classes WHERE class_teacher_id = ?", ctx.teacherId)?.id : undefined;
+    ? (await all<{ id: number; name: string }>("SELECT id, name FROM classes WHERE school_id = ? AND year = ? ORDER BY grade, name", ctx.schoolId, ctx.school.current_year))
+    : (await all<{ id: number; name: string }>("SELECT id, name FROM classes WHERE year = ?2 AND (class_teacher_id = ?1 OR id IN (SELECT class_id FROM class_subjects WHERE teacher_id = ?1)) ORDER BY grade, name", ctx.teacherId, ctx.school.current_year));
+  const homeroom = ctx.teacherId ? (await get<{ id: number }>("SELECT id FROM classes WHERE class_teacher_id = ?", ctx.teacherId))?.id : undefined;
   const classId = Number(sp.class) || homeroom || classes[0]?.id;
   if (!classId) return <Card><Empty title="No classes allocated to you" /></Card>;
 
@@ -30,9 +30,9 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
     const date = addDays(from, i), d = new Date(date + "T00:00:00Z");
     return { date, label: date.slice(8), weekday: d.toLocaleDateString("en-ZA", { weekday: "short", timeZone: "UTC" }), weekend: d.getUTCDay() === 0 || d.getUTCDay() === 6 };
   });
-  const learners = all<{ id: number; name: string }>("SELECT id, first_name || ' ' || last_name name FROM learners WHERE class_id = ? AND status = 'Active' ORDER BY last_name, first_name", classId);
-  const marks = Object.fromEntries(all<{ learner_id: number; date: string; status: "P" | "A" | "L" | "E" }>(
-    "SELECT a.learner_id, a.date, a.status FROM attendance a JOIN learners l ON l.id = a.learner_id WHERE l.class_id = ? AND a.date BETWEEN ? AND ?", classId, days[0].date, days[13].date)
+  const learners = await all<{ id: number; name: string }>("SELECT id, first_name || ' ' || last_name name FROM learners WHERE class_id = ? AND status = 'Active' ORDER BY last_name, first_name", classId);
+  const marks = Object.fromEntries((await all<{ learner_id: number; date: string; status: "P" | "A" | "L" | "E" }>(
+          "SELECT a.learner_id, a.date, a.status FROM attendance a JOIN learners l ON l.id = a.learner_id WHERE l.class_id = ? AND a.date BETWEEN ? AND ?", classId, days[0].date, days[13].date))
     .map((m) => [`${m.learner_id}:${m.date}`, m.status]));
   // Registers can be completed for today and the past 14 days; future days are locked.
   const editableDays = days.filter((d) => d.date <= t && d.date >= addDays(t, -14)).map((d) => d.date);
@@ -56,14 +56,14 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
   );
 }
 
-function FamilyAttendance({ ctx, sp }: { ctx: Ctx; sp: Record<string, string> }) {
-  const ids = ownLearnerIds(ctx) ?? [];
-  const kids = ids.length ? all<{ id: number; name: string }>(`SELECT id, first_name || ' ' || last_name name FROM learners WHERE id IN (${ids.map(() => "?").join(",")})`, ...ids) : [];
+async function FamilyAttendance({ ctx, sp }: { ctx: Ctx; sp: Record<string, string> }) {
+  const ids = (await ownLearnerIds(ctx)) ?? [];
+  const kids = ids.length ? (await all<{ id: number; name: string }>(`SELECT id, first_name || ' ' || last_name name FROM learners WHERE id IN (${ids.map(() => "?").join(",")})`, ...ids)) : [];
   const learnerId = ids.includes(Number(sp.learner)) ? Number(sp.learner) : ids[0];
   if (!learnerId) return <Card><Empty title="No learner linked" /></Card>;
-  const yd = termDates(ctx.schoolId, ctx.school.current_year, "year");
-  const sum = attendanceSummary(learnerId, yd.start, today());
-  const rows = all<{ date: string; status: "P" | "A" | "L" | "E" }>("SELECT date, status FROM attendance WHERE learner_id = ? ORDER BY date DESC", learnerId);
+  const yd = await termDates(ctx.schoolId, ctx.school.current_year, "year");
+  const sum = await attendanceSummary(learnerId, yd.start, today());
+  const rows = await all<{ date: string; status: "P" | "A" | "L" | "E" }>("SELECT date, status FROM attendance WHERE learner_id = ? ORDER BY date DESC", learnerId);
   const byMonth = new Map<string, typeof rows>();
   for (const r of rows) { const k = r.date.slice(0, 7); if (!byMonth.has(k)) byMonth.set(k, []); byMonth.get(k)!.push(r); }
 

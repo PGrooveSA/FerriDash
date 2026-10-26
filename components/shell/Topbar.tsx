@@ -9,10 +9,10 @@ import { unreadNoticeCount } from "@/lib/notices";
 import { unreadMessageCount } from "@/lib/messages";
 import Avatar from "../ui/Avatar";
 
-export default function Topbar({ ctx }: { ctx: Ctx }) {
+export default async function Topbar({ ctx }: { ctx: Ctx }) {
   // The platform admin only manages schools: no school search, notices or messages.
   const platform = ctx.user.role === "super_admin";
-  const unread = platform ? null : { notices: unreadNoticeCount(ctx), messages: unreadMessageCount(ctx.user.id) };
+  const unread = platform ? null : { notices: await unreadNoticeCount(ctx), messages: await unreadMessageCount(ctx.user.id) };
   return (
     <header className="flex flex-wrap items-center gap-3 pl-14 lg:pl-0">
       {platform ? (

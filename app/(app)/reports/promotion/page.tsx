@@ -19,10 +19,10 @@ const RULES: Record<string, string> = {
 export default async function PromotionPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const ctx = await requireCtx(["school_admin", "teacher"]);
   const sp = await searchParams;
-  const classes = staffClasses(ctx);
+  const classes = await staffClasses(ctx);
   const classId = classes.find((c) => c.id === Number(sp.class))?.id ?? classes[0]?.id;
   if (!classId) return <Card><Empty title="No classes" /></Card>;
-  const cr = classResults(ctx.schoolId, classId, ctx.school.current_year, "year")!;
+  const cr = (await classResults(ctx.schoolId, classId, ctx.school.current_year, "year"))!;
   const rows = [...cr.learners].sort((a, b) => a.last_name.localeCompare(b.last_name));
   const promoted = rows.filter((r) => r.promotion?.promoted).length, notPromoted = rows.filter((r) => r.promotion && !r.promotion.promoted).length;
   const provisional = rows.some((r) => r.provisional);

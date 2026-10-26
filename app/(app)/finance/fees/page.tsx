@@ -27,7 +27,7 @@ export default async function FeesPage({ searchParams }: { searchParams: Promise
   );
   const q = sp.q?.trim() ?? "", classId = Number(sp.class) || 0, status = sp.status ?? "", page = Math.max(1, Number(sp.page) || 1);
   const t = today();
-  const statusSql = { paid: "AND total - paid <= 0.5", pending: "AND total - paid > 0.5 AND paid > 0 AND due_date >= ?5", overdue: "AND total - paid > 0.5 AND due_date < ?5", unpaid: "AND paid = 0" }[status] ?? "AND ?5 = ?5";
+  const statusSql = { paid: "AND total - paid <= 0.5", pending: "AND total - paid > 0.5 AND paid > 0 AND due_date >= ?5", overdue: "AND total - paid > 0.5 AND due_date < ?5", unpaid: "AND paid = 0" }[status] ?? "AND ?5::text = ?5::text";
   const base = `
     SELECT i.id invoice_id, l.id learner_id, l.user_id, (SELECT avatar_updated_at FROM users WHERE id = l.user_id) av, l.first_name, l.last_name, l.admission_number, c.name className, i.tuition, i.activities, i.other,
       i.tuition + i.activities + i.other total, (SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.invoice_id = i.id) paid,
@@ -35,21 +35,21 @@ export default async function FeesPage({ searchParams }: { searchParams: Promise
     FROM invoices i JOIN learners l ON l.id = i.learner_id LEFT JOIN classes c ON c.id = l.class_id
     WHERE i.school_id = ?1 AND i.year = ?2 AND (?3 = 0 OR l.class_id = ?3) AND (?4 = '' OR l.first_name || ' ' || l.last_name LIKE '%' || ?4 || '%' OR l.admission_number LIKE '%' || ?4 || '%')`;
   const args = [ctx.schoolId, year, classId, q, t] as const;
-  const total = get<{ n: number }>(`SELECT COUNT(*) n FROM (${base}) WHERE 1 ${statusSql}`, ...args)!.n;
-  const rows = all<Row>(`SELECT * FROM (${base}) WHERE 1 ${statusSql} ORDER BY last_name LIMIT ?6 OFFSET ?7`, ...args, PER_PAGE, (page - 1) * PER_PAGE);
-  const sums = get<{ billed: number; paid: number; exempt: number }>(`SELECT COALESCE(SUM(i.tuition + i.activities + i.other), 0) billed,
+  const total = (await get<{ n: number }>(`SELECT COUNT(*) n FROM (${base}) x WHERE TRUE ${statusSql}`, ...args))!.n;
+  const rows = await all<Row>(`SELECT * FROM (${base}) x WHERE TRUE ${statusSql} ORDER BY last_name LIMIT ?6 OFFSET ?7`, ...args, PER_PAGE, (page - 1) * PER_PAGE);
+  const sums = (await get<{ billed: number; paid: number; exempt: number }>(`SELECT COALESCE(SUM(i.tuition + i.activities + i.other), 0) billed,
       (SELECT COALESCE(SUM(p.amount), 0) FROM payments p JOIN invoices i2 ON i2.id = p.invoice_id WHERE i2.school_id = ?1 AND i2.year = ?2 AND p.method <> 'Exemption') paid,
       (SELECT COALESCE(SUM(p.amount), 0) FROM payments p JOIN invoices i2 ON i2.id = p.invoice_id WHERE i2.school_id = ?1 AND i2.year = ?2 AND p.method = 'Exemption') exempt
-    FROM invoices i WHERE i.school_id = ?1 AND i.year = ?2`, ctx.schoolId, year)!;
-  const monthly = all<{ m: string; v: number }>("SELECT substr(paid_on, 6, 2) m, SUM(amount) v FROM payments WHERE school_id = ? AND paid_on LIKE ? AND method <> 'Exemption' GROUP BY m", ctx.schoolId, `${year}-%`);
+    FROM invoices i WHERE i.school_id = ?1 AND i.year = ?2`, ctx.schoolId, year))!;
+  const monthly = await all<{ m: string; v: number }>("SELECT substr(paid_on, 6, 2) m, SUM(amount) v FROM payments WHERE school_id = ? AND paid_on LIKE ? AND method <> 'Exemption' GROUP BY m", ctx.schoolId, `${year}-%`);
   const chart = MONTHS.map((name, i) => ({ name, collected: monthly.find((r) => r.m === String(i + 1).padStart(2, "0"))?.v ?? 0 }));
-  const classes = all<{ id: number; name: string; grade: number }>("SELECT id, name, grade FROM classes WHERE school_id = ? AND year = ? ORDER BY grade, name", ctx.schoolId, year);
-  const structures = all<{ grade: number; tuition: number; activities: number; other: number }>("SELECT grade, tuition, activities, other FROM fee_structures WHERE school_id = ? AND year = ? ORDER BY grade", ctx.schoolId, year);
+  const classes = await all<{ id: number; name: string; grade: number }>("SELECT id, name, grade FROM classes WHERE school_id = ? AND year = ? ORDER BY grade, name", ctx.schoolId, year);
+  const structures = await all<{ grade: number; tuition: number; activities: number; other: number }>("SELECT grade, tuition, activities, other FROM fee_structures WHERE school_id = ? AND year = ? ORDER BY grade", ctx.schoolId, year);
   const outstanding = sums.billed - sums.paid - sums.exempt;
   const statusOf = (r: Row) => r.total - r.paid <= 0.5 ? (r.exempt ? "Exempt" : "Paid") : r.due_date < t ? "Overdue" : r.paid > 0 ? "Partial" : "Pending";
 
-  const ozow = ozowConfig(ctx.schoolId);
-  const online = all<{ id: number; amount: number; status: string; reason: string | null; created_at: string; merchant_reference: string; who: string }>(`
+  const ozow = await ozowConfig(ctx.schoolId);
+  const online = await all<{ id: number; amount: number; status: string; reason: string | null; created_at: string; merchant_reference: string; who: string }>(`
     SELECT o.id, o.amount, o.status, o.reason, o.created_at, o.merchant_reference, l.first_name || ' ' || l.last_name || ' · ' || l.admission_number who
     FROM online_payments o JOIN learners l ON l.id = o.learner_id WHERE o.school_id = ? AND o.provider_payment_id IS NOT NULL ORDER BY o.id DESC LIMIT 15`, ctx.schoolId);
   return (

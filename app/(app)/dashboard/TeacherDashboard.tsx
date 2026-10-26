@@ -10,33 +10,33 @@ import { Bars } from "@/components/charts";
 import { SchoolMark } from "@/components/SchoolCrest";
 import { MiniCalendar, Agenda, RecentMessages, NoticeList } from "@/components/widgets";
 
-export default function TeacherDashboard({ ctx }: { ctx: Ctx }) {
+export default async function TeacherDashboard({ ctx }: { ctx: Ctx }) {
   const sid = ctx.schoolId, year = ctx.school.current_year, term = ctx.school.current_term, t = today();
-  const my = all<{ csId: number; classId: number; className: string; subject: string; learners: number; status: string }>(`
+  const my = await all<{ csId: number; classId: number; className: string; subject: string; learners: number; status: string }>(`
     SELECT cs.id csId, c.id classId, c.name className, s.name subject,
       (SELECT COUNT(*) FROM learners l WHERE l.class_id = c.id AND l.status='Active') learners,
       COALESCE((SELECT status FROM result_sets r WHERE r.class_subject_id = cs.id AND r.year = ? AND r.term = ?), 'draft') status
     FROM class_subjects cs JOIN classes c ON c.id = cs.class_id JOIN subjects s ON s.id = cs.subject_id
     WHERE cs.teacher_id = ? ORDER BY c.grade, s.name`, year, term, ctx.teacherId);
 
-  const toCapture = get<{ n: number }>(`
+  const toCapture = (await get<{ n: number }>(`
     SELECT COUNT(*) n FROM assessments a JOIN class_subjects cs ON cs.id = a.class_subject_id
     WHERE cs.teacher_id = ? AND a.year = ? AND a.date <= ? AND
-      (SELECT COUNT(*) FROM marks m WHERE m.assessment_id = a.id) < (SELECT COUNT(*) FROM learners l WHERE l.class_id = cs.class_id AND l.status='Active')`, ctx.teacherId, year, t)!.n;
+      (SELECT COUNT(*) FROM marks m WHERE m.assessment_id = a.id) < (SELECT COUNT(*) FROM learners l WHERE l.class_id = cs.class_id AND l.status='Active')`, ctx.teacherId, year, t))!.n;
 
-  const homeroom = get<{ id: number; name: string }>("SELECT id, name FROM classes WHERE class_teacher_id = ? AND year = ?", ctx.teacherId, year);
-  const registerDone = homeroom ? get<{ n: number }>("SELECT COUNT(*) n FROM attendance a JOIN learners l ON l.id = a.learner_id WHERE l.class_id = ? AND a.date = ?", homeroom.id, t)!.n > 0 : false;
+  const homeroom = await get<{ id: number; name: string }>("SELECT id, name FROM classes WHERE class_teacher_id = ? AND year = ?", ctx.teacherId, year);
+  const registerDone = homeroom ? (await get<{ n: number }>("SELECT COUNT(*) n FROM attendance a JOIN learners l ON l.id = a.learner_id WHERE l.class_id = ? AND a.date = ?", homeroom.id, t))!.n > 0 : false;
 
   // Average per class-subject for the previous term
   const prev = Math.max(1, term - 1);
-  const cache = new Map<number, ReturnType<typeof classResults>>();
-  const perf = my.map((m) => {
-    if (!cache.has(m.classId)) cache.set(m.classId, classResults(sid, m.classId, year, prev));
-    const vals = cache.get(m.classId)?.learners.map((l) => l.pct[m.csId]).filter((v): v is number => v != null) ?? [];
-    return { name: `${m.className} ${m.subject.split(" ")[0]}`, average: vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null };
-  });
+  const cache = new Map<number, Awaited<ReturnType<typeof classResults>>>();
+  const perf = (await Promise.all(my.map(async (m) => {
+      if (!cache.has(m.classId)) cache.set(m.classId, await classResults(sid, m.classId, year, prev));
+      const vals = cache.get(m.classId)?.learners.map((l) => l.pct[m.csId]).filter((v): v is number => v != null) ?? [];
+      return { name: `${m.className} ${m.subject.split(" ")[0]}`, average: vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null };
+    })));
 
-  const homework = all<{ id: number; title: string; due_date: string; className: string }>(`
+  const homework = await all<{ id: number; title: string; due_date: string; className: string }>(`
     SELECT h.id, h.title, h.due_date, c.name className FROM homework h JOIN class_subjects cs ON cs.id = h.class_subject_id JOIN classes c ON c.id = cs.class_id
     WHERE cs.teacher_id = ? AND h.due_date >= ? ORDER BY h.due_date LIMIT 5`, ctx.teacherId, t);
 

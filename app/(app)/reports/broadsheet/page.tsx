@@ -13,11 +13,11 @@ const cellTone = (v: number | null) => { const l = capsLevel(v)?.level ?? 0; ret
 export default async function BroadsheetPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const ctx = await requireCtx(["school_admin", "teacher"]);
   const sp = await searchParams;
-  const classes = staffClasses(ctx);
+  const classes = await staffClasses(ctx);
   const classId = classes.find((c) => c.id === Number(sp.class))?.id ?? classes[0]?.id;
   if (!classId) return <Card><Empty title="No classes" /></Card>;
   const period = parsePeriod(sp.term, Math.max(1, ctx.school.current_term - 1));
-  const cr = classResults(ctx.schoolId, classId, ctx.school.current_year, period)!;
+  const cr = (await classResults(ctx.schoolId, classId, ctx.school.current_year, period))!;
   const stats = subjectStats(cr);
   const sorted = [...cr.learners].sort((a, b) => a.last_name.localeCompare(b.last_name));
   const short = (n: string) => n.replace(" Home Language", " HL").replace(" First Additional Language", " FAL");

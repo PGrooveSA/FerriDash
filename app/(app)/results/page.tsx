@@ -22,21 +22,21 @@ export default async function ResultsPage({ searchParams }: { searchParams: Prom
   const year = ctx.school.current_year;
   const term = /^[1-4]$/.test(sp.term ?? "") ? Number(sp.term) : ctx.school.current_term;
 
-  const options = all<CS>(`
+  const options = await all<CS>(`
     SELECT cs.id, c.name className, c.grade, s.name subject, (SELECT COALESCE(u.title || ' ', '') || u.last_name FROM teachers t JOIN users u ON u.id = t.user_id WHERE t.id = cs.teacher_id) teacher
     FROM class_subjects cs JOIN classes c ON c.id = cs.class_id JOIN subjects s ON s.id = cs.subject_id
     WHERE cs.school_id = ? AND c.year = ? ${ctx.isAdmin ? "" : "AND cs.teacher_id = ?"} ORDER BY c.grade, c.name, s.name`,
-    ...(ctx.isAdmin ? [ctx.schoolId, year] : [ctx.schoolId, year, ctx.teacherId]));
+      ...(ctx.isAdmin ? [ctx.schoolId, year] : [ctx.schoolId, year, ctx.teacherId]));
   if (!options.length) return <Card><Empty title="No subjects allocated" hint="Ask your school admin to allocate you to a class and subject." /></Card>;
 
   const cs = options.find((o) => o.id === Number(sp.cs)) ?? options[0];
-  const status = (get<{ status: string }>("SELECT status FROM result_sets WHERE class_subject_id = ? AND year = ? AND term = ?", cs.id, year, term)?.status ?? "draft") as "draft" | "submitted" | "approved" | "published";
+  const status = ((await get<{ status: string }>("SELECT status FROM result_sets WHERE class_subject_id = ? AND year = ? AND term = ?", cs.id, year, term))?.status ?? "draft") as "draft" | "submitted" | "approved" | "published";
   const locked = status === "published" || status === "approved" || (status === "submitted" && !ctx.isAdmin);
-  const assessments = all<A>("SELECT id, name, kind, max_mark, weight, term, date FROM assessments WHERE class_subject_id = ? AND year = ? AND term = ? ORDER BY COALESCE(date, '9999'), id", cs.id, year, term);
-  const learners = all<{ id: number; name: string; admission_number: string }>("SELECT l.id, l.first_name || ' ' || l.last_name name, l.admission_number FROM learners l WHERE l.class_id = (SELECT class_id FROM class_subjects WHERE id = ?) AND l.status = 'Active' ORDER BY l.last_name, l.first_name", cs.id);
+  const assessments = await all<A>("SELECT id, name, kind, max_mark, weight, term, date FROM assessments WHERE class_subject_id = ? AND year = ? AND term = ? ORDER BY COALESCE(date, '9999'), id", cs.id, year, term);
+  const learners = await all<{ id: number; name: string; admission_number: string }>("SELECT l.id, l.first_name || ' ' || l.last_name name, l.admission_number FROM learners l WHERE l.class_id = (SELECT class_id FROM class_subjects WHERE id = ?) AND l.status = 'Active' ORDER BY l.last_name, l.first_name", cs.id);
   const marks: Record<string, MarkLite> = {};
-  if (assessments.length) for (const m of all<{ learner_id: number; assessment_id: number; mark: number | null; absent: number }>(
-    `SELECT learner_id, assessment_id, mark, absent FROM marks WHERE assessment_id IN (${assessments.map(() => "?").join(",")})`, ...assessments.map((a) => a.id))) marks[`${m.learner_id}:${m.assessment_id}`] = m;
+  if (assessments.length) for (const m of await all<{ learner_id: number; assessment_id: number; mark: number | null; absent: number }>(
+      `SELECT learner_id, assessment_id, mark, absent FROM marks WHERE assessment_id IN (${assessments.map(() => "?").join(",")})`, ...assessments.map((a) => a.id))) marks[`${m.learner_id}:${m.assessment_id}`] = m;
 
   const phase = phaseOf(cs.grade);
   const aFields = (a?: A): Field[] => [
@@ -80,7 +80,7 @@ export default async function ResultsPage({ searchParams }: { searchParams: Prom
           : <MarkGrid key={`${cs.id}-${term}`} grade={cs.grade} term={term} assessments={assessments} learners={learners} initial={marks} locked={locked} />}
         {locked && <p className="text-xs muted mt-4">These marks are locked ({status}). {ctx.isAdmin ? "Return them to draft to allow changes." : "Contact school management if a correction is needed."}</p>}
       </Card>
-      <p className="text-xs muted mt-4">Every mark change is recorded in the audit trail. <Link className="underline" href={`/reports/broadsheet?class=${get<{ class_id: number }>("SELECT class_id FROM class_subjects WHERE id = ?", cs.id)!.class_id}&term=${term}`}>Open class broadsheet</Link></p>
+      <p className="text-xs muted mt-4">Every mark change is recorded in the audit trail. <Link className="underline" href={`/reports/broadsheet?class=${(await get<{ class_id: number }>("SELECT class_id FROM class_subjects WHERE id = ?", cs.id))!.class_id}&term=${term}`}>Open class broadsheet</Link></p>
     </>
   );
 }

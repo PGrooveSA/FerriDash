@@ -20,17 +20,17 @@ export default async function LearnersPage({ searchParams }: { searchParams: Pro
   // Current learners by default; past learners (graduated, transferred, withdrawn) stay on record and can be listed.
   const status = ["Active", "Graduated", "Transferred", "Withdrawn", "all"].includes(sp.status ?? "") ? sp.status! : "Active";
   // Educators only see learners in classes they teach.
-  const scope = ctx.user.role === "teacher" ? "AND l.class_id IN (SELECT class_id FROM class_subjects WHERE teacher_id = ?4 UNION SELECT id FROM classes WHERE class_teacher_id = ?4)" : "AND ?4 IS NULL";
+  const scope = ctx.user.role === "teacher" ? "AND l.class_id IN (SELECT class_id FROM class_subjects WHERE teacher_id = ?4 UNION SELECT id FROM classes WHERE class_teacher_id = ?4)" : "AND ?4::int IS NULL";
   const where = `l.school_id = ?1 AND (?2 = 0 OR l.class_id = ?2) AND (?3 = '' OR l.first_name || ' ' || l.last_name LIKE '%' || ?3 || '%' OR l.admission_number LIKE '%' || ?3 || '%') AND (?7 = 'all' OR l.status = ?7) ${scope}`;
   const args = [ctx.schoolId, classId, q, ctx.user.role === "teacher" ? ctx.teacherId : null] as const;
-  const total = get<{ n: number }>(`SELECT COUNT(*) n FROM learners l WHERE ${where}`, ...args, null, null, status)!.n;
-  const rows = all<L>(`
+  const total = (await get<{ n: number }>(`SELECT COUNT(*) n FROM learners l WHERE ${where}`, ...args, null, null, status))!.n;
+  const rows = await all<L>(`
     SELECT l.*, c.name className, c.grade, l.user_id IS NOT NULL has_login, (SELECT avatar_updated_at FROM users WHERE id = l.user_id) av,
-      (SELECT GROUP_CONCAT(COALESCE(u.title || ' ', '') || u.first_name || ' ' || u.last_name || ' (' || COALESCE(u.phone, u.email) || ')', '; ') FROM guardian_links g JOIN users u ON u.id = g.parent_user_id WHERE g.learner_id = l.id) parents
+      (SELECT string_agg(COALESCE(u.title || ' ', '') || u.first_name || ' ' || u.last_name || ' (' || COALESCE(u.phone, u.email) || ')', '; ') FROM guardian_links g JOIN users u ON u.id = g.parent_user_id WHERE g.learner_id = l.id) parents
     FROM learners l LEFT JOIN classes c ON c.id = l.class_id WHERE ${where}
     ORDER BY c.grade, l.last_name, l.first_name LIMIT ?5 OFFSET ?6`, ...args, PER_PAGE, (page - 1) * PER_PAGE, status);
-  const classes = all<{ id: number; name: string; grade: number }>("SELECT id, name, grade FROM classes WHERE school_id = ? AND year = ? ORDER BY grade, name", ctx.schoolId, ctx.school.current_year);
-  const nextAdmission = `${ctx.school.current_year}-${String((get<{ n: number }>("SELECT COUNT(*) n FROM learners WHERE school_id = ?", ctx.schoolId)!.n + 1)).padStart(4, "0")}`;
+  const classes = await all<{ id: number; name: string; grade: number }>("SELECT id, name, grade FROM classes WHERE school_id = ? AND year = ? ORDER BY grade, name", ctx.schoolId, ctx.school.current_year);
+  const nextAdmission = `${ctx.school.current_year}-${String(((await get<{ n: number }>("SELECT COUNT(*) n FROM learners WHERE school_id = ?", ctx.schoolId))!.n + 1)).padStart(4, "0")}`;
 
   const fields = (l?: L): Field[] => [
     { name: "first_name", label: "First name(s)", required: true, defaultValue: l?.first_name, half: true },

@@ -14,17 +14,17 @@ type Row = { id: number; name: string; className: string; total: number; present
 export default async function AttendanceReport({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const ctx = await requireCtx(["school_admin", "teacher"]);
   const sp = await searchParams;
-  const classes = staffClasses(ctx);
+  const classes = await staffClasses(ctx);
   const classId = classes.find((c) => c.id === Number(sp.class))?.id ?? (ctx.isAdmin ? 0 : classes[0]?.id ?? -1);
   const range = sp.range ?? "30";
   const to = today(), from = range === "year" ? `${ctx.school.current_year}-01-01` : addDays(to, -Number(range));
   const allowed = classes.map((c) => c.id);
-  const rows = all<Row>(`
+  const rows = await all<Row>(`
     SELECT l.id, l.first_name || ' ' || l.last_name name, c.name className, COUNT(a.id) total,
       SUM(a.status = 'P') present, SUM(a.status = 'A') absent, SUM(a.status = 'L') late, SUM(a.status = 'E') excused
     FROM learners l JOIN classes c ON c.id = l.class_id LEFT JOIN attendance a ON a.learner_id = l.id AND a.date BETWEEN ? AND ?
     WHERE l.school_id = ? AND l.status = 'Active' AND (? = 0 OR l.class_id = ?) AND l.class_id IN (${allowed.map(() => "?").join(",") || "NULL"})
-    GROUP BY l.id ORDER BY c.grade, c.name, l.last_name`, from, to, ctx.schoolId, classId, classId, ...allowed);
+    GROUP BY l.id, c.name, c.grade ORDER BY c.grade, c.name, l.last_name`, from, to, ctx.schoolId, classId, classId, ...allowed);
   const rate = (r: Pick<Row, "total" | "present" | "late">) => (r.total ? Math.round(((r.present + r.late) / r.total) * 100) : null);
   const byClass = [...new Set(rows.map((r) => r.className))].map((name) => {
     const rs = rows.filter((r) => r.className === name);

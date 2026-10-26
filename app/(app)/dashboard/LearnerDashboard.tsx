@@ -15,32 +15,32 @@ import { SchoolMark } from "@/components/SchoolCrest";
 export type LearnerSnapshot = ReturnType<typeof learnerSnapshot>;
 
 /** Everything a learner or parent needs to see about one learner. Published results only. */
-export function learnerSnapshot(ctx: Ctx, learnerId: number) {
+export async function learnerSnapshot(ctx: Ctx, learnerId: number) {
   const year = ctx.school.current_year;
-  const l = get<{ id: number; first_name: string; last_name: string; class_id: number; className: string; grade: number; admission_number: string; user_id: number | null; av: string | null }>(`
+  const l = await get<{ id: number; first_name: string; last_name: string; class_id: number; className: string; grade: number; admission_number: string; user_id: number | null; av: string | null }>(`
     SELECT l.id, l.first_name, l.last_name, l.class_id, c.name className, c.grade, l.admission_number, l.user_id, (SELECT avatar_updated_at FROM users WHERE id = l.user_id) av
     FROM learners l JOIN classes c ON c.id = l.class_id WHERE l.id = ? AND l.school_id = ?`, learnerId, ctx.schoolId);
   if (!l) return null;
-  const terms = [1, 2, 3, 4].map((t) => {
-    const cr = classResults(ctx.schoolId, l.class_id, year, t, { publishedOnly: true, learnerIds: [l.id] });
-    return { term: t, cr, row: cr?.learners[0] };
-  });
+  const terms = (await Promise.all([1, 2, 3, 4].map(async (t) => {
+      const cr = await classResults(ctx.schoolId, l.class_id, year, t, { publishedOnly: true, learnerIds: [l.id] });
+      return { term: t, cr, row: cr?.learners[0] };
+    })));
   const latest = [...terms].reverse().find((t) => t.row?.average != null);
-  const yd = termDates(ctx.schoolId, year, "year");
-  const att = attendanceSummary(l.id, yd.start, today());
-  const balance = get<{ b: number }>(`SELECT COALESCE(SUM(i.tuition+i.activities+i.other),0) - COALESCE((SELECT SUM(p.amount) FROM payments p JOIN invoices i2 ON i2.id = p.invoice_id WHERE i2.learner_id = ?1),0) b FROM invoices i WHERE i.learner_id = ?1`, l.id)!.b;
+  const yd = await termDates(ctx.schoolId, year, "year");
+  const att = await attendanceSummary(l.id, yd.start, today());
+  const balance = (await get<{ b: number }>(`SELECT COALESCE(SUM(i.tuition+i.activities+i.other),0) - COALESCE((SELECT SUM(p.amount) FROM payments p JOIN invoices i2 ON i2.id = p.invoice_id WHERE i2.learner_id = ?1),0) b FROM invoices i WHERE i.learner_id = ?1`, l.id))!.b;
   return { learner: l, terms, latest, att, balance };
 }
 
-export default function LearnerDashboard({ ctx }: { ctx: Ctx }) {
+export default async function LearnerDashboard({ ctx }: { ctx: Ctx }) {
   if (!ctx.learnerId) return <Empty title="No learner profile linked to this account" />;
-  const snap = learnerSnapshot(ctx, ctx.learnerId)!;
+  const snap = (await learnerSnapshot(ctx, ctx.learnerId))!;
   const { learner: l, latest, att } = snap;
   const t = today();
-  const homework = all<{ id: number; title: string; due_date: string; subject: string }>(`
+  const homework = await all<{ id: number; title: string; due_date: string; subject: string }>(`
     SELECT h.id, h.title, h.due_date, s.name subject FROM homework h JOIN class_subjects cs ON cs.id = h.class_subject_id JOIN subjects s ON s.id = cs.subject_id
     WHERE cs.class_id = ? AND h.due_date >= ? ORDER BY h.due_date LIMIT 6`, l.class_id, t);
-  const loans = get<{ n: number }>("SELECT COUNT(*) n FROM book_loans WHERE learner_id = ? AND returned_on IS NULL", l.id)!.n;
+  const loans = (await get<{ n: number }>("SELECT COUNT(*) n FROM book_loans WHERE learner_id = ? AND returned_on IS NULL", l.id))!.n;
 
   const bars = latest ? latest.cr!.subjects.map((s) => {
     const v = latest.row!.pct[s.csId];
