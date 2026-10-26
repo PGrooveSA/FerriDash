@@ -9,7 +9,19 @@ export const REMEMBER_DAYS = 30;
 
 export type SessionPayload = { uid: number; role: string };
 
-const key = () => new TextEncoder().encode(process.env.SESSION_SECRET || "dev-only-insecure-secret-change-me");
+/**
+ * The server's own secret: signs session cookies and (lib/ozow.ts) encrypts stored payment keys.
+ * SESSION_SECRET, or failing that one derived from the Supabase service role key (also server-only).
+ * The built-in fallback is for local development only; production refuses to run on it.
+ */
+export function appSecret(): string {
+  if (process.env.SESSION_SECRET) return process.env.SESSION_SECRET;
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY) return "ferridash-session:" + process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (process.env.NODE_ENV === "production") throw new Error("SESSION_SECRET is not set.");
+  return "dev-only-insecure-secret-change-me";
+}
+
+const key = () => new TextEncoder().encode(appSecret());
 
 export async function signSession(p: SessionPayload, hours = SESSION_HOURS) {
   return new SignJWT({ ...p }).setProtectedHeader({ alg: "HS256" }).setIssuedAt().setExpirationTime(`${hours}h`).sign(key());

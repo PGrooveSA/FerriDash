@@ -10,7 +10,7 @@ import { SignJWT } from "jose";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const base = process.argv[2] || "http://localhost:3100";
 const env = Object.fromEntries(readFileSync(join(root, ".env.local"), "utf8").split(/\r?\n/).filter((l) => l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1)]));
-const key = new TextEncoder().encode(env.SESSION_SECRET || "dev-only-insecure-secret-change-me");
+const key = new TextEncoder().encode(env.SESSION_SECRET || (env.SUPABASE_SERVICE_ROLE_KEY ? "ferridash-session:" + env.SUPABASE_SERVICE_ROLE_KEY : "dev-only-insecure-secret-change-me"));
 const dbUrl = process.env.DATABASE_URL || env.DATABASE_URL;
 const sql = postgres(dbUrl, { ssl: /@(127\.0\.0\.1|localhost)(:|\/)/.test(dbUrl) ? false : "require", prepare: false, max: 1 });
 

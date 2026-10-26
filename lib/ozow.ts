@@ -2,6 +2,7 @@
 // FerriDash runs on a school network, so payments are confirmed by asking Ozow (outbound calls only);
 // no inbound webhook or public address is required.
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
+import { appSecret } from "@/lib/session";
 
 export type OzowConfig = { siteCode: string; clientId: string; clientSecret: string; testMode: boolean };
 export type OzowTransaction = {
@@ -15,8 +16,8 @@ export const ozowBase = (testMode: boolean) => process.env.OZOW_BASE_URL || (tes
 
 export class OzowError extends Error {}
 
-// ---------- secret storage (AES-256-GCM, key derived from SESSION_SECRET) ----------
-const secretKey = () => createHash("sha256").update("ferridash-payments:" + (process.env.SESSION_SECRET || "dev-only-insecure-secret-change-me")).digest();
+// ---------- secret storage (AES-256-GCM, key derived from the app secret) ----------
+const secretKey = () => createHash("sha256").update("ferridash-payments:" + appSecret()).digest();
 export function encryptSecret(plain: string): string {
   const iv = randomBytes(12), c = createCipheriv("aes-256-gcm", secretKey(), iv);
   const enc = Buffer.concat([c.update(plain, "utf8"), c.final()]);
