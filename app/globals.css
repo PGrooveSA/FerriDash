@@ -194,6 +194,14 @@ body {
   html.print-a4 { font-size: 13px; }
   html.print-a5 { font-size: 9.5px; }
   html.print-a5 .print-area { font-size: 0.95rem; }
+  /* Each report card fills its page, so its footer sits at the bottom of the paper.
+     Heights are the paper minus the @page margins, less a little slack so nothing spills over. */
+  .rc-page { display: flex !important; flex-direction: column; min-height: 268mm; }
+  html.print-a5 .rc-page { min-height: 190mm; }
+  .rc-page .rc-footer { margin-top: auto !important; padding-top: 0.5rem; border-top: 1px solid #000; color: #000 !important; }
+  /* The result keeps its colour in print, with a heavy border so it stands out in black and white too. */
+  .print-area .rc-result { border: 2.5px solid #000 !important; border-radius: 0 !important; }
+  .print-area .rc-result .muted { color: #000 !important; }
 }
 
 /* ---------- Sign-in background: education and the future ---------- */

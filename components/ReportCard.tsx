@@ -1,4 +1,4 @@
-import { CAPS_LEVELS, capsLevel, phaseOf } from "@/lib/caps";
+import { CAPS_LEVELS, capsLevel, phaseOf, promotion, type Promotion } from "@/lib/caps";
 import { fmtDate, gradeLabel, logoUrl } from "@/lib/format";
 import { today } from "@/lib/today";
 import type { School } from "@/lib/auth";
@@ -14,14 +14,50 @@ export type ReportCardData = {
   draft: boolean;
 };
 
+/**
+ * The headline result. Term 4 and final reports use the CAPS year result (promotion). Term 1-3 reports
+ * apply the same CAPS pass requirements to that term's marks, as an early indication.
+ */
+function overallResult(d: ReportCardData): { status: "passed" | "failed" | "incomplete"; detail: string; basis: string; promo: Promotion | null } {
+  const { cr, row, period } = d;
+  if (row.promotion) {
+    const p = row.promotion;
+    return {
+      status: p.promoted ? "passed" : "failed",
+      detail: p.promoted ? p.outcome : cr.grade === 12 ? "NSC not achieved" : `Not promoted · repeats ${gradeLabel(cr.grade)}`,
+      basis: row.provisional ? "Provisional: based on the year mark, until the final examination marks are published" : "Based on the year mark: school-based assessment across all terms plus the final examination",
+      promo: p,
+    };
+  }
+  const all = cr.subjects.map((s) => ({ name: s.name, category: s.category, pct: row.pct[s.csId] }));
+  if (!all.length || all.some((x) => x.pct == null)) {
+    return { status: "incomplete", detail: "Not all subjects have marks yet", basis: period === "year" || period === 4 ? "The final result is shown once every subject has a year mark" : `The ${periodLabel(period)} result is shown once every subject has a mark`, promo: null };
+  }
+  const p = promotion(cr.grade, all.map((x) => ({ ...x, pct: x.pct as number })));
+  return {
+    status: p.promoted ? "passed" : "failed",
+    detail: p.promoted ? `Meets the CAPS pass requirements for ${periodLabel(period)}` : `Below the CAPS pass requirements for ${periodLabel(period)}`,
+    basis: `Based on ${periodLabel(period)} marks only. Promotion is decided on the year mark at the end of the year`,
+    promo: p,
+  };
+}
+
+const RESULT_STYLE = {
+  passed: { word: "PASSED", box: "border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10", text: "text-emerald-700 dark:text-emerald-400", mark: "✓" },
+  failed: { word: "FAILED", box: "border-rose-500 bg-rose-50 dark:bg-rose-500/10", text: "text-rose-700 dark:text-rose-400", mark: "✗" },
+  incomplete: { word: "INCOMPLETE", box: "border-amber-400 bg-amber-50 dark:bg-amber-500/10", text: "text-amber-700 dark:text-amber-400", mark: "…" },
+} as const;
+
 export default function ReportCard({ d, editor }: { d: ReportCardData; editor?: React.ReactNode }) {
   const { school, cr, row, period } = d;
+  const result = overallResult(d);
+  const rs = RESULT_STYLE[result.status];
   const classAvg = (csId: number) => {
     const v = cr.learners.map((l) => l.pct[csId]).filter((x): x is number => x != null);
     return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length) : null;
   };
   return (
-    <article className="glass-solid print-area w-full max-w-[210mm] mx-auto p-6 sm:p-8 relative overflow-hidden text-[0.9rem]">
+    <article className="rc-page glass-solid print-area w-full max-w-[210mm] mx-auto p-6 sm:p-8 relative overflow-hidden text-[0.9rem]">
       {d.draft && <div className="absolute inset-0 grid place-items-center pointer-events-none"><span className="text-7xl font-black text-rose-500/10 -rotate-12 select-none">DRAFT</span></div>}
       <header className="flex flex-wrap items-start gap-4 pb-4 border-b-2 border-brand-300">
         <img src={logoUrl(school.id, school.logo_updated_at) ?? "/icon.svg"} alt="" className="w-16 h-16 object-contain" />
@@ -48,6 +84,16 @@ export default function ReportCard({ d, editor }: { d: ReportCardData; editor?: 
         <div><p className="text-xs muted">Date issued</p><p>{fmtDate(today())}</p></div>
       </section>
 
+      {/* The result, stated plainly: PASSED or FAILED (or INCOMPLETE while marks are missing). */}
+      <section className={`rc-result mb-4 rounded-2xl border-2 px-5 py-3 flex flex-wrap items-center gap-x-5 gap-y-1 ${rs.box}`} aria-label={`Result: ${rs.word}`}>
+        <p className="text-xs uppercase tracking-widest muted">{period === "year" || period === 4 ? "Final result" : `${periodLabel(period)} result`}</p>
+        <p className={`rc-result-word text-3xl font-black tracking-wide ${rs.text}`}>{rs.mark} {rs.word}</p>
+        <div className="min-w-[12rem] flex-1">
+          <p className="font-semibold">{result.detail}</p>
+          <p className="text-xs muted">{result.basis}.</p>
+        </div>
+      </section>
+
       <table className="table rc-table !text-sm">
         <thead><tr><th>Subject</th><th className="text-center">Mark %</th><th className="text-center">Level</th><th>Achievement descriptor</th><th className="text-center">Class avg</th></tr></thead>
         <tbody>
@@ -72,11 +118,11 @@ export default function ReportCard({ d, editor }: { d: ReportCardData; editor?: 
         <div className="rounded-2xl bg-emerald-100/60 dark:bg-emerald-500/10 p-3"><p className="text-xs muted">Attendance</p><p className="text-xl font-bold">{d.attendance.rate ?? "-"}%</p></div>
       </section>
 
-      {row.promotion && (
-        <section className={`rc-box mt-4 rounded-2xl p-4 border ${row.promotion.promoted ? "border-emerald-300 bg-emerald-50/60 dark:bg-emerald-500/10" : "border-rose-300 bg-rose-50/60 dark:bg-rose-500/10"}`}>
-          <p className="font-semibold">{row.provisional ? "Provisional outcome" : "Outcome"}: {row.promotion.outcome}</p>
-          <p className="text-xs muted">Based on the year mark (school-based assessment across all terms plus the final examination){row.provisional ? ". It stays provisional until the final examination marks are captured and published." : "."}{cr.grade === 12 ? " The official NSC result is issued by the Department of Basic Education." : ""}</p>
-          <ul className="text-xs mt-1 grid sm:grid-cols-2 gap-x-4">{row.promotion.checks.map((c, i) => <li key={i}>{c.ok ? "✓" : "✗"} {c.label}</li>)}</ul>
+      {result.promo && (
+        <section className={`rc-box mt-4 rounded-2xl p-4 border ${result.promo.promoted ? "border-emerald-300 bg-emerald-50/60 dark:bg-emerald-500/10" : "border-rose-300 bg-rose-50/60 dark:bg-rose-500/10"}`}>
+          <p className="font-semibold">CAPS pass requirements{row.promotion ? ` · ${row.provisional ? "provisional outcome" : "outcome"}: ${row.promotion.outcome}` : ` · ${periodLabel(period)}`}</p>
+          <ul className="text-xs mt-1 grid sm:grid-cols-2 gap-x-4">{result.promo.checks.map((c, i) => <li key={i}>{c.ok ? "✓" : "✗"} {c.label}</li>)}</ul>
+          {cr.grade === 12 && row.promotion && <p className="text-xs muted mt-1">The official NSC result is issued by the Department of Basic Education.</p>}
         </section>
       )}
 
@@ -90,10 +136,14 @@ export default function ReportCard({ d, editor }: { d: ReportCardData; editor?: 
         {["Class teacher", "Principal", "Parent / guardian"].map((s) => <div key={s}><div className="border-b border-current/40 h-8" /><p className="muted mt-1">{s}</p></div>)}
       </section>
 
-      <footer className="mt-6 pt-3 border-t border-line text-[0.68rem] muted flex flex-wrap gap-x-3 gap-y-1">
+      <p className="mt-6 pt-3 border-t border-line text-[0.68rem] muted flex flex-wrap gap-x-3 gap-y-1">
         <span className="font-semibold">CAPS scale:</span>
         {CAPS_LEVELS.map((l) => <span key={l.level}>{l.level} = {l.min}–{l.max}% {l.short}</span>)}
-        <span className="ml-auto inline-flex items-center gap-1"><BrandMark />Generated by FerriDash · Copyright © Infinite Q Graphics</span>
+      </p>
+
+      {/* Bottom of every printed page (see .rc-page in globals.css). */}
+      <footer className="rc-footer mt-4 pt-2 border-t border-line text-[0.68rem] muted flex items-center justify-center gap-1">
+        <BrandMark />Generated by FerriDash · Copyright © Infinite Q Graphics
       </footer>
     </article>
   );
