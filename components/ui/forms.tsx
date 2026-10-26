@@ -148,8 +148,20 @@ export function Filters({ filters, search }: { filters: { name: string; label: s
   );
 }
 
+/**
+ * Prints the page. Inside the FerriDash Android or iOS app the web view can't print, so this hands the
+ * page to the app's native print dialog (which can also save a PDF); in a browser it uses window.print().
+ */
+export function printPage(name: string, paper: "A4" | "A5" = "A4"): "native" | "browser" {
+  const w = window as unknown as { FerriDashNative?: { print(name: string, paper: string): void }; webkit?: { messageHandlers?: { ferridashPrint?: { postMessage(m: string): void } } } };
+  if (w.FerriDashNative?.print) { w.FerriDashNative.print(name, paper); return "native"; }
+  if (w.webkit?.messageHandlers?.ferridashPrint) { w.webkit.messageHandlers.ferridashPrint.postMessage(name); return "native"; }
+  window.print();
+  return "browser";
+}
+
 export function PrintButton({ label = "Print / Save PDF" }: { label?: string }) {
-  return <button type="button" onClick={() => window.print()} className="btn btn-primary no-print">{label}</button>;
+  return <button type="button" onClick={() => printPage(document.title)} className="btn btn-primary no-print">{label}</button>;
 }
 
 export function CsvButton({ filename, rows, label = "Export CSV" }: { filename: string; rows: (string | number | null)[][]; label?: string }) {
@@ -253,7 +265,11 @@ export function PdfButtons({ filename, label = "Download PDF" }: { filename: str
   const [size, setSize] = useState<"A4" | "A5">("A4");
   const download = () => {
     const html = document.documentElement;
+    // Leftovers from an earlier download in the mobile app (no afterprint event there).
+    document.querySelectorAll("style[data-print-page]").forEach((el) => el.remove());
+    html.classList.remove("print-a4", "print-a5");
     const style = document.createElement("style");
+    style.dataset.printPage = "";
     style.textContent = `@page { size: ${size} portrait; margin: ${size === "A5" ? "8mm" : "12mm"}; }`;
     document.head.appendChild(style);
     html.classList.add(size === "A5" ? "print-a5" : "print-a4");
@@ -266,7 +282,9 @@ export function PdfButtons({ filename, label = "Download PDF" }: { filename: str
       window.removeEventListener("afterprint", cleanup);
     };
     window.addEventListener("afterprint", cleanup);
-    window.print();
+    // The mobile app's native dialog reads the page after this returns, so keep the print setup
+    // (it only affects printing) and just restore the title.
+    if (printPage(filename, size) === "native") { window.removeEventListener("afterprint", cleanup); setTimeout(() => { document.title = title; }, 1500); }
   };
   return (
     <div className="no-print flex items-center gap-2">

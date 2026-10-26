@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import LoginForm from "./LoginForm";
 import LoginBackdrop from "@/components/LoginBackdrop";
 import BrandLogo from "@/components/BrandLogo";
@@ -9,6 +10,10 @@ export const metadata = { title: "Sign in" };
 // (generated with Higgsfield, public/brand/login-art-*.webp) on the right.
 export default async function LoginPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const ended = (await searchParams).ended === "1";
+  // Inside the FerriDash mobile app (its user agent ends with "FerriDashApp/x"): offer to switch school.
+  // The app's own start screen lives at http://localhost (Android) or capacitor://localhost (iOS).
+  const ua = (await headers()).get("user-agent") ?? "";
+  const appHome = /FerriDashApp\//.test(ua) ? (/Android/i.test(ua) ? "http://localhost/?change=1" : "capacitor://localhost/?change=1") : null;
   return (
     <>
       <LoginBackdrop />
@@ -23,6 +28,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
               <LoginForm />
               <p className="text-sm text-center muted mt-6">New to FerriDash? <span className="text-[var(--ink)] font-medium">Your school office creates your login.</span></p>
               <p className="text-xs text-center muted mt-3">Your information is processed in line with POPIA.</p>
+              {appHome && <p className="text-xs text-center mt-3"><a href={appHome} className="text-brand-600 dark:text-brand-300 font-medium hover:underline">Change school</a></p>}
             </div>
           </section>
 

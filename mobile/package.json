@@ -1,0 +1,23 @@
+{
+  "name": "ferridash-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "description": "FerriDash Android and iOS apps (Capacitor shell around a school's FerriDash server)",
+  "scripts": {
+    "assets": "capacitor-assets generate --android --ios --iconBackgroundColor \"#0F172A\" --iconBackgroundColorDark \"#0F172A\" --splashBackgroundColor \"#0F172A\" --splashBackgroundColorDark \"#0F172A\"",
+    "sync": "cap sync",
+    "android": "cap open android",
+    "ios": "cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.5.3",
+    "@capacitor/ios": "^8.5.3",
+    "@capacitor/splash-screen": "^8.0.2"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.5.3"
+  }
+}

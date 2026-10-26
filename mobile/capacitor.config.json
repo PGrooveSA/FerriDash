@@ -1,0 +1,25 @@
+{
+  "appId": "com.infiniteqgraphics.ferridash",
+  "appName": "FerriDash",
+  "webDir": "www",
+  "appendUserAgent": "FerriDashApp/1.0",
+  "backgroundColor": "#0F172A",
+  "server": {
+    "androidScheme": "http",
+    "allowNavigation": ["*"]
+  },
+  "android": {
+    "allowMixedContent": true
+  },
+  "ios": {
+    "contentInset": "never",
+    "limitsNavigationsToAppBoundDomains": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1200,
+      "backgroundColor": "#0F172A",
+      "showSpinner": false
+    }
+  }
+}
