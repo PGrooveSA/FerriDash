@@ -21,9 +21,9 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   const [y, m] = ym.split("-").map(Number);
   const prev = m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, "0")}`;
   const next = m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, "0")}`;
-  const events = all<E>("SELECT * FROM events WHERE school_id = ? AND date LIKE ? ORDER BY date, start_time", ctx.schoolId, `${ym}-%`);
+  const events = await all<E>("SELECT * FROM events WHERE school_id = ? AND date LIKE ? ORDER BY date, start_time", ctx.schoolId, `${ym}-%`);
   const selected = /^\d{4}-\d{2}-\d{2}$/.test(sp.d ?? "") ? sp.d! : t.startsWith(ym) ? t : `${ym}-01`;
-  const dayEvents = all<E>("SELECT * FROM events WHERE school_id = ? AND date = ? ORDER BY start_time", ctx.schoolId, selected);
+  const dayEvents = await all<E>("SELECT * FROM events WHERE school_id = ? AND date = ? ORDER BY start_time", ctx.schoolId, selected);
   const staff = ctx.isAdmin || ctx.user.role === "teacher";
 
   const startPad = new Date(Date.UTC(y, m - 1, 1)).getUTCDay();

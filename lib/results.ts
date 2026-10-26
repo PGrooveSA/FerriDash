@@ -11,32 +11,32 @@ export type LearnerRow = {
 };
 export type ClassResults = { classId: number; className: string; grade: number; year: number; period: Period; subjects: ClassSubject[]; learners: LearnerRow[] };
 
-export function classResults(schoolId: number, classId: number, year: number, period: Period, opts: { publishedOnly?: boolean; learnerIds?: number[] } = {}): ClassResults | null {
-  const cls = get<{ id: number; name: string; grade: number }>("SELECT id, name, grade FROM classes WHERE id = ? AND school_id = ?", classId, schoolId);
+export async function classResults(schoolId: number, classId: number, year: number, period: Period, opts: { publishedOnly?: boolean; learnerIds?: number[] } = {}): Promise<ClassResults | null> {
+  const cls = await get<{ id: number; name: string; grade: number }>("SELECT id, name, grade FROM classes WHERE id = ? AND school_id = ?", classId, schoolId);
   if (!cls) return null;
 
-  const subjects = all<ClassSubject>(`
+  const subjects = await all<ClassSubject>(`
     SELECT cs.id AS csId, s.id AS subjectId, s.name, s.code, s.category,
            (SELECT COALESCE(u.title || ' ', '') || u.last_name FROM teachers t JOIN users u ON u.id = t.user_id WHERE t.id = cs.teacher_id) AS teacher,
            COALESCE((SELECT status FROM result_sets r WHERE r.class_subject_id = cs.id AND r.year = ? AND r.term = ?), 'draft') AS status
     FROM class_subjects cs JOIN subjects s ON s.id = cs.subject_id
     WHERE cs.class_id = ? ORDER BY CASE s.category WHEN 'HL' THEN 1 WHEN 'FAL' THEN 2 WHEN 'SAL' THEN 3 WHEN 'MATH' THEN 4 WHEN 'MLIT' THEN 4 ELSE 5 END, CASE WHEN s.category = 'LO' THEN 1 ELSE 0 END, s.name`,
-    year, period === "year" ? 4 : period, classId);
+      year, period === "year" ? 4 : period, classId);
 
   const published = new Set(
-    all<{ class_subject_id: number; term: number }>(`SELECT class_subject_id, term FROM result_sets WHERE status = 'published' AND year = ? AND class_subject_id IN (SELECT id FROM class_subjects WHERE class_id = ?)`, year, classId)
+    (await all<{ class_subject_id: number; term: number }>(`SELECT class_subject_id, term FROM result_sets WHERE status = 'published' AND year = ? AND class_subject_id IN (SELECT id FROM class_subjects WHERE class_id = ?)`, year, classId))
       .map((r) => `${r.class_subject_id}:${r.term}`));
 
-  const assessments = all<AssessmentLite & { class_subject_id: number }>(`SELECT id, class_subject_id, term, kind, max_mark, weight FROM assessments WHERE year = ? AND class_subject_id IN (SELECT id FROM class_subjects WHERE class_id = ?)`, year, classId)
+  const assessments = (await all<AssessmentLite & { class_subject_id: number }>(`SELECT id, class_subject_id, term, kind, max_mark, weight FROM assessments WHERE year = ? AND class_subject_id IN (SELECT id FROM class_subjects WHERE class_id = ?)`, year, classId))
     .filter((a) => !opts.publishedOnly || published.has(`${a.class_subject_id}:${a.term}`));
 
   // Members for that year: class history after a year-end rollover, otherwise the active learners in the class.
-  const memberIds = classMemberIds(classId, year);
-  const learners = memberIds.length ? all<Omit<LearnerRow, "pct" | "average" | "position" | "provisional" | "promotion">>(`SELECT id, first_name, last_name, admission_number, gender FROM learners WHERE id IN (${memberIds.map(() => "?").join(",")}) ORDER BY last_name, first_name`, ...memberIds) : [];
+  const memberIds = await classMemberIds(classId, year);
+  const learners = memberIds.length ? (await all<Omit<LearnerRow, "pct" | "average" | "position" | "provisional" | "promotion">>(`SELECT id, first_name, last_name, admission_number, gender FROM learners WHERE id IN (${memberIds.map(() => "?").join(",")}) ORDER BY last_name, first_name`, ...memberIds)) : [];
 
   const marks = new Map<number, Map<number, MarkLite>>(); // learner -> assessment -> mark
-  for (const m of all<{ learner_id: number; assessment_id: number; mark: number | null; absent: number }>(
-    `SELECT m.learner_id, m.assessment_id, m.mark, m.absent FROM marks m JOIN assessments a ON a.id = m.assessment_id
+  for (const m of await all<{ learner_id: number; assessment_id: number; mark: number | null; absent: number }>(
+      `SELECT m.learner_id, m.assessment_id, m.mark, m.absent FROM marks m JOIN assessments a ON a.id = m.assessment_id
      WHERE a.year = ? AND a.class_subject_id IN (SELECT id FROM class_subjects WHERE class_id = ?)`, year, classId)) {
     if (!marks.has(m.learner_id)) marks.set(m.learner_id, new Map());
     marks.get(m.learner_id)!.set(m.assessment_id, m);
@@ -102,20 +102,20 @@ export function subjectStats(cr: ClassResults) {
 }
 
 /** Attendance summary between two dates for one learner. */
-export function attendanceSummary(learnerId: number, from: string, to: string) {
-  const r = get<{ total: number; present: number; absent: number; late: number; excused: number }>(`
+export async function attendanceSummary(learnerId: number, from: string, to: string) {
+  const r = (await get<{ total: number; present: number; absent: number; late: number; excused: number }>(`
     SELECT COUNT(*) total, SUM(status='P') present, SUM(status='A') absent, SUM(status='L') late, SUM(status='E') excused
-    FROM attendance WHERE learner_id = ? AND date BETWEEN ? AND ?`, learnerId, from, to)!;
+    FROM attendance WHERE learner_id = ? AND date BETWEEN ? AND ?`, learnerId, from, to))!;
   const attended = (r.present ?? 0) + (r.late ?? 0);
   return { ...r, rate: r.total ? Math.round((attended / r.total) * 100) : null };
 }
 
-export function termDates(schoolId: number, year: number, term: Period) {
+export async function termDates(schoolId: number, year: number, term: Period) {
   if (term === "year") {
-    const r = get<{ a: string; b: string }>("SELECT MIN(start_date) a, MAX(end_date) b FROM terms WHERE school_id = ? AND year = ?", schoolId, year);
+    const r = await get<{ a: string; b: string }>("SELECT MIN(start_date) a, MAX(end_date) b FROM terms WHERE school_id = ? AND year = ?", schoolId, year);
     return { start: r?.a ?? `${year}-01-01`, end: r?.b ?? `${year}-12-31` };
   }
-  const r = get<{ start_date: string; end_date: string }>("SELECT start_date, end_date FROM terms WHERE school_id = ? AND year = ? AND number = ?", schoolId, year, term);
+  const r = await get<{ start_date: string; end_date: string }>("SELECT start_date, end_date FROM terms WHERE school_id = ? AND year = ? AND number = ?", schoolId, year, term);
   return { start: r?.start_date ?? `${year}-01-01`, end: r?.end_date ?? `${year}-12-31` };
 }
 

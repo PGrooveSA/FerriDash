@@ -14,7 +14,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
   const year = ctx.school.current_year;
   const term = /^[1-4]$/.test(sp.term ?? "") ? Number(sp.term) : ctx.school.current_term;
   const statusFilter = sp.status ?? "";
-  const rows = all<{ csId: number; className: string; subject: string; teacher: string | null; status: string; learners: number; expected: number; captured: number; updated_at: string | null }>(`
+  const rows = await all<{ csId: number; className: string; subject: string; teacher: string | null; status: string; learners: number; expected: number; captured: number; updated_at: string | null }>(`
     SELECT cs.id csId, c.name className, s.name subject,
       (SELECT COALESCE(u.title || ' ', '') || u.first_name || ' ' || u.last_name FROM teachers t JOIN users u ON u.id = t.user_id WHERE t.id = cs.teacher_id) teacher,
       COALESCE(r.status, 'draft') status, r.updated_at,

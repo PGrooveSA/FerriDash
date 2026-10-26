@@ -17,7 +17,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
   const ctx = await requireCtx();
   const sp = await searchParams;
   const q = sp.q?.trim().toLowerCase() ?? "";
-  const convs = all<Conv>(`
+  const convs = (await all<Conv>(`
     SELECT c.id, c.title, c.is_group, c.description, m.body, m.created_at, su.first_name sender,
       o.first_name other_first, o.last_name other_last, o.title other_title, o.role other_role, o.id other_id, o.avatar_updated_at other_av,
       (SELECT COUNT(*) FROM messages x WHERE x.conversation_id = c.id AND x.sender_id <> ?1 AND x.created_at > COALESCE(me.last_read_at, '')) unread,
@@ -26,20 +26,20 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
     LEFT JOIN messages m ON m.id = (SELECT MAX(id) FROM messages WHERE conversation_id = c.id)
     LEFT JOIN users su ON su.id = m.sender_id
     LEFT JOIN users o ON c.is_group = 0 AND o.id = (SELECT user_id FROM conversation_members WHERE conversation_id = c.id AND user_id <> ?1 LIMIT 1)
-    ORDER BY COALESCE(m.created_at, c.created_at) DESC`, ctx.user.id)
+    ORDER BY COALESCE(m.created_at, c.created_at) DESC`, ctx.user.id))
     .filter((c) => !q || (c.title ?? `${c.other_first} ${c.other_last}`).toLowerCase().includes(q));
   const activeId = convs.some((c) => c.id === Number(sp.c)) ? Number(sp.c) : convs[0]?.id;
   const active = convs.find((c) => c.id === activeId);
   if (active?.unread) await markRead(active.id);
 
-  const messages = activeId ? all<{ id: number; body: string; created_at: string; sender_id: number; first_name: string; last_name: string; title: string | null; role: string; avatar_updated_at: string | null }>(`
+  const messages = activeId ? (await all<{ id: number; body: string; created_at: string; sender_id: number; first_name: string; last_name: string; title: string | null; role: string; avatar_updated_at: string | null }>(`
     SELECT m.id, m.body, m.created_at, m.sender_id, u.first_name, u.last_name, u.title, u.role, u.avatar_updated_at FROM messages m JOIN users u ON u.id = m.sender_id
-    WHERE m.conversation_id = ? ORDER BY m.created_at, m.id LIMIT 300`, activeId) : [];
-  const members = activeId ? all<{ id: number; first_name: string; last_name: string; title: string | null; role: string; avatar_updated_at: string | null }>("SELECT u.id, u.first_name, u.last_name, u.title, u.role, u.avatar_updated_at FROM conversation_members cm JOIN users u ON u.id = cm.user_id WHERE cm.conversation_id = ? ORDER BY u.last_name", activeId) : [];
+    WHERE m.conversation_id = ? ORDER BY m.created_at, m.id LIMIT 300`, activeId)) : [];
+  const members = activeId ? (await all<{ id: number; first_name: string; last_name: string; title: string | null; role: string; avatar_updated_at: string | null }>("SELECT u.id, u.first_name, u.last_name, u.title, u.role, u.avatar_updated_at FROM conversation_members cm JOIN users u ON u.id = cm.user_id WHERE cm.conversation_id = ? ORDER BY u.last_name", activeId)) : [];
 
   // Who can this user start a chat with?
   const family = ctx.user.role === "learner" || ctx.user.role === "parent";
-  const people = all<{ id: number; name: string; role: string }>(`
+  const people = await all<{ id: number; name: string; role: string }>(`
     SELECT id, COALESCE(title || ' ', '') || first_name || ' ' || last_name name, role FROM users
     WHERE school_id = ? AND id <> ? AND active = 1 AND role IN (${family ? "'school_admin','teacher'" : "'school_admin','teacher','parent'"}) ORDER BY role, last_name LIMIT 500`, ctx.schoolId, ctx.user.id);
   const name = (c: Conv) => c.is_group ? c.title ?? "Group" : c.other_first ? fullName({ title: c.other_title, first_name: c.other_first, last_name: c.other_last! }, true) : "Conversation";

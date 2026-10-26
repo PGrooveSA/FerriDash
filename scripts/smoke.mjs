@@ -1,6 +1,7 @@
 // Smoke test: signs a session for one demo user per role and loads every page.
-// Usage: start the app (npm run dev), then: node --no-warnings=ExperimentalWarning scripts/smoke.mjs [baseUrl]
-import { DatabaseSync } from "node:sqlite";
+// Usage: start the app, then: node scripts/smoke.mjs [baseUrl]
+// DATABASE_URL (from the environment or .env.local) must point at the same database as the running app.
+import postgres from "postgres";
 import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -10,7 +11,8 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const base = process.argv[2] || "http://localhost:3100";
 const env = Object.fromEntries(readFileSync(join(root, ".env.local"), "utf8").split(/\r?\n/).filter((l) => l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1)]));
 const key = new TextEncoder().encode(env.SESSION_SECRET || "dev-only-insecure-secret-change-me");
-const db = new DatabaseSync(process.env.DB_PATH || join(root, "data", "school-hub.db"));
+const dbUrl = process.env.DATABASE_URL || env.DATABASE_URL;
+const sql = postgres(dbUrl, { ssl: /@(127\.0\.0\.1|localhost)(:|\/)/.test(dbUrl) ? false : "require", prepare: false, max: 1 });
 
 const ADMIN_PAGES = ["/dashboard", "/teachers", "/teachers?status=former", "/teachers?status=all", "/teachers/1", "/learners", "/learners?status=all", "/learners/1", "/parents", "/academics", "/academics?tab=subjects", "/academics?tab=allocation", "/attendance", "/results", "/results?term=3", "/results/moderation", "/results/analysis", "/results/analysis?term=year", "/reports", "/reports/report-cards", "/reports/report-cards?term=3&all=1", "/reports/report-cards?term=year&all=1", "/reports/broadsheet", "/reports/broadsheet?term=year", "/reports/promotion", "/reports/year-end", "/reports/attendance", "/reports/attendance?range=year", "/reports/finance", "/finance/fees", "/finance/fees?status=overdue", "/finance/expenses", "/notices", "/calendar", "/library", "/messages", "/profile", "/settings", "/import", "/search?q=th"];
 const ROLES = {
@@ -23,10 +25,18 @@ const ROLES = {
 // Pages a role must NOT reach (should redirect away).
 const FORBIDDEN = { super_admin: ["/schools", "/teachers", "/learners", "/learners/1", "/results", "/reports/report-cards", "/finance/fees", "/finance/statement", "/settings", "/import", "/messages", "/notices", "/search?q=a", "/api/unread"], teacher: ["/teachers", "/teachers/1", "/import", "/finance/fees", "/settings", "/reports/year-end"], learner: ["/learners", "/results/moderation", "/finance/fees"], parent: ["/teachers", "/reports/broadsheet"] };
 
+// Look up the test users first (before the app is busy): the local Postgres serves one query at a time.
+const users = {};
+for (const role of Object.keys(ROLES)) {
+  // Prefer the documented demo accounts at the first school.
+  [users[role]] = await sql`SELECT id, email FROM users WHERE role = ${role} ORDER BY (email LIKE '%sunnyside%') DESC, (email LIKE 'admin@%' OR email LIKE 'teacher@%' OR email LIKE 'learner@%' OR email LIKE 'parent@%' OR email LIKE 'superadmin@%') DESC, id LIMIT 1`;
+}
+
+const firstLearners = (await sql`SELECT id FROM learners ORDER BY id LIMIT 2`).map((r) => r.id);
+
 let failures = 0;
 for (const [role, pages] of Object.entries(ROLES)) {
-  // Prefer the documented demo accounts at the first school.
-  const u = db.prepare("SELECT id, email FROM users WHERE role = ? ORDER BY (email LIKE '%sunnyside%') DESC, (email LIKE 'admin@%' OR email LIKE 'teacher@%' OR email LIKE 'learner@%' OR email LIKE 'parent@%' OR email LIKE 'superadmin@%') DESC, id LIMIT 1").get(role);
+  const u = users[role];
   const token = await new SignJWT({ uid: u.id, role }).setProtectedHeader({ alg: "HS256" }).setIssuedAt().setExpirationTime("1h").sign(key);
   const headers = { cookie: `sh_session=${token}` };
   for (const p of pages) {
@@ -47,7 +57,7 @@ for (const [role, pages] of Object.entries(ROLES)) {
     if (!okRec) failures++;
     console.log(`${okRec ? " ok " : "FAIL"} ${role.padEnd(12)} ${rec?.status ?? r.status} own record ${loc}`);
     const ownId = Number(loc.split("/").pop());
-    const other = db.prepare("SELECT id FROM learners WHERE id <> ? ORDER BY id LIMIT 1").get(ownId).id;
+    const other = firstLearners.find((id) => id !== ownId);
     const o = await fetch(base + "/learners/" + other, { headers, redirect: "manual" });
     const blockedOther = o.status === 404 || (o.status === 200 && !(await o.text()).includes("Academic history"));
     if (!blockedOther) failures++;
@@ -60,5 +70,6 @@ for (const [role, pages] of Object.entries(ROLES)) {
     console.log(`${blocked ? " ok " : "FAIL"} ${role.padEnd(12)} ${res.status} blocked ${p}`);
   }
 }
+await sql.end({ timeout: 5 });
 console.log(failures ? `\n${failures} failure(s)` : "\nAll pages passed.");
 process.exit(failures ? 1 : 0);

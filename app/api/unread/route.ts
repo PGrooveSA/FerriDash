@@ -9,7 +9,7 @@ export async function GET() {
   const ctx = await getCtx();
   if (!ctx) return Response.json({ error: "Unauthorised" }, { status: 401 });
   return Response.json(
-    { notices: unreadNoticeCount(ctx), messages: unreadMessageCount(ctx.user.id) },
+    { notices: await unreadNoticeCount(ctx), messages: await unreadMessageCount(ctx.user.id) },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

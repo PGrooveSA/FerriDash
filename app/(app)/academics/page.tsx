@@ -19,13 +19,13 @@ export default async function AcademicsPage({ searchParams }: { searchParams: Pr
   const ctx = await requireCtx(["school_admin"]);
   const sp = await searchParams;
   const tab = sp.tab ?? "classes";
-  const teachers = all<{ id: number; name: string }>("SELECT t.id, COALESCE(u.title || ' ', '') || u.first_name || ' ' || u.last_name name FROM teachers t JOIN users u ON u.id = t.user_id WHERE t.school_id = ? AND t.status = 'Active' ORDER BY u.last_name", ctx.schoolId);
+  const teachers = await all<{ id: number; name: string }>("SELECT t.id, COALESCE(u.title || ' ', '') || u.first_name || ' ' || u.last_name name FROM teachers t JOIN users u ON u.id = t.user_id WHERE t.school_id = ? AND t.status = 'Active' ORDER BY u.last_name", ctx.schoolId);
   const teacherOpts = teachers.map((t) => ({ value: t.id, label: t.name }));
-  const classes = all<{ id: number; grade: number; name: string; room: string | null; class_teacher_id: number | null; teacher: string | null; learners: number; subjects: number }>(`
+  const classes = await all<{ id: number; grade: number; name: string; room: string | null; class_teacher_id: number | null; teacher: string | null; learners: number; subjects: number }>(`
     SELECT c.*, (SELECT COALESCE(u.title || ' ', '') || u.last_name FROM teachers t JOIN users u ON u.id = t.user_id WHERE t.id = c.class_teacher_id) teacher,
       (SELECT COUNT(*) FROM learners l WHERE l.class_id = c.id AND l.status = 'Active') learners, (SELECT COUNT(*) FROM class_subjects cs WHERE cs.class_id = c.id) subjects
     FROM classes c WHERE c.school_id = ? AND c.year = ? ORDER BY c.grade, c.name`, ctx.schoolId, ctx.school.current_year);
-  const subjects = all<{ id: number; name: string; code: string | null; category: string; used: number }>("SELECT s.*, (SELECT COUNT(*) FROM class_subjects cs WHERE cs.subject_id = s.id) used FROM subjects s WHERE s.school_id = ? ORDER BY s.name", ctx.schoolId);
+  const subjects = await all<{ id: number; name: string; code: string | null; category: string; used: number }>("SELECT s.*, (SELECT COUNT(*) FROM class_subjects cs WHERE cs.subject_id = s.id) used FROM subjects s WHERE s.school_id = ? ORDER BY s.name", ctx.schoolId);
 
   const classFields = (c?: (typeof classes)[number]): Field[] => [
     { name: "grade", label: "Grade", type: "select", required: true, options: GRADES, defaultValue: c?.grade, half: true },
@@ -40,7 +40,7 @@ export default async function AcademicsPage({ searchParams }: { searchParams: Pr
   ];
 
   const selectedClass = Number(sp.class) || classes[0]?.id;
-  const allocation = selectedClass ? all<{ id: number; subject: string; category: string; teacher_id: number | null }>("SELECT cs.id, s.name subject, s.category, cs.teacher_id FROM class_subjects cs JOIN subjects s ON s.id = cs.subject_id WHERE cs.class_id = ? ORDER BY s.name", selectedClass) : [];
+  const allocation = selectedClass ? (await all<{ id: number; subject: string; category: string; teacher_id: number | null }>("SELECT cs.id, s.name subject, s.category, cs.teacher_id FROM class_subjects cs JOIN subjects s ON s.id = cs.subject_id WHERE cs.class_id = ? ORDER BY s.name", selectedClass)) : [];
 
   const tabs = [["classes", "Classes"], ["subjects", "Subjects"], ["allocation", "Teaching allocation"]];
   return (

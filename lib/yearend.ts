@@ -19,23 +19,23 @@ export function nextClassName(name: string, grade: number): string {
 }
 
 /** Works out the default year-end action for every active learner in the current year's classes. */
-export function yearEndPlan(ctx: Ctx): PlanClass[] {
+export async function yearEndPlan(ctx: Ctx): Promise<PlanClass[]> {
   const year = ctx.school.current_year;
-  const classes = all<{ id: number; name: string; grade: number }>("SELECT id, name, grade FROM classes WHERE school_id = ? AND year = ? ORDER BY grade, name", ctx.schoolId, year);
-  return classes.map((c) => {
-    const cr = classResults(ctx.schoolId, c.id, year, "year");
-    const learners: PlanLearner[] = (cr?.learners ?? []).map((l) => {
-      const p = l.promotion;
-      const incomplete = !p;
-      let action: YearEndAction, reason: string;
-      if (incomplete) { action = "repeat"; reason = "Marks are incomplete: check before promoting."; }
-      else if (c.grade === 12) { action = p!.promoted ? "graduate" : "repeat"; reason = p!.outcome; }
-      else { action = p!.promoted ? "promote" : "repeat"; reason = p!.outcome; }
-      return {
-        id: l.id, name: `${l.last_name}, ${l.first_name}`, admission_number: l.admission_number, average: l.average,
-        outcome: p?.outcome ?? "Incomplete marks", promoted: p ? p.promoted : null, provisional: l.provisional, incomplete, action, reason,
-      };
-    });
-    return { id: c.id, name: c.name, grade: c.grade, promoteTo: c.grade >= 12 ? "-" : `${nextClassName(c.name, c.grade)} (${gradeLabel(c.grade + 1)})`, repeatIn: `${c.name} (${gradeLabel(c.grade)})`, learners };
-  });
+  const classes = await all<{ id: number; name: string; grade: number }>("SELECT id, name, grade FROM classes WHERE school_id = ? AND year = ? ORDER BY grade, name", ctx.schoolId, year);
+  return (await Promise.all(classes.map(async (c) => {
+      const cr = await classResults(ctx.schoolId, c.id, year, "year");
+      const learners: PlanLearner[] = (cr?.learners ?? []).map((l) => {
+        const p = l.promotion;
+        const incomplete = !p;
+        let action: YearEndAction, reason: string;
+        if (incomplete) { action = "repeat"; reason = "Marks are incomplete: check before promoting."; }
+        else if (c.grade === 12) { action = p!.promoted ? "graduate" : "repeat"; reason = p!.outcome; }
+        else { action = p!.promoted ? "promote" : "repeat"; reason = p!.outcome; }
+        return {
+          id: l.id, name: `${l.last_name}, ${l.first_name}`, admission_number: l.admission_number, average: l.average,
+          outcome: p?.outcome ?? "Incomplete marks", promoted: p ? p.promoted : null, provisional: l.provisional, incomplete, action, reason,
+        };
+      });
+      return { id: c.id, name: c.name, grade: c.grade, promoteTo: c.grade >= 12 ? "-" : `${nextClassName(c.name, c.grade)} (${gradeLabel(c.grade + 1)})`, repeatIn: `${c.name} (${gradeLabel(c.grade)})`, learners };
+    })));
 }

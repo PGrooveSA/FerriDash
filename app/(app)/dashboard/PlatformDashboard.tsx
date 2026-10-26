@@ -14,10 +14,10 @@ type S = {
 type Admin = { id: number; school_id: number; name: string; email: string; last_login: string | null };
 
 /** The platform admin's home page: every school on the installation, and nothing inside them. */
-export default function PlatformDashboard({ ctx, sp }: { ctx: Ctx; sp: Record<string, string> }) {
+export default async function PlatformDashboard({ ctx, sp }: { ctx: Ctx; sp: Record<string, string> }) {
   void ctx;
   const q = sp.q?.trim().toLowerCase() ?? "", province = sp.province ?? "", status = sp.status ?? "";
-  const all_ = all<S>(`SELECT s.*,
+  const all_ = await all<S>(`SELECT s.*,
       (SELECT COUNT(*) FROM learners l WHERE l.school_id = s.id AND l.status = 'Active') learners,
       (SELECT COUNT(*) FROM teachers t WHERE t.school_id = s.id AND t.status = 'Active') teachers,
       (SELECT MAX(last_login) FROM users u WHERE u.school_id = s.id) last_login
@@ -26,7 +26,7 @@ export default function PlatformDashboard({ ctx, sp }: { ctx: Ctx; sp: Record<st
     (!q || [s.name, s.emis_number, s.principal, s.district].some((v) => v?.toLowerCase().includes(q))) &&
     (!province || s.province === province) &&
     (!status || (status === "active" ? s.active : !s.active)));
-  const admins = all<Admin>("SELECT id, school_id, first_name || ' ' || last_name name, email, last_login FROM users WHERE role = 'school_admin' ORDER BY first_name");
+  const admins = await all<Admin>("SELECT id, school_id, first_name || ' ' || last_name name, email, last_login FROM users WHERE role = 'school_admin' ORDER BY first_name");
   const adminsOf = (id: number) => admins.filter((a) => a.school_id === id);
 
   const fields = (s?: S): Field[] => [

@@ -10,27 +10,27 @@ import { Donut, Bars, AreaTrend } from "@/components/charts";
 import { MiniCalendar, Agenda, RecentMessages, NoticeList } from "@/components/widgets";
 import { SchoolBanner } from "@/components/SchoolCrest";
 
-export default function AdminDashboard({ ctx }: { ctx: Ctx }) {
+export default async function AdminDashboard({ ctx }: { ctx: Ctx }) {
   const sid = ctx.schoolId, year = ctx.school.current_year;
-  const c = get<{ learners: number; boys: number; girls: number; teachers: number; parents: number }>(`
+  const c = (await get<{ learners: number; boys: number; girls: number; teachers: number; parents: number }>(`
     SELECT (SELECT COUNT(*) FROM learners WHERE school_id = ?1 AND status='Active') learners,
            (SELECT COUNT(*) FROM learners WHERE school_id = ?1 AND status='Active' AND gender='Male') boys,
            (SELECT COUNT(*) FROM learners WHERE school_id = ?1 AND status='Active' AND gender='Female') girls,
            (SELECT COUNT(*) FROM teachers WHERE school_id = ?1 AND status = 'Active') teachers,
-           (SELECT COUNT(*) FROM users WHERE school_id = ?1 AND role='parent') parents`, sid)!;
-  const fees = get<{ billed: number; paid: number }>(`SELECT
+           (SELECT COUNT(*) FROM users WHERE school_id = ?1 AND role='parent') parents`, sid))!;
+  const fees = (await get<{ billed: number; paid: number }>(`SELECT
       (SELECT COALESCE(SUM(tuition+activities+other),0) FROM invoices WHERE school_id = ?1 AND year = ?2) billed,
-      (SELECT COALESCE(SUM(p.amount),0) FROM payments p JOIN invoices i ON i.id = p.invoice_id WHERE p.school_id = ?1 AND i.year = ?2) paid`, sid, year)!;
+      (SELECT COALESCE(SUM(p.amount),0) FROM payments p JOIN invoices i ON i.id = p.invoice_id WHERE p.school_id = ?1 AND i.year = ?2) paid`, sid, year))!;
 
   // Attendance for the last 5 recorded school days
-  const att = all<{ date: string; present: number; absent: number }>(`
+  const att = (await all<{ date: string; present: number; absent: number }>(`
     SELECT date, ROUND(100.0 * SUM(status IN ('P','L')) / COUNT(*)) present, ROUND(100.0 * SUM(status IN ('A','E')) / COUNT(*)) absent
-    FROM attendance WHERE school_id = ? AND date <= ? GROUP BY date ORDER BY date DESC LIMIT 5`, sid, today()).reverse()
+    FROM attendance WHERE school_id = ? AND date <= ? GROUP BY date ORDER BY date DESC LIMIT 5`, sid, today())).reverse()
     .map((r) => ({ ...r, day: new Date(r.date + "T00:00:00").toLocaleDateString("en-ZA", { weekday: "short", day: "numeric" }) }));
 
   // Money in vs out per month
-  const income = all<{ m: string; v: number }>("SELECT substr(paid_on,6,2) m, SUM(amount) v FROM payments WHERE school_id = ? AND paid_on LIKE ? GROUP BY m", sid, `${year}-%`);
-  const expense = all<{ m: string; v: number }>("SELECT substr(paid_on,6,2) m, SUM(amount) v FROM expenses WHERE school_id = ? AND paid_on LIKE ? GROUP BY m", sid, `${year}-%`);
+  const income = await all<{ m: string; v: number }>("SELECT substr(paid_on,6,2) m, SUM(amount) v FROM payments WHERE school_id = ? AND paid_on LIKE ? GROUP BY m", sid, `${year}-%`);
+  const expense = await all<{ m: string; v: number }>("SELECT substr(paid_on,6,2) m, SUM(amount) v FROM expenses WHERE school_id = ? AND paid_on LIKE ? GROUP BY m", sid, `${year}-%`);
   const money = MONTHS.map((name, i) => {
     const key = String(i + 1).padStart(2, "0");
     return { name, income: income.find((r) => r.m === key)?.v ?? 0, expense: expense.find((r) => r.m === key)?.v ?? 0 };
@@ -38,14 +38,14 @@ export default function AdminDashboard({ ctx }: { ctx: Ctx }) {
 
   // Academic performance per class for the latest completed term
   const term = Math.max(1, ctx.school.current_term - 1);
-  const perf = all<{ id: number; name: string; grade: number }>("SELECT id, name, grade FROM classes WHERE school_id = ? AND year = ? ORDER BY grade", sid, year).map((cl) => {
-    const cr = classResults(sid, cl.id, year, term);
-    const avgs = cr?.learners.map((l) => l.average).filter((v): v is number => v != null) ?? [];
-    const pass = cr?.learners.filter((l) => l.average != null && l.average >= 50).length ?? 0;
-    return { name: cl.name, average: avgs.length ? Math.round(avgs.reduce((a, b) => a + b, 0) / avgs.length) : null, pass: avgs.length ? Math.round((pass / avgs.length) * 100) : null };
-  });
+  const perf = (await Promise.all((await all<{ id: number; name: string; grade: number }>("SELECT id, name, grade FROM classes WHERE school_id = ? AND year = ? ORDER BY grade", sid, year)).map(async (cl) => {
+      const cr = await classResults(sid, cl.id, year, term);
+      const avgs = cr?.learners.map((l) => l.average).filter((v): v is number => v != null) ?? [];
+      const pass = cr?.learners.filter((l) => l.average != null && l.average >= 50).length ?? 0;
+      return { name: cl.name, average: avgs.length ? Math.round(avgs.reduce((a, b) => a + b, 0) / avgs.length) : null, pass: avgs.length ? Math.round((pass / avgs.length) * 100) : null };
+    })));
 
-  const pending = get<{ n: number }>("SELECT COUNT(*) n FROM result_sets WHERE school_id = ? AND year = ? AND status = 'submitted'", sid, year)!.n;
+  const pending = (await get<{ n: number }>("SELECT COUNT(*) n FROM result_sets WHERE school_id = ? AND year = ? AND status = 'submitted'", sid, year))!.n;
 
   return (
     <div className="space-y-6">

@@ -16,12 +16,12 @@ export default async function ParentsPage({ searchParams }: { searchParams: Prom
   const sp = await searchParams;
   const q = sp.q?.trim() ?? "", page = Math.max(1, Number(sp.page) || 1);
   const where = "u.school_id = ?1 AND u.role = 'parent' AND (?2 = '' OR u.first_name || ' ' || u.last_name LIKE '%' || ?2 || '%' OR u.email LIKE '%' || ?2 || '%' OR u.phone LIKE '%' || ?2 || '%')";
-  const total = get<{ n: number }>(`SELECT COUNT(*) n FROM users u WHERE ${where}`, ctx.schoolId, q)!.n;
-  const rows = all<P>(`SELECT id, title, first_name, last_name, email, phone, last_login, avatar_updated_at FROM users u WHERE ${where} ORDER BY last_name, first_name LIMIT ?3 OFFSET ?4`, ctx.schoolId, q, PER_PAGE, (page - 1) * PER_PAGE);
-  const kids = rows.length ? all<{ parent_user_id: number; learner_id: number; relationship: string; first_name: string; last_name: string; className: string | null }>(`
+  const total = (await get<{ n: number }>(`SELECT COUNT(*) n FROM users u WHERE ${where}`, ctx.schoolId, q))!.n;
+  const rows = await all<P>(`SELECT id, title, first_name, last_name, email, phone, last_login, avatar_updated_at FROM users u WHERE ${where} ORDER BY last_name, first_name LIMIT ?3 OFFSET ?4`, ctx.schoolId, q, PER_PAGE, (page - 1) * PER_PAGE);
+  const kids = rows.length ? (await all<{ parent_user_id: number; learner_id: number; relationship: string; first_name: string; last_name: string; className: string | null }>(`
     SELECT g.parent_user_id, g.learner_id, g.relationship, l.first_name, l.last_name, c.name className
     FROM guardian_links g JOIN learners l ON l.id = g.learner_id LEFT JOIN classes c ON c.id = l.class_id
-    WHERE g.parent_user_id IN (${rows.map(() => "?").join(",")})`, ...rows.map((r) => r.id)) : [];
+    WHERE g.parent_user_id IN (${rows.map(() => "?").join(",")})`, ...rows.map((r) => r.id))) : [];
 
   const fields = (p?: P): Field[] => [
     { name: "title", label: "Title", type: "select", options: ["Mr", "Ms", "Mrs", "Dr"].map((v) => ({ value: v, label: v })), defaultValue: p?.title, half: true },

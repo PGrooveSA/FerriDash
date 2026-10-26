@@ -17,12 +17,12 @@ export default async function AnalysisPage({ searchParams }: { searchParams: Pro
   const sp = await searchParams;
   const year = ctx.school.current_year;
   const classes = ctx.isAdmin
-    ? all<{ id: number; name: string; grade: number }>("SELECT id, name, grade FROM classes WHERE school_id = ? AND year = ? ORDER BY grade, name", ctx.schoolId, year)
-    : all<{ id: number; name: string; grade: number }>("SELECT DISTINCT c.id, c.name, c.grade FROM classes c LEFT JOIN class_subjects cs ON cs.class_id = c.id WHERE c.year = ?2 AND (cs.teacher_id = ?1 OR c.class_teacher_id = ?1) ORDER BY c.grade, c.name", ctx.teacherId, year);
+    ? (await all<{ id: number; name: string; grade: number }>("SELECT id, name, grade FROM classes WHERE school_id = ? AND year = ? ORDER BY grade, name", ctx.schoolId, year))
+    : (await all<{ id: number; name: string; grade: number }>("SELECT DISTINCT c.id, c.name, c.grade FROM classes c LEFT JOIN class_subjects cs ON cs.class_id = c.id WHERE c.year = ?2 AND (cs.teacher_id = ?1 OR c.class_teacher_id = ?1) ORDER BY c.grade, c.name", ctx.teacherId, year));
   const classId = classes.find((c) => c.id === Number(sp.class))?.id ?? classes[0]?.id;
   if (!classId) return <Card><Empty title="No classes" /></Card>;
   const period = parsePeriod(sp.term, Math.max(1, ctx.school.current_term - 1));
-  const cr = classResults(ctx.schoolId, classId, year, period)!;
+  const cr = (await classResults(ctx.schoolId, classId, year, period))!;
   const stats = subjectStats(cr);
   const avgs = cr.learners.map((l) => l.average).filter((v): v is number => v != null);
   const classAvg = avgs.length ? Math.round(avgs.reduce((a, b) => a + b, 0) / avgs.length) : null;

@@ -13,17 +13,17 @@ export const metadata = { title: "My results" };
 export default async function MyResultsPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const ctx = await requireCtx(["learner", "parent"]);
   const sp = await searchParams;
-  const ids = ownLearnerIds(ctx) ?? [];
+  const ids = (await ownLearnerIds(ctx)) ?? [];
   const learnerId = ids.includes(Number(sp.learner)) ? Number(sp.learner) : ids[0];
   if (!learnerId) return <Card><Empty title="No learner linked to this account" /></Card>;
-  const kids = all<{ id: number; name: string }>(`SELECT id, first_name || ' ' || last_name name FROM learners WHERE id IN (${ids.map(() => "?").join(",")})`, ...ids);
-  const l = get<{ class_id: number; first_name: string; last_name: string; grade: number; className: string }>("SELECT l.class_id, l.first_name, l.last_name, c.grade, c.name className FROM learners l JOIN classes c ON c.id = l.class_id WHERE l.id = ?", learnerId)!;
+  const kids = await all<{ id: number; name: string }>(`SELECT id, first_name || ' ' || last_name name FROM learners WHERE id IN (${ids.map(() => "?").join(",")})`, ...ids);
+  const l = (await get<{ class_id: number; first_name: string; last_name: string; grade: number; className: string }>("SELECT l.class_id, l.first_name, l.last_name, c.grade, c.name className FROM learners l JOIN classes c ON c.id = l.class_id WHERE l.id = ?", learnerId))!;
   const year = ctx.school.current_year;
 
   // Default to the latest term that has published results.
-  const publishedTerms = all<{ term: number }>("SELECT DISTINCT term FROM result_sets WHERE status = 'published' AND year = ? AND class_subject_id IN (SELECT id FROM class_subjects WHERE class_id = ?) ORDER BY term", year, l.class_id).map((r) => r.term);
+  const publishedTerms = (await all<{ term: number }>("SELECT DISTINCT term FROM result_sets WHERE status = 'published' AND year = ? AND class_subject_id IN (SELECT id FROM class_subjects WHERE class_id = ?) ORDER BY term", year, l.class_id)).map((r) => r.term);
   const period = parsePeriod(sp.term, publishedTerms.at(-1) ?? 1);
-  const cr = classResults(ctx.schoolId, l.class_id, year, period, { publishedOnly: true });
+  const cr = await classResults(ctx.schoolId, l.class_id, year, period, { publishedOnly: true });
   const row = cr?.learners.find((x) => x.id === learnerId);
   const hasAny = row && Object.values(row.pct).some((v) => v != null);
 
