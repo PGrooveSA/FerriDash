@@ -56,11 +56,11 @@ export async function saveExpense(_: ActionResult, f: FormData) {
   return guarded(ADMIN, async (ctx) => {
     const id = num(f, "id"), amount = num(f, "amount");
     if (!amount || amount <= 0) fail("Enter an amount greater than R0.");
-    // Optional supporting document: PDF only (checked by content, not just the name), up to 10 MB.
+    // Optional supporting document: PDF only (checked by content, not just the name), up to 4 MB.
     const file = f.get("document");
     let pdf: Uint8Array | null = null, pdfName: string | null = null;
     if (file instanceof File && file.size > 0) {
-      if (file.size > MAX_EXPENSE_DOC_BYTES) fail("That PDF is too large. Please upload a file under 10 MB.");
+      if (file.size > MAX_EXPENSE_DOC_BYTES) fail("That PDF is too large. Please upload a file under 4 MB.");
       pdf = new Uint8Array(await file.arrayBuffer());
       if (!/\.pdf$/i.test(file.name) || !isPdf(pdf)) fail("Only PDF documents can be uploaded.");
       pdfName = file.name.replace(/[^\w.\- ()]/g, "_").slice(-120);

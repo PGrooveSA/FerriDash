@@ -1,13 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Uploads: profile photos and logos are resized in the browser; expense PDFs may be up to 10 MB.
-  experimental: { serverActions: { bodySizeLimit: "11mb" } },
-  // node:sqlite is a Node built-in; keep it out of the bundle.
-  webpack: (config, { isServer }) => {
-    if (isServer) {
-      config.externals = [...(config.externals || []), { "node:sqlite": "commonjs node:sqlite" }];
-    }
-    return config;
+  // Uploads: profile photos and logos are resized in the browser; expense PDFs may be up to 4 MB
+  // (Vercel accepts request bodies up to 4.5 MB).
+  experimental: { serverActions: { bodySizeLimit: "4.5mb" } },
+  // Files read at run time, which serverless hosts (Vercel) only ship when listed here.
+  outputFileTracingIncludes: {
+    "/**": ["./db/schema.pg.sql"],
+    "/api/import-template/[name]": ["./templates/import/**"],
   },
 };
 export default nextConfig;

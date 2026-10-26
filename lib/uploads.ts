@@ -2,7 +2,7 @@
 
 export const MAX_AVATAR_BYTES = 2 * 1024 * 1024; // profile photos
 export const MAX_LOGO_BYTES = 2 * 1024 * 1024; // school logos
-export const MAX_EXPENSE_DOC_BYTES = 10 * 1024 * 1024; // expense PDFs
+export const MAX_EXPENSE_DOC_BYTES = 4 * 1024 * 1024; // expense PDFs (Vercel accepts request bodies up to 4.5 MB)
 
 /** A real PDF starts with "%PDF-" (checked instead of trusting the file name or browser type). */
 export const isPdf = (buf: Uint8Array) => buf.length > 5 && String.fromCharCode(...buf.slice(0, 5)) === "%PDF-";

@@ -30,7 +30,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
     { name: "paid_on", label: "Payment date", type: "date", required: true, defaultValue: e?.paid_on ?? today(), half: true },
     { name: "supplier", label: "Supplier", defaultValue: e?.supplier, half: true },
     { name: "document", label: e?.document_name ? "Replace document (PDF)" : "Supporting document (PDF)", type: "file", accept: ".pdf,application/pdf", maxMb: 10,
-      placeholder: "Invoice, quote or receipt as a PDF", help: e?.document_name ? `Current: ${e.document_name}. Choose a new PDF to replace it.` : "Optional. PDF only, up to 10 MB." },
+      placeholder: "Invoice, quote or receipt as a PDF", help: e?.document_name ? `Current: ${e.document_name}. Choose a new PDF to replace it.` : "Optional. PDF only, up to 4 MB." },
     ...(e?.document_name ? [{ name: "remove_document", label: "Current document", type: "select", options: [{ value: "0", label: "Keep it" }, { value: "1", label: "Remove it" }], defaultValue: "0", half: true } as Field] : []),
   ];
   const csv = [["Reference", "Category", "Expense", "Quantity", "Amount (ZAR)", "Payment date", "Supplier", "Document"], ...rows.map((e) => [e.reference, e.category, e.description, e.quantity, e.amount.toFixed(2), e.paid_on, e.supplier, e.document_name])];
