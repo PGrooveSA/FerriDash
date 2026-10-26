@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { audit, get, run } from "@/lib/db";
 import { requireCtx } from "@/lib/auth";
-import { SCHOOL_COOKIE, SESSION_COOKIE, SESSION_HOURS, signSession } from "@/lib/session";
+import { REMEMBER_DAYS, SCHOOL_COOKIE, SESSION_COOKIE, SESSION_HOURS, signSession } from "@/lib/session";
 
 // Simple in-memory brute-force guard (per email, per server process).
 const attempts = new Map<string, { n: number; until: number }>();
@@ -26,9 +26,14 @@ export async function login(_: unknown, form: FormData): Promise<{ error?: strin
   run("UPDATE users SET last_login = datetime('now') WHERE id = ?", user.id);
   audit(user.school_id, user.id, "login", "user", user.id);
 
+  // "Remember me": stay signed in for 30 days. Otherwise the cookie ends when the browser closes
+  // (and the session expires after 12 hours either way).
+  const remember = form.get("remember") === "1";
+  const hours = remember ? REMEMBER_DAYS * 24 : SESSION_HOURS;
   const store = await cookies();
-  store.set(SESSION_COOKIE, await signSession({ uid: user.id, role: user.role }), {
-    httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production" && process.env.INSECURE_COOKIES !== "1", path: "/", maxAge: SESSION_HOURS * 3600,
+  store.set(SESSION_COOKIE, await signSession({ uid: user.id, role: user.role }, hours), {
+    httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production" && process.env.INSECURE_COOKIES !== "1", path: "/",
+    ...(remember ? { maxAge: hours * 3600 } : {}),
   });
   redirect("/dashboard");
 }

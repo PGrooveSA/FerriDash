@@ -294,6 +294,24 @@ body {
 .login-card { background: rgb(255 255 255 / 0.86); box-shadow: 0 24px 70px -20px rgb(2 6 23 / 0.65); }
 .dark .login-card { background: rgb(10 16 40 / 0.78); }
 
+/* Split sign-in card: solid form half, glass art half that lets the animated sky show through. */
+.login-shell {
+  border-radius: 1.75rem;
+  border: 1px solid rgb(255 255 255 / 0.22);
+  box-shadow: 0 30px 80px -24px rgb(2 6 23 / 0.7);
+}
+.login-form-side { background: rgb(246 247 251 / 0.97); color: var(--ink); }
+.dark .login-form-side { background: rgb(13 19 42 / 0.94); }
+.login-art-side {
+  background: linear-gradient(160deg, rgb(255 168 109 / 0.32), rgb(56 189 248 / 0.22) 55%, rgb(252 202 28 / 0.18));
+  backdrop-filter: blur(10px) saturate(130%); -webkit-backdrop-filter: blur(10px) saturate(130%);
+  border-left: 1px solid rgb(255 255 255 / 0.18);
+}
+.login-art { filter: drop-shadow(0 18px 30px rgb(15 23 42 / 0.35)); animation: login-art-float 9s ease-in-out infinite; }
+@keyframes login-art-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+.login-art-2 { animation-delay: -4.5s; }
+@media (prefers-reduced-motion: reduce) { .login-art { animation: none; } }
+
 /* ---------- Printed report cards: tabulated, black and white ---------- */
 @media print {
   .print-area { color: #000 !important; }

@@ -1,56 +1,42 @@
 import LoginForm from "./LoginForm";
-import { GraduationCap, ShieldCheck, LineChart, Users } from "lucide-react";
 import LoginBackdrop from "@/components/LoginBackdrop";
 import BrandLogo from "@/components/BrandLogo";
 
 export const metadata = { title: "Sign in" };
 
 // The sign-in page is shared by every school on the platform, so it carries no school branding.
+// One card over the animated dawn sky: the form on the left, a glass panel with 3D education art
+// (generated with Higgsfield, public/brand/login-art-*.webp) on the right.
 export default function LoginPage() {
   return (
     <>
       <LoginBackdrop />
-      <main className="relative z-10 min-h-screen grid lg:grid-cols-2 gap-6 p-4 sm:p-8">
-        <section className="hidden lg:flex login-hero flex-col items-center p-10 relative overflow-hidden">
-          {/* Logo, heading, text and chips sit centred in the panel; the copyright stays at the bottom. */}
-          <div className="my-auto flex flex-col items-center text-center">
-            {/* Scales with the screen: about 225px wide on small laptops up to 320px on large monitors. */}
-            <BrandLogo variant="onDark" className="w-[clamp(14rem,22vw,20rem)] drop-shadow-[0_6px_24px_rgb(0_0_0/0.35)]" />
-            <h1 className="mt-10 text-4xl xl:text-5xl font-bold leading-tight tracking-tight max-w-lg text-white">
-              Learning today, <span className="bg-gradient-to-r from-gold-300 via-brand-300 to-sky-300 bg-clip-text text-transparent">leading tomorrow</span>.
-            </h1>
-            <p className="text-sky-100/80 mt-4 max-w-md">CAPS-aligned results, report cards, attendance and fees in Rand, built for South African schools from Grade R to Grade 12.</p>
-            <ul className="mt-8 grid grid-cols-2 gap-3 w-full max-w-md text-sm">
-              {[
-                [GraduationCap, "CAPS 7-point scale", "text-gold-300"],
-                [LineChart, "Results & reports", "text-sky-300"],
-                [Users, "Parent access", "text-brand-300"],
-                [ShieldCheck, "POPIA-minded", "text-gold-300"],
-              ].map(([Icon, label, tone], i) => {
-                const I = Icon as typeof GraduationCap;
-                return (
-                  <li key={i} className="rounded-2xl px-4 py-3 flex items-center justify-center gap-2 font-medium text-white bg-white/10 border border-white/15 backdrop-blur-md">
-                    <I className={`w-4 h-4 ${tone as string}`} /> {label as string}
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-          <p className="pt-10 text-xs text-sky-100/60">Copyright © Infinite Q Graphics</p>
-        </section>
-
-        <section className="flex items-center justify-center">
-          <div className="glass login-card w-full max-w-md p-8 sm:p-10">
-            {/* Phones and tablets (the welcome panel is hidden): smaller on phones, larger on tablets. */}
-            <div className="lg:hidden mb-7 flex justify-center">
-              <BrandLogo className="w-[clamp(12rem,58vw,16rem)]" />
+      <main className="relative z-10 min-h-screen flex flex-col items-center justify-center gap-6 p-4 sm:p-8">
+        <div className="login-shell w-full max-w-5xl grid lg:grid-cols-2 overflow-hidden">
+          <section className="login-form-side px-6 py-9 sm:px-12 sm:py-10 flex flex-col justify-center">
+            <div className="w-full max-w-sm mx-auto">
+              <div className="flex justify-center"><BrandLogo className="w-52" /></div>
+              <h1 className="text-2xl font-semibold tracking-tight text-center mt-7">Hello! Welcome back</h1>
+              <p className="muted text-sm text-center mt-1">Sign in with your school email address.</p>
+              <LoginForm />
+              <p className="text-sm text-center muted mt-6">New to FerriDash? <span className="text-[var(--ink)] font-medium">Your school office creates your login.</span></p>
+              <p className="text-xs text-center muted mt-3">Your information is processed in line with POPIA.</p>
             </div>
-            <h2 className="text-2xl font-bold tracking-tight">Welcome back</h2>
-            <p className="muted text-sm mt-1">Sign in with your school email address.</p>
-            <LoginForm />
-            <p className="text-xs muted mt-6">Demo accounts are listed in the README. Your information is processed in line with POPIA.</p>
-          </div>
-        </section>
+          </section>
+
+          {/* Top and bottom clusters of the art frame the headline, so they never cover it. */}
+          <section className="login-art-side hidden lg:flex flex-col justify-between gap-4 px-10 py-9" aria-label="Learning today, leading tomorrow">
+            <img src="/brand/login-art-top.webp" alt="" width={1000} height={679} className="login-art w-[88%] self-center h-auto select-none" draggable={false} />
+            <div className="text-white">
+              <h2 className="text-[2.6rem] font-bold leading-[1.05] tracking-tight drop-shadow-[0_4px_18px_rgb(15_23_42/0.45)]">
+                Learning today,<br /><span className="text-gold-300">leading tomorrow.</span>
+              </h2>
+              <p className="mt-3 text-base text-white/90 drop-shadow-[0_2px_10px_rgb(15_23_42/0.5)] max-w-sm">CAPS results, report cards, attendance and fees in Rand, for South African schools.</p>
+            </div>
+            <img src="/brand/login-art-bottom.webp" alt="" width={1000} height={520} className="login-art login-art-2 w-[78%] self-end h-auto select-none" draggable={false} />
+          </section>
+        </div>
+        <p className="text-xs text-white/70">Copyright © Infinite Q Graphics</p>
       </main>
     </>
   );
