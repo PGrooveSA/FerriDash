@@ -1,14 +1,14 @@
 # FerriDash mobile apps (Android and iOS)
 
-Native apps for parents, learners, educators and school admins. FerriDash runs on each school's own
-server, so the apps are a native shell ([Capacitor](https://capacitorjs.com) 8) around that server:
+Native apps for parents, learners, educators and school admins. The apps are a native shell
+([Capacitor](https://capacitorjs.com) 8) around the live FerriDash at **https://ferri-dash.vercel.app**:
 
-1. On first launch the app asks for the school's FerriDash address (for example `192.168.0.48:3100`,
-   or `https://fees.myschool.co.za`), checks that FerriDash answers there, and remembers it.
-2. After that it opens the school's sign-in page straight away. **Change school** on the sign-in page goes back
-   to the address screen.
-3. Everything else (dashboards, results, report cards, fee payments with Ozow) is the school's FerriDash,
+1. On launch the app opens FerriDash's sign-in page. Without internet it shows "No internet connection"
+   with **Try again** (it also retries by itself when the connection comes back).
+2. Everything else (dashboards, results, report cards, fee payments with Ozow) is the live website,
    so the apps never need updating when FerriDash gets new features.
+3. If the live address ever changes (for example to your own domain), change `LIVE` in `www/index.html`,
+   run `npx cap sync`, and publish an app update.
 
 | | |
 |---|---|
@@ -22,7 +22,7 @@ server, so the apps are a native shell ([Capacitor](https://capacitorjs.com) 8) 
 
 | Path | What it is |
 |---|---|
-| `www/` | The app's own start screen ("Connect to your school") |
+| `www/` | The app's own start screen (opens the live site, or shows "No internet connection") |
 | `capacitor.config.json` | App ID, name, user agent (`FerriDashApp/1.0`), navigation and splash settings |
 | `android/` | Android Studio project |
 | `ios/` | Xcode project |
@@ -33,15 +33,7 @@ Native additions:
 - **Printing / Save as PDF.** Web views can't run `window.print()`, so the apps add a print bridge:
   `MainActivity.java` (Android print service, A4 or A5) and `MainViewController` in `AppDelegate.swift`
   (iOS print sheet). FerriDash's **Download PDF** and **Print** buttons use it automatically inside the app.
-- **Plain-http school servers** are allowed (`usesCleartextTraffic` on Android; `NSAllowsArbitraryLoadsInWebContent`
-  and `NSAllowsLocalNetworking` on iOS), because most schools run FerriDash on their own network without HTTPS.
-
-## Server requirements
-
-- Phones must be able to reach the server: on the school Wi-Fi, or over the internet if the school publishes
-  FerriDash at a public address.
-- Over plain `http://`, start FerriDash with `INSECURE_COOKIES=1`, otherwise phones (and other computers) can't stay
-  signed in. With HTTPS this isn't needed. For example, in PowerShell: `$env:INSECURE_COOKIES = '1'; .\start.bat`.
+- **HTTPS only.** The apps load nothing over plain http.
 
 ## Building
 
@@ -77,8 +69,8 @@ Needs a Mac with Xcode 16 or newer and an Apple Developer account (for devices a
 3. Run on a simulator or a connected iPhone with ▶.
 4. **Release:** **Product → Archive**, then **Distribute App** → App Store Connect (or TestFlight first).
 
-App Store review notes: explain that the app connects to the school's own FerriDash server on the school network
-(hence the local-network permission and http support), and give the reviewer a test server address and a demo login.
+App Store review notes: explain that the app is the mobile front end of the FerriDash website for schools, and give
+the reviewer a test login on a school you set up for review.
 
 ## Updating the version
 
@@ -89,7 +81,6 @@ App Store review notes: explain that the app connects to the school's own FerriD
 
 - **CSV exports** (broadsheets, promotion schedules, import logins) download in a desktop browser, not inside the
   apps. Use a computer for those admin tasks.
-- The apps need the school's server to be reachable. Without the school Wi-Fi (or a public address) they show the
-  "Can't reach your school" screen with the option to change the address.
+- The apps need an internet connection; without one they show "No internet connection" with **Try again**.
 
 Copyright © Infinite Q Graphics

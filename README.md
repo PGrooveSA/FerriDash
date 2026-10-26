@@ -6,10 +6,13 @@ notices, calendar, library and messaging, with a modern glass interface in light
 
 Copyright © Infinite Q Graphics
 
+**Live:** https://ferri-dash.vercel.app (Vercel, region Paris, deploys automatically from `main`). Android and iOS
+apps in `mobile/` open the same site.
+
 ## Database: Supabase (PostgreSQL)
 
-FerriDash stores everything in PostgreSQL: Supabase in production, a local Postgres in development. Uploaded logos,
-profile photos and expense PDFs go to a private Supabase Storage bucket (`ferridash-uploads`, created on first upload).
+FerriDash stores everything in Supabase: PostgreSQL for the data, and uploaded logos,
+profile photos and expense PDFs in a private Storage bucket (`ferridash-uploads`, created on first upload).
 
 `.env.local` (never committed) holds:
 
@@ -34,43 +37,23 @@ as the database owner and scopes every query to the signed-in user's school.
 
 3. `npm run build` then `npm start` (or deploy to your host), sign in, and add the first school under **Dashboard**.
 
-### Develop locally
+### Commands
 
 ```bash
 npm install
-npm run db:local
 ```
-
-`db:local` runs Postgres in-process (PGlite, data in `data/local-pg`) on port 54329. In another terminal, with
-`DATABASE_URL=postgres://postgres:postgres@127.0.0.1:54329/postgres` and `DB_POOL_MAX=1`, run `npm run dev`. To load the demo
-data: `DB_PATH=data/demo-seed.db npm run seed`, then
-`node scripts/sqlite-to-pg.mjs data/demo-seed.db --reset`. Never point either at the live database.
 
 | Command | What it does |
 |---|---|
-| `npm run dev` | Development server on port 3100 |
+| `npm run dev` | Development server on port 3100 (uses the database in `.env.local`) |
 | `npm run build` then `npm start` | Production build and server |
 | `npm run db:admin` | Create a platform administrator (`-- --another` to add one more) |
+| `npm run db:password` | After changing the database password in Supabase: update it in `.env.local` (tests it first, then copies the new `DATABASE_URL` for Vercel) |
 | `npm run typecheck` | TypeScript check |
-| `node scripts/smoke.mjs` | Loads every page as every role and checks role restrictions (app must be running) |
-| `node scripts/sqlite-to-pg.mjs <file>` | Copy an older offline (SQLite) FerriDash database and its files into Postgres |
+| `node scripts/smoke.mjs <address>` | Loads every page as every role and checks role restrictions |
 
-`DB_DEBUG=1` logs failing SQL to the server log.
-
-## Demo accounts
-
-Only in the local demo data (never on the live database). All demo accounts use the password **`Demo@2026`**.
-
-| Role | Email |
-|---|---|
-| Platform admin (all schools) | `superadmin@ferridash.demo` |
-| School admin | `admin@sunnyside.demo`, `admin@moletjie.demo`, `admin@tableview.demo` |
-| Educator | `teacher@sunnyside.demo` (also `@moletjie.demo`, `@tableview.demo`) |
-| Learner | `learner@sunnyside.demo` (also `@moletjie.demo`, `@tableview.demo`) |
-| Parent / guardian | `parent@sunnyside.demo` (also `@moletjie.demo`, `@tableview.demo`) |
-
-Demo schools: Sunnyside Secondary (Gauteng, Q4, fee-paying), Moletjie Primary (Limpopo, Q1, no-fee, Sepedi HL),
-Table View Combined (Western Cape, Q5).
+`.env.local` points at the live database, so `npm run dev` works on real school data. For development, create a
+second Supabase project and use its connection string instead. `DB_DEBUG=1` logs failing SQL to the server log.
 
 ## Roles
 
@@ -132,8 +115,6 @@ Fee-paying schools can let parents pay school fees from their banking app with [
 
 The server needs internet access for this. Ozow only sends parents straight back to FerriDash if the optional **public address** (an `https://` address reachable from the internet) is set; without it, payments are confirmed when the parent returns to the statement. No-fee schools don't see any of this.
 
-To try it without an Ozow account: run `node scripts/mock-ozow.mjs`, start FerriDash with `OZOW_BASE_URL=http://127.0.0.1:4010`, and use client ID `test-client` and secret `test-secret`.
-
 ## School logo and profile photos
 
 - **School logo**: school admins upload or remove it under **Settings** (no other role can). After sign-in it appears on every role's dashboard, in the sidebar, and on report cards and fee statements. The sign-in page stays generic because all schools share it; its animated dawn-sky background (midnight blue to a tangerine sunrise) shows rising education symbols, an orbiting atom, a learning path and twinkling stars for the future.
@@ -164,7 +145,7 @@ lib/caps.ts       CAPS levels, weighting, promotion rules
 lib/results.ts    term/year marks, rankings, class results
 components/       shell, UI kit, charts, report card
 db/schema.pg.sql  database schema
-scripts/          admin bootstrap, local Postgres, seed, data copy, smoke test
+scripts/          admin bootstrap, database password helper, smoke test
 ```
 
 ## Suggested next steps

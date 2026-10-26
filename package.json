@@ -4,13 +4,11 @@
   "private": true,
   "description": "Multi-school management system for South African schools (CAPS, ZAR) - Infinite Q Graphics",
   "scripts": {
-    "seed": "node --no-warnings=ExperimentalWarning scripts/seed.mjs",
-    "seed:reset": "node --no-warnings=ExperimentalWarning scripts/seed.mjs --reset",
     "dev": "next dev -p 3100",
     "build": "next build",
     "start": "next start -p 3100",
-    "db:local": "node scripts/local-pg.mjs",
     "db:admin": "node --env-file=.env.local scripts/create-admin.mjs",
+    "db:password": "node scripts/set-db-password.mjs",
     "typecheck": "tsc --noEmit"
   },
   "engines": {
@@ -28,8 +26,6 @@
     "recharts": "^3.10.1"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.5.12",
-    "@electric-sql/pglite-socket": "^0.2.15",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^26.6.5",
     "@types/react": "^19.3.0",

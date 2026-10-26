@@ -1,4 +1,4 @@
-// Database access: PostgreSQL (Supabase in production, local Postgres in development).
+// Database access: PostgreSQL on Supabase.
 // The application's SQL was written for SQLite; translate() adapts it once per statement, so queries
 // keep their familiar shape: "?" or "?1" placeholders, datetime('now'), case-insensitive LIKE and
 // camelCase result names. Transactions follow the async call chain (AsyncLocalStorage), so code inside

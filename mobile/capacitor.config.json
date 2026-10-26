@@ -5,11 +5,8 @@
   "appendUserAgent": "FerriDashApp/1.0",
   "backgroundColor": "#0F172A",
   "server": {
-    "androidScheme": "http",
+    "androidScheme": "https",
     "allowNavigation": ["*"]
-  },
-  "android": {
-    "allowMixedContent": true
   },
   "ios": {
     "contentInset": "never",

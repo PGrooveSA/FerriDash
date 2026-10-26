@@ -1,15 +1,9 @@
 node_modules
 .next
-data/*.db
-data/*.db-*
+data/
 .env.local
 *.tsbuildinfo
 next-env.d.ts
-data/avatars/
-data/logos/
-data/expense-docs/
 
 # Presentation and user-guide build tooling
 docs/.build/
-data/local-pg/
-data/uploads/

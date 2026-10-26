@@ -1,6 +1,6 @@
-// Smoke test: signs a session for one demo user per role and loads every page.
+// Smoke test: signs a session for one user per role (roles without accounts are skipped) and loads every page.
 // Usage: start the app, then: node scripts/smoke.mjs [baseUrl]
-// DATABASE_URL (from the environment or .env.local) must point at the same database as the running app.
+// DATABASE_URL and SESSION_SECRET (from the environment or .env.local) must match the running app.
 import postgres from "postgres";
 import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
@@ -25,11 +25,10 @@ const ROLES = {
 // Pages a role must NOT reach (should redirect away).
 const FORBIDDEN = { super_admin: ["/schools", "/teachers", "/learners", "/learners/1", "/results", "/reports/report-cards", "/finance/fees", "/finance/statement", "/settings", "/import", "/messages", "/notices", "/search?q=a", "/api/unread"], teacher: ["/teachers", "/teachers/1", "/import", "/finance/fees", "/settings", "/reports/year-end"], learner: ["/learners", "/results/moderation", "/finance/fees"], parent: ["/teachers", "/reports/broadsheet"] };
 
-// Look up the test users first (before the app is busy): the local Postgres serves one query at a time.
+// Look up the test users first, before the app is busy.
 const users = {};
 for (const role of Object.keys(ROLES)) {
-  // Prefer the documented demo accounts at the first school.
-  [users[role]] = await sql`SELECT id, email FROM users WHERE role = ${role} ORDER BY (email LIKE '%sunnyside%') DESC, (email LIKE 'admin@%' OR email LIKE 'teacher@%' OR email LIKE 'learner@%' OR email LIKE 'parent@%' OR email LIKE 'superadmin@%') DESC, id LIMIT 1`;
+  [users[role]] = await sql`SELECT id, email FROM users WHERE role = ${role} AND active = 1 ORDER BY id LIMIT 1`;
 }
 
 const firstLearners = (await sql`SELECT id FROM learners ORDER BY id LIMIT 2`).map((r) => r.id);
@@ -37,6 +36,7 @@ const firstLearners = (await sql`SELECT id FROM learners ORDER BY id LIMIT 2`).m
 let failures = 0;
 for (const [role, pages] of Object.entries(ROLES)) {
   const u = users[role];
+  if (!u) { console.log(` --  ${role.padEnd(12)} no account yet, skipped`); continue; }
   const token = await new SignJWT({ uid: u.id, role }).setProtectedHeader({ alg: "HS256" }).setIssuedAt().setExpirationTime("1h").sign(key);
   const headers = { cookie: `sh_session=${token}` };
   for (const p of pages) {
