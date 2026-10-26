@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { audit, get, run } from "@/lib/db";
-import { requireCtx } from "@/lib/auth";
+import { EVERYONE, requireCtx } from "@/lib/auth";
 import { REMEMBER_DAYS, SCHOOL_COOKIE, SESSION_COOKIE, SESSION_HOURS, signSession } from "@/lib/session";
 
 // Simple in-memory brute-force guard (per email, per server process).
@@ -45,18 +45,8 @@ export async function logout() {
   redirect("/login");
 }
 
-export async function switchSchool(form: FormData) {
-  const ctx = await requireCtx(["super_admin"]);
-  const id = Number(form.get("school_id"));
-  if (get("SELECT id FROM schools WHERE id = ?", id)) {
-    (await cookies()).set(SCHOOL_COOKIE, String(id), { httpOnly: true, sameSite: "lax", path: "/" });
-    audit(id, ctx.user.id, "switch_school", "school", id);
-  }
-  redirect("/dashboard");
-}
-
 export async function changePassword(_: unknown, form: FormData): Promise<{ error?: string; ok?: string }> {
-  const ctx = await requireCtx();
+  const ctx = await requireCtx(EVERYONE);
   const current = String(form.get("current") || ""), next = String(form.get("next") || ""), confirm = String(form.get("confirm") || "");
   const row = get<{ password_hash: string }>("SELECT password_hash FROM users WHERE id = ?", ctx.user.id)!;
   if (!bcrypt.compareSync(current, row.password_hash)) return { error: "Current password is incorrect." };

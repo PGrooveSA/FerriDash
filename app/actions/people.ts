@@ -7,7 +7,7 @@ import { revalidatePath } from "next/cache";
 import { all, audit, get, run, tx } from "@/lib/db";
 import { EXIT_REASONS } from "@/lib/staff";
 import { parseSaId } from "@/lib/format";
-import { ADMIN, STAFF, fail, guarded, num, opt, str, type ActionResult } from "@/lib/action-utils";
+import { ADMIN, EVERYONE, STAFF, fail, guarded, num, opt, str, type ActionResult } from "@/lib/action-utils";
 
 const strongEnough = (p: string) => p.length >= 8 && /[A-Z]/.test(p) && /\d/.test(p);
 const tempPassword = () => "Sk-" + randomBytes(6).toString("base64url") + "9A";
@@ -286,7 +286,7 @@ export async function resetPassword(_: ActionResult, f: FormData) {
   return guarded(ADMIN, (ctx) => {
     const id = num(f, "user_id"), pw = str(f, "password");
     if (!strongEnough(pw)) fail("Password needs 8+ characters, a capital letter and a number.");
-    const scope = ctx.user.role === "super_admin" ? get("SELECT id FROM users WHERE id = ?", id) : get("SELECT id FROM users WHERE id = ? AND school_id = ?", id, ctx.schoolId);
+    const scope = get("SELECT id FROM users WHERE id = ? AND school_id = ?", id, ctx.schoolId);
     if (!scope) fail("User not found.");
     run("UPDATE users SET password_hash = ? WHERE id = ?", bcrypt.hashSync(pw, 10), id);
     audit(ctx.schoolId, ctx.user.id, "reset_password", "user", id);
@@ -300,7 +300,7 @@ function removeAvatarFile(userId: number | null | undefined) {
 
 /** Any signed-in user may set their own profile photo (resized in the browser first). */
 export async function uploadAvatar(f: FormData): Promise<ActionResult> {
-  return guarded(undefined, async (ctx) => {
+  return guarded(EVERYONE, async (ctx) => {
     const file = f.get("photo");
     if (!(file instanceof File) || file.size === 0) fail("Choose a photo to upload.");
     if (file.size > MAX_AVATAR_BYTES) fail("That photo is too large. Please use an image under 2 MB.");
@@ -315,7 +315,7 @@ export async function uploadAvatar(f: FormData): Promise<ActionResult> {
 }
 
 export async function removeAvatar(): Promise<ActionResult> {
-  return guarded(undefined, (ctx) => {
+  return guarded(EVERYONE, (ctx) => {
     removeAvatarFile(ctx.user.id);
     run("UPDATE users SET avatar_updated_at = NULL WHERE id = ?", ctx.user.id);
     audit(ctx.schoolId, ctx.user.id, "remove_photo", "user", ctx.user.id);
@@ -325,7 +325,7 @@ export async function removeAvatar(): Promise<ActionResult> {
 
 // ---------------- Profile ----------------
 export async function updateProfile(_: ActionResult, f: FormData) {
-  return guarded(STAFF.concat(["learner", "parent"]), (ctx) => {
+  return guarded(EVERYONE, (ctx) => {
     run("UPDATE users SET title=?, phone=? WHERE id = ?", opt(f, "title"), opt(f, "phone"), ctx.user.id);
     revalidatePath("/profile");
   });

@@ -13,14 +13,16 @@ import BrandLogo from "@/components/BrandLogo";
 type Role = "super_admin" | "school_admin" | "teacher" | "learner" | "parent";
 type Item = { href: string; label: string; icon: typeof LayoutDashboard; roles: Role[]; children?: { href: string; label: string; roles?: Role[] }[] };
 
-const STAFF: Role[] = ["super_admin", "school_admin", "teacher"];
-const ADMIN: Role[] = ["super_admin", "school_admin"];
-const ALL: Role[] = ["super_admin", "school_admin", "teacher", "learner", "parent"];
+// School menus. The platform admin (super_admin) only gets the schools dashboard and their profile.
+const STAFF: Role[] = ["school_admin", "teacher"];
+const ADMIN: Role[] = ["school_admin"];
+const ALL: Role[] = ["school_admin", "teacher", "learner", "parent"];
+const EVERYONE: Role[] = ["super_admin", ...ALL];
 const FAMILY: Role[] = ["learner", "parent"];
 
 const MENU: Item[] = [
+  { href: "/dashboard", label: "Schools", icon: Building2, roles: ["super_admin"] },
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ALL },
-  { href: "/schools", label: "Schools", icon: Building2, roles: ["super_admin"] },
   { href: "/teachers", label: "Teachers", icon: GraduationCap, roles: ADMIN },
   { href: "/learners", label: "Learners", icon: Users, roles: STAFF },
   { href: "/parents", label: "Parents", icon: UsersRound, roles: ADMIN },
@@ -63,12 +65,12 @@ const MENU: Item[] = [
 ];
 
 const OTHER: Item[] = [
-  { href: "/profile", label: "Profile", icon: UserCircle, roles: ALL },
+  { href: "/profile", label: "Profile", icon: UserCircle, roles: EVERYONE },
   { href: "/import", label: "Import Data", icon: Upload, roles: ADMIN },
   { href: "/settings", label: "Setting", icon: Settings, roles: ADMIN },
 ];
 
-export default function Sidebar({ role, school }: { role: Role; school: { id: number; name: string; logo_updated_at: string | null } }) {
+export default function Sidebar({ role, school }: { role: Role; school: { id: number; name: string; logo_updated_at: string | null } | null }) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -125,8 +127,13 @@ export default function Sidebar({ role, school }: { role: Role; school: { id: nu
         <button className="ml-auto lg:hidden icon-btn" onClick={() => setOpen(false)} aria-label="Close menu"><X className="w-4 h-4" /></button>
       </div>
       <div className="flex items-center gap-3 mx-1 mb-5 p-2.5 rounded-2xl bg-white/45 dark:bg-white/5 border border-white/60 dark:border-white/10">
-        <SchoolCrest school={school} size={44} />
-        <p className="text-sm font-semibold leading-snug line-clamp-2">{school.name}</p>
+        {school ? <>
+          <SchoolCrest school={school} size={44} />
+          <p className="text-sm font-semibold leading-snug line-clamp-2">{school.name}</p>
+        </> : <>
+          <span className="w-11 h-11 rounded-xl grid place-items-center bg-brand-500/15 text-brand-600 shrink-0"><Building2 className="w-5 h-5" /></span>
+          <p className="text-sm font-semibold leading-snug">Platform admin<span className="block text-xs muted font-normal">All schools</span></p>
+        </>}
       </div>
       <nav className="flex-1 overflow-y-auto pr-1 -mr-1">
         <p className="px-4 text-[0.7rem] font-normal tracking-widest muted mb-2">MENU</p>
@@ -143,11 +150,11 @@ export default function Sidebar({ role, school }: { role: Role; school: { id: nu
           </li>
         </ul>
       </nav>
-      <div className="mt-4 rounded-3xl p-5 text-white relative overflow-hidden bg-gradient-to-br from-brand-500 via-brand-500 to-charcoal-500">
+      {school && <div className="mt-4 rounded-3xl p-5 text-white relative overflow-hidden bg-gradient-to-br from-brand-500 via-brand-500 to-charcoal-500">
         <div className="absolute -right-8 -bottom-10 w-32 h-32 rounded-full bg-white/20 blur-xl" />
         <p className="font-semibold leading-snug relative">CAPS results made simple</p>
         <p className="text-xs text-white/85 mt-1 relative">Capture marks, moderate and publish report cards in one place.</p>
-      </div>
+      </div>}
     </div>
   );
 

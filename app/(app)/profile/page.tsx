@@ -1,4 +1,4 @@
-import { requireCtx } from "@/lib/auth";
+import { EVERYONE, requireCtx } from "@/lib/auth";
 import { get } from "@/lib/db";
 import { ROLE_LABEL, fullName, avatarUrl, fmtDate } from "@/lib/format";
 import { Card, PageHeader } from "@/components/ui/kit";
@@ -8,7 +8,7 @@ import ProfileForms from "./ProfileForms";
 export const metadata = { title: "Profile" };
 
 export default async function ProfilePage() {
-  const ctx = await requireCtx();
+  const ctx = await requireCtx(EVERYONE);
   const u = get<{ last_login: string | null; created_at: string }>("SELECT last_login, created_at FROM users WHERE id = ?", ctx.user.id)!;
   return (
     <>

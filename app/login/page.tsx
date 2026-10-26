@@ -7,7 +7,8 @@ export const metadata = { title: "Sign in" };
 // The sign-in page is shared by every school on the platform, so it carries no school branding.
 // One card over the animated dawn sky: the form on the left, a glass panel with 3D education art
 // (generated with Higgsfield, public/brand/login-art-*.webp) on the right.
-export default function LoginPage() {
+export default async function LoginPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
+  const ended = (await searchParams).ended === "1";
   return (
     <>
       <LoginBackdrop />
@@ -18,6 +19,7 @@ export default function LoginPage() {
               <div className="flex justify-center"><BrandLogo className="w-52" /></div>
               <h1 className="text-2xl font-semibold tracking-tight text-center mt-7">Hello! Welcome back</h1>
               <p className="muted text-sm text-center mt-1">Sign in with your school email address.</p>
+              {ended && <p className="text-sm text-center mt-4 rounded-xl px-3 py-2 bg-brand-500/10">You have been signed out. If you can&apos;t sign in, contact your school office.</p>}
               <LoginForm />
               <p className="text-sm text-center muted mt-6">New to FerriDash? <span className="text-[var(--ink)] font-medium">Your school office creates your login.</span></p>
               <p className="text-xs text-center muted mt-3">Your information is processed in line with POPIA.</p>

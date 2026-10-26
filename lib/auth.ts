@@ -1,9 +1,13 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { all, get } from "./db";
-import { SCHOOL_COOKIE, SESSION_COOKIE, verifySession } from "./session";
+import { SESSION_COOKIE, verifySession } from "./session";
 
 export type Role = "super_admin" | "school_admin" | "teacher" | "learner" | "parent";
+/** Everyone who works inside a school. The platform admin (super_admin) only manages schools. */
+export const SCHOOL_ROLES: Role[] = ["school_admin", "teacher", "learner", "parent"];
+/** Pages and actions open to every signed-in user, including the platform admin (layout, dashboard, profile). */
+export const EVERYONE: Role[] = ["super_admin", ...SCHOOL_ROLES];
 
 export type User = {
   id: number; school_id: number | null; role: Role; title: string | null;
@@ -33,24 +37,25 @@ export async function getCtx(): Promise<Ctx | null> {
   const user = get<User>("SELECT id, school_id, role, title, first_name, last_name, email, phone, avatar_updated_at FROM users WHERE id = ? AND active = 1", session.uid);
   if (!user) return null;
 
-  let schoolId = user.school_id;
-  if (user.role === "super_admin") {
-    // Platform admins act inside whichever school they have selected.
-    const chosen = Number(store.get(SCHOOL_COOKIE)?.value);
-    schoolId = chosen && get("SELECT id FROM schools WHERE id = ?", chosen) ? chosen : (get<{ id: number }>("SELECT id FROM schools ORDER BY id LIMIT 1")?.id ?? null);
-  }
+  // Platform admins don't belong to a school and never act inside one; the first school only fills
+  // the context's school field (school pages and actions refuse platform admins).
+  const schoolId = user.role === "super_admin" ? (get<{ id: number }>("SELECT id FROM schools ORDER BY id LIMIT 1")?.id ?? null) : user.school_id;
   if (!schoolId) return null;
-  const school = get<School>("SELECT * FROM schools WHERE id = ?", schoolId)!;
+  const school = get<School & { active: number }>("SELECT * FROM schools WHERE id = ?", schoolId)!;
+  // A suspended school's users are signed out straight away, not only at their next login.
+  if (user.role !== "super_admin" && !school.active) return null;
   const teacherId = user.role === "teacher" ? (get<{ id: number }>("SELECT id FROM teachers WHERE user_id = ?", user.id)?.id ?? null) : null;
   const learnerId = user.role === "learner" ? (get<{ id: number }>("SELECT id FROM learners WHERE user_id = ?", user.id)?.id ?? null) : null;
-  return { user, school, schoolId, teacherId, learnerId, isAdmin: user.role === "super_admin" || user.role === "school_admin" };
+  return { user, school, schoolId, teacherId, learnerId, isAdmin: user.role === "school_admin" };
 }
 
 /** Use at the top of every protected page / action. Redirects when not allowed. */
 export async function requireCtx(roles?: Role[]): Promise<Ctx> {
   const ctx = await getCtx();
-  if (!ctx) redirect("/login");
-  if (roles && !roles.includes(ctx.user.role) && !(ctx.user.role === "super_admin" && roles.includes("school_admin"))) redirect("/dashboard");
+  // Signed in, but the account or its school can no longer be used: end the session properly.
+  if (!ctx) redirect((await cookies()).get(SESSION_COOKIE) ? "/api/session-end" : "/login");
+  // No roles = any school user. The platform admin only reaches pages that name "super_admin".
+  if (!(roles ?? SCHOOL_ROLES).includes(ctx.user.role)) redirect("/dashboard");
   return ctx;
 }
 

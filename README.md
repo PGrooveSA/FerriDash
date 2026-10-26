@@ -51,7 +51,7 @@ Table View Combined (Western Cape, Q5).
 
 | Role | Can do |
 |---|---|
-| **Platform admin** | Register and suspend schools, switch into any school with full admin rights |
+| **Platform admin** | Manages schools only: a dashboard to add, edit, suspend and reactivate schools, add school admins and reset their passwords. No access to anything inside a school (learners, results, finance, messages) |
 | **School admin** | Everything in their school: staff, learners, parents, classes, allocation, moderation and publishing, finance, settings |
 | **Educator** | Registers for their classes, mark capture for subjects they teach, reports for their classes, notices, calendar, library loans |
 | **Learner** | Own dashboard, published results and report cards, attendance, homework, library, messages to staff |

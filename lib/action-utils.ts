@@ -1,4 +1,4 @@
-import { requireCtx, type Role } from "./auth";
+import { EVERYONE, SCHOOL_ROLES, requireCtx, type Role } from "./auth";
 
 export type ActionResult = { error?: string; ok?: boolean; message?: string };
 
@@ -6,9 +6,9 @@ export const str = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 export const opt = (f: FormData, k: string) => str(f, k) || null;
 export const num = (f: FormData, k: string) => { const v = str(f, k); return v === "" ? null : Number(v); };
 
-/** Runs an action body with auth and turns thrown errors into friendly messages. */
+/** Runs an action body with auth and turns thrown errors into friendly messages. No roles = any school user. */
 export async function guarded(roles: Role[] | undefined, fn: (ctx: Awaited<ReturnType<typeof requireCtx>>) => ActionResult | void | Promise<ActionResult | void>): Promise<ActionResult> {
-  const ctx = await requireCtx(roles);
+  const ctx = await requireCtx(roles ?? SCHOOL_ROLES);
   try {
     return (await fn(ctx)) ?? { ok: true };
   } catch (e) {
@@ -26,5 +26,8 @@ export function fail(message: string): never {
   throw new Error("!" + message);
 }
 
-export const ADMIN: Role[] = ["super_admin", "school_admin"];
-export const STAFF: Role[] = ["super_admin", "school_admin", "teacher"];
+// School roles only: the platform admin (super_admin) manages schools, not what happens inside them.
+export const ADMIN: Role[] = ["school_admin"];
+export const STAFF: Role[] = ["school_admin", "teacher"];
+export const PLATFORM: Role[] = ["super_admin"];
+export { EVERYONE };

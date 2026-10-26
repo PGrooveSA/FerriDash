@@ -46,9 +46,6 @@ export default function AdminDashboard({ ctx }: { ctx: Ctx }) {
   });
 
   const pending = get<{ n: number }>("SELECT COUNT(*) n FROM result_sets WHERE school_id = ? AND year = ? AND status = 'submitted'", sid, year)!.n;
-  const platform = ctx.user.role === "super_admin"
-    ? get<{ schools: number; learners: number; provinces: number }>("SELECT (SELECT COUNT(*) FROM schools) schools, (SELECT COUNT(*) FROM learners WHERE status='Active') learners, (SELECT COUNT(DISTINCT province) FROM schools) provinces")
-    : null;
 
   return (
     <div className="space-y-6">
@@ -59,14 +56,6 @@ export default function AdminDashboard({ ctx }: { ctx: Ctx }) {
           {ctx.isAdmin && !ctx.school.logo_updated_at && <Link href="/settings" className="btn btn-ghost btn-sm mt-2">Add school logo</Link>}
         </div>
       </SchoolBanner>
-      {platform && (
-        <div className="glass p-5 flex flex-wrap items-center gap-6 bg-gradient-to-r from-gold-200/60 to-brand-200/50 dark:from-gold-500/15 dark:to-brand-500/10">
-          <Building2 className="w-8 h-8" />
-          <div><p className="text-sm muted">Platform</p><p className="font-semibold">{platform.schools} schools · {platform.learners} learners · {platform.provinces} provinces</p></div>
-          <p className="text-sm muted">You are viewing <b className="text-[var(--ink)]">{ctx.school.name}</b>. Use the school switcher above to change school.</p>
-          <Link href="/schools" className="btn btn-ghost btn-sm ml-auto">Manage schools</Link>
-        </div>
-      )}
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_22rem] gap-6">
         <div className="space-y-6 min-w-0">

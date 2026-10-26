@@ -14,14 +14,14 @@ const db = new DatabaseSync(process.env.DB_PATH || join(root, "data", "school-hu
 
 const ADMIN_PAGES = ["/dashboard", "/teachers", "/teachers?status=former", "/teachers?status=all", "/teachers/1", "/learners", "/learners?status=all", "/learners/1", "/parents", "/academics", "/academics?tab=subjects", "/academics?tab=allocation", "/attendance", "/results", "/results?term=3", "/results/moderation", "/results/analysis", "/results/analysis?term=year", "/reports", "/reports/report-cards", "/reports/report-cards?term=3&all=1", "/reports/report-cards?term=year&all=1", "/reports/broadsheet", "/reports/broadsheet?term=year", "/reports/promotion", "/reports/year-end", "/reports/attendance", "/reports/attendance?range=year", "/reports/finance", "/finance/fees", "/finance/fees?status=overdue", "/finance/expenses", "/notices", "/calendar", "/library", "/messages", "/profile", "/settings", "/import", "/search?q=th"];
 const ROLES = {
-  super_admin: ["/schools", ...ADMIN_PAGES],
+  super_admin: ["/dashboard", "/dashboard?status=suspended", "/dashboard?q=sun&province=Gauteng", "/profile"],
   school_admin: ADMIN_PAGES,
   teacher: ["/dashboard", "/learners", "/attendance", "/results", "/results/analysis", "/reports", "/reports/report-cards", "/reports/broadsheet", "/reports/promotion", "/reports/attendance", "/notices", "/calendar", "/library", "/messages", "/profile", "/search?q=a"],
   learner: ["/dashboard", "/attendance", "/results/my", "/results/my?term=year", "/reports/report-cards", "/notices", "/calendar", "/library", "/messages", "/profile"],
   parent: ["/dashboard", "/attendance", "/results/my", "/reports/report-cards", "/finance/statement", "/notices", "/calendar", "/library", "/messages", "/profile"],
 };
 // Pages a role must NOT reach (should redirect away).
-const FORBIDDEN = { teacher: ["/teachers", "/teachers/1", "/import", "/finance/fees", "/settings", "/reports/year-end"], learner: ["/learners", "/results/moderation", "/finance/fees"], parent: ["/teachers", "/reports/broadsheet"] };
+const FORBIDDEN = { super_admin: ["/schools", "/teachers", "/learners", "/learners/1", "/results", "/reports/report-cards", "/finance/fees", "/finance/statement", "/settings", "/import", "/messages", "/notices", "/search?q=a", "/api/unread"], teacher: ["/teachers", "/teachers/1", "/import", "/finance/fees", "/settings", "/reports/year-end"], learner: ["/learners", "/results/moderation", "/finance/fees"], parent: ["/teachers", "/reports/broadsheet"] };
 
 let failures = 0;
 for (const [role, pages] of Object.entries(ROLES)) {

@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, verifySession } from "./lib/session";
 
+const PLATFORM_PATHS = ["/dashboard", "/schools", "/profile", "/api/avatar", "/api/session-end"];
+
 export async function middleware(req: NextRequest) {
   const session = await verifySession(req.cookies.get(SESSION_COOKIE)?.value);
   const isLogin = req.nextUrl.pathname.startsWith("/login");
@@ -8,6 +10,11 @@ export async function middleware(req: NextRequest) {
   if (req.nextUrl.pathname.startsWith("/legal") || req.nextUrl.pathname.startsWith("/api/logo/")) return NextResponse.next();
   if (!session && !isLogin) return NextResponse.redirect(new URL("/login", req.url));
   if (session && isLogin) return NextResponse.redirect(new URL("/dashboard", req.url));
+  // The platform admin only manages schools: everything inside a school is off limits
+  // (pages and server actions also check this themselves).
+  if (session?.role === "super_admin" && !PLATFORM_PATHS.some((p) => req.nextUrl.pathname === p || req.nextUrl.pathname.startsWith(p + "/"))) {
+    return NextResponse.redirect(new URL("/dashboard", req.url));
+  }
   return NextResponse.next();
 }
 

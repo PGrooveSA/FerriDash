@@ -4,7 +4,7 @@ import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { LOGO_DIR, MAX_LOGO_BYTES, imageType, logoFile } from "@/lib/uploads";
 import { revalidatePath } from "next/cache";
 import { audit, get, run, tx } from "@/lib/db";
-import { ADMIN, fail, guarded, num, opt, str, type ActionResult } from "@/lib/action-utils";
+import { ADMIN, PLATFORM, fail, guarded, num, opt, str, type ActionResult } from "@/lib/action-utils";
 
 // ---------------- Classes ----------------
 export async function saveClass(_: ActionResult, f: FormData) {
@@ -119,14 +119,18 @@ export async function removeLogo(): Promise<ActionResult> {
 
 // ---------------- Schools (platform admin) ----------------
 export async function saveSchool(_: ActionResult, f: FormData) {
-  return guarded(["super_admin"], (ctx) => {
+  return guarded(PLATFORM, (ctx) => {
     const id = num(f, "id");
+    if (!str(f, "name")) fail("Enter the school's name.");
     const vals = [str(f, "name"), opt(f, "emis_number"), str(f, "province"), opt(f, "district"), num(f, "quintile"), str(f, "school_type") || "Combined", str(f, "fee_paying") === "1" ? 1 : 0, opt(f, "address"), opt(f, "phone"), opt(f, "email"), opt(f, "principal")];
     if (id) {
-      run("UPDATE schools SET name=?, emis_number=?, province=?, district=?, quintile=?, school_type=?, fee_paying=?, address=?, phone=?, email=?, principal=? WHERE id = ?", ...vals, id);
+      if (!run("UPDATE schools SET name=?, emis_number=?, province=?, district=?, quintile=?, school_type=?, fee_paying=?, address=?, phone=?, email=?, principal=? WHERE id = ?", ...vals, id).changes) fail("School not found.");
+      audit(id, ctx.user.id, "update", "school", id);
     } else {
       const adminEmail = str(f, "admin_email").toLowerCase(), pw = str(f, "admin_password");
-      if (!adminEmail || pw.length < 8) fail("Provide the school admin's email and an initial password (8+ characters).");
+      if (!adminEmail.includes("@")) fail("Enter the school admin's email address.");
+      if (!strongEnough(pw)) fail("The initial password needs 8+ characters, a capital letter and a number.");
+      if (get("SELECT id FROM users WHERE lower(email) = ?", adminEmail)) fail("That email already belongs to another account.");
       tx(() => {
         const year = new Date().getFullYear();
         const sid = run("INSERT INTO schools (name, emis_number, province, district, quintile, school_type, fee_paying, address, phone, email, principal, current_year, current_term) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,1)", ...vals, year).id;
@@ -134,14 +138,47 @@ export async function saveSchool(_: ActionResult, f: FormData) {
         audit(sid, ctx.user.id, "create", "school", sid);
       });
     }
-    revalidatePath("/schools");
+    revalidatePath("/dashboard");
   });
 }
 
+/** Suspend (or reactivate) a school: its users can't sign in, and anyone signed in is signed out. */
 export async function toggleSchool(id: number) {
-  return guarded(["super_admin"], (ctx) => {
-    run("UPDATE schools SET active = 1 - active WHERE id = ?", id);
-    audit(id, ctx.user.id, "toggle_active", "school", id);
-    revalidatePath("/schools");
+  return guarded(PLATFORM, (ctx) => {
+    const s = get<{ active: number; name: string }>("SELECT active, name FROM schools WHERE id = ?", id) ?? fail("School not found.");
+    run("UPDATE schools SET active = ? WHERE id = ?", s.active ? 0 : 1, id);
+    audit(id, ctx.user.id, s.active ? "suspend" : "activate", "school", id, s.name);
+    revalidatePath("/dashboard");
+  });
+}
+
+const strongEnough = (p: string) => p.length >= 8 && /[A-Z]/.test(p) && /\d/.test(p);
+
+/** Platform admin sets a new password for a school's admin (e.g. when they are locked out). */
+export async function resetSchoolAdminPassword(_: ActionResult, f: FormData) {
+  return guarded(PLATFORM, (ctx) => {
+    const userId = num(f, "user_id"), pw = str(f, "password");
+    const u = get<{ school_id: number }>("SELECT school_id FROM users WHERE id = ? AND role = 'school_admin'", userId) ?? fail("Choose one of the school's admins.");
+    if (!strongEnough(pw)) fail("The password needs 8+ characters, a capital letter and a number.");
+    run("UPDATE users SET password_hash = ?, active = 1 WHERE id = ?", bcrypt.hashSync(pw, 10), userId);
+    audit(u.school_id, ctx.user.id, "reset_password", "user", userId, "by platform admin");
+    return { ok: true, message: "Password updated. Share it with the school admin privately." };
+  });
+}
+
+/** Platform admin adds another school admin to a school (e.g. a new principal or office manager). */
+export async function addSchoolAdmin(_: ActionResult, f: FormData) {
+  return guarded(PLATFORM, (ctx) => {
+    const schoolId = num(f, "school_id"), email = str(f, "email").toLowerCase(), pw = str(f, "password");
+    if (!get("SELECT id FROM schools WHERE id = ?", schoolId)) fail("School not found.");
+    if (!str(f, "first_name") || !str(f, "last_name")) fail("Enter the admin's name.");
+    if (!email.includes("@")) fail("Enter a valid email address.");
+    if (get("SELECT id FROM users WHERE lower(email) = ?", email)) fail("That email already belongs to another account.");
+    if (!strongEnough(pw)) fail("The password needs 8+ characters, a capital letter and a number.");
+    const id = run("INSERT INTO users (school_id, role, first_name, last_name, email, phone, password_hash) VALUES (?,?,?,?,?,?,?)",
+      schoolId, "school_admin", str(f, "first_name"), str(f, "last_name"), email, opt(f, "phone"), bcrypt.hashSync(pw, 10)).id;
+    audit(schoolId, ctx.user.id, "create", "school_admin", id, email);
+    revalidatePath("/dashboard");
+    return { ok: true, message: "School admin added." };
   });
 }
