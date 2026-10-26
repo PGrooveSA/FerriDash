@@ -119,7 +119,9 @@ export default function Sidebar({ role, school }: { role: Role; school: { id: nu
   const nav = (
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-2 px-3 pt-1 pb-4">
-        <BrandLogo className="w-[9.5rem]" />
+        <Link href="/dashboard" aria-label="FerriDash: go to dashboard" className="rounded-lg transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-500">
+          <BrandLogo className="w-[9.5rem]" />
+        </Link>
         <button className="ml-auto lg:hidden icon-btn" onClick={() => setOpen(false)} aria-label="Close menu"><X className="w-4 h-4" /></button>
       </div>
       <div className="flex items-center gap-3 mx-1 mb-5 p-2.5 rounded-2xl bg-white/45 dark:bg-white/5 border border-white/60 dark:border-white/10">
