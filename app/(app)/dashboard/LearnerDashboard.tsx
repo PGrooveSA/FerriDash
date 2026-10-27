@@ -17,12 +17,14 @@ export type LearnerSnapshot = ReturnType<typeof learnerSnapshot>;
 /** Everything a learner or parent needs to see about one learner. Published results only. */
 export async function learnerSnapshot(ctx: Ctx, learnerId: number) {
   const year = ctx.school.current_year;
-  const l = await get<{ id: number; first_name: string; last_name: string; class_id: number; className: string; grade: number; admission_number: string; user_id: number | null; av: string | null }>(`
+  // A learner may not be placed in a class yet: then there are no class results to show.
+  const l = await get<{ id: number; first_name: string; last_name: string; class_id: number | null; className: string | null; grade: number | null; admission_number: string; user_id: number | null; av: string | null }>(`
     SELECT l.id, l.first_name, l.last_name, l.class_id, c.name className, c.grade, l.admission_number, l.user_id, (SELECT avatar_updated_at FROM users WHERE id = l.user_id) av
-    FROM learners l JOIN classes c ON c.id = l.class_id WHERE l.id = ? AND l.school_id = ?`, learnerId, ctx.schoolId);
+    FROM learners l LEFT JOIN classes c ON c.id = l.class_id WHERE l.id = ? AND l.school_id = ?`, learnerId, ctx.schoolId);
   if (!l) return null;
+  const classId = l.class_id;
   const terms = (await Promise.all([1, 2, 3, 4].map(async (t) => {
-      const cr = await classResults(ctx.schoolId, l.class_id, year, t, { publishedOnly: true, learnerIds: [l.id] });
+      const cr = classId ? await classResults(ctx.schoolId, classId, year, t, { publishedOnly: true, learnerIds: [l.id] }) : null;
       return { term: t, cr, row: cr?.learners[0] };
     })));
   const latest = [...terms].reverse().find((t) => t.row?.average != null);
@@ -32,9 +34,14 @@ export async function learnerSnapshot(ctx: Ctx, learnerId: number) {
   return { learner: l, terms, latest, att, balance };
 }
 
+/** "Grade 10 · Class 10A", or a note while the learner has no class yet. */
+export const classLine = (l: { grade: number | null; className: string | null }) =>
+  l.className != null && l.grade != null ? `${gradeLabel(l.grade)} · Class ${l.className}` : "Not placed in a class yet";
+
 export default async function LearnerDashboard({ ctx }: { ctx: Ctx }) {
   if (!ctx.learnerId) return <Empty title="No learner profile linked to this account" />;
-  const snap = (await learnerSnapshot(ctx, ctx.learnerId))!;
+  const snap = await learnerSnapshot(ctx, ctx.learnerId);
+  if (!snap) return <Empty title="No learner profile linked to this account" />;
   const { learner: l, latest, att } = snap;
   const t = today();
   const homework = await all<{ id: number; title: string; due_date: string; subject: string }>(`
@@ -56,7 +63,7 @@ export default async function LearnerDashboard({ ctx }: { ctx: Ctx }) {
           <Avatar first={l.first_name} last={l.last_name} size={128} photo={avatarUrl(l.user_id, l.av)} />
           <div className="flex-1 min-w-[14rem]">
             <h1 className="text-2xl font-bold tracking-tight">Welcome, {l.first_name}</h1>
-            <p className="text-sm muted mt-1">{gradeLabel(l.grade)} · Class {l.className} · Admission no. {l.admission_number}</p>
+            <p className="text-sm muted mt-1">{classLine(l)} · Admission no. {l.admission_number}</p>
             <div className="flex flex-wrap gap-2 mt-4">
               <Link href="/results/my" className="btn btn-primary">My results</Link>
               <Link href="/reports/report-cards" className="btn btn-ghost">Report cards</Link>

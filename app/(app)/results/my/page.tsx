@@ -17,19 +17,26 @@ export default async function MyResultsPage({ searchParams }: { searchParams: Pr
   const learnerId = ids.includes(Number(sp.learner)) ? Number(sp.learner) : ids[0];
   if (!learnerId) return <Card><Empty title="No learner linked to this account" /></Card>;
   const kids = await all<{ id: number; name: string }>(`SELECT id, first_name || ' ' || last_name name FROM learners WHERE id IN (${ids.map(() => "?").join(",")})`, ...ids);
-  const l = (await get<{ class_id: number; first_name: string; last_name: string; grade: number; className: string }>("SELECT l.class_id, l.first_name, l.last_name, c.grade, c.name className FROM learners l JOIN classes c ON c.id = l.class_id WHERE l.id = ?", learnerId))!;
+  const l = (await get<{ class_id: number | null; first_name: string; last_name: string; grade: number | null; className: string | null }>("SELECT l.class_id, l.first_name, l.last_name, c.grade, c.name className FROM learners l LEFT JOIN classes c ON c.id = l.class_id WHERE l.id = ?", learnerId))!;
   const year = ctx.school.current_year;
+  if (!l.class_id) return (
+    <>
+      <PageHeader title={`Results · ${l.first_name} ${l.last_name}`} subtitle={`Not placed in a class yet · ${year}`} />
+      <Card><Empty title="No class yet" hint="Results appear here once the school has placed the learner in a class and published marks." /></Card>
+    </>
+  );
+  const classId = l.class_id;
 
   // Default to the latest term that has published results.
-  const publishedTerms = (await all<{ term: number }>("SELECT DISTINCT term FROM result_sets WHERE status = 'published' AND year = ? AND class_subject_id IN (SELECT id FROM class_subjects WHERE class_id = ?) ORDER BY term", year, l.class_id)).map((r) => r.term);
+  const publishedTerms = (await all<{ term: number }>("SELECT DISTINCT term FROM result_sets WHERE status = 'published' AND year = ? AND class_subject_id IN (SELECT id FROM class_subjects WHERE class_id = ?) ORDER BY term", year, classId)).map((r) => r.term);
   const period = parsePeriod(sp.term, publishedTerms.at(-1) ?? 1);
-  const cr = await classResults(ctx.schoolId, l.class_id, year, period, { publishedOnly: true });
+  const cr = await classResults(ctx.schoolId, classId, year, period, { publishedOnly: true });
   const row = cr?.learners.find((x) => x.id === learnerId);
   const hasAny = row && Object.values(row.pct).some((v) => v != null);
 
   return (
     <>
-      <PageHeader title={`Results · ${l.first_name} ${l.last_name}`} subtitle={`${gradeLabel(l.grade)} · Class ${l.className} · ${year}`}>
+      <PageHeader title={`Results · ${l.first_name} ${l.last_name}`} subtitle={`${gradeLabel(l.grade!)} · Class ${l.className} · ${year}`}>
         <Filters filters={[
           ...(kids.length > 1 ? [{ name: "learner", label: "Child", value: learnerId, options: kids.map((k) => ({ value: k.id, label: k.name })) }] : []),
           { name: "term", label: "Term", value: String(period), options: [...[1, 2, 3, 4].map((t) => ({ value: String(t), label: `Term ${t}${publishedTerms.includes(t) ? "" : " (not published)"}` })), { value: "year", label: "Year to date" }] },

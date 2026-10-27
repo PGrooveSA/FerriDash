@@ -1,12 +1,12 @@
 import Link from "next/link";
 import type { Ctx } from "@/lib/auth";
 import { ownLearnerIds } from "@/lib/auth";
-import { gradeLabel, zar, fullName, avatarUrl } from "@/lib/format";
+import { zar, fullName, avatarUrl } from "@/lib/format";
 import { Card, Empty, LevelBadge } from "@/components/ui/kit";
 import { MiniCalendar, Agenda, NoticeList, RecentMessages } from "@/components/widgets";
 import Avatar from "@/components/ui/Avatar";
 import { SchoolMark } from "@/components/SchoolCrest";
-import { learnerSnapshot } from "./LearnerDashboard";
+import { learnerSnapshot, classLine } from "./LearnerDashboard";
 import { ozowConfig } from "@/lib/online-payments";
 
 export default async function ParentDashboard({ ctx }: { ctx: Ctx }) {
@@ -29,7 +29,7 @@ export default async function ParentDashboard({ ctx }: { ctx: Ctx }) {
               <Avatar first={l.first_name} last={l.last_name} size={104} photo={avatarUrl(l.user_id, l.av)} />
               <div className="flex-1 min-w-[12rem]">
                 <p className="text-xl font-semibold">{l.first_name} {l.last_name}</p>
-                <p className="text-sm muted">{gradeLabel(l.grade)} · Class {l.className} · {l.admission_number}</p>
+                <p className="text-sm muted">{classLine(l)} · {l.admission_number}</p>
               </div>
               <div className="flex flex-wrap gap-2">
                 <Link href={`/results/my?learner=${l.id}`} className="btn btn-primary btn-sm">Results</Link>
