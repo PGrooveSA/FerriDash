@@ -1,7 +1,7 @@
 # FerriDash mobile apps (Android and iOS)
 
 Native apps for parents, learners, educators and school admins. The apps are a native shell
-([Capacitor](https://capacitorjs.com) 8) around the live FerriDash at **https://ferri-dash.vercel.app**:
+([Capacitor](https://capacitorjs.com) 8) around the live FerriDash at **https://ferridash.autogration.co.za**:
 
 1. On launch the app opens FerriDash's sign-in page. Without internet it shows "No internet connection"
    with **Try again** (it also retries by itself when the connection comes back).

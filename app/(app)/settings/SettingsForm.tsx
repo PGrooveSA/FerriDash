@@ -53,10 +53,12 @@ export default function SettingsForm({ school, terms, provinces }: { school: Sch
           {[1, 2, 3, 4].map((t) => {
             const row = terms.find((x) => x.number === t);
             return (
-              <div key={t} className="col-span-2 grid grid-cols-[5rem_1fr_1fr] items-end gap-3">
-                <span className="text-sm font-semibold pb-2.5">Term {t}</span>
-                <div><label className="label">Starts</label><input type="date" name={`t${t}_start`} defaultValue={row?.start_date} className="input" /></div>
-                <div><label className="label">Ends</label><input type="date" name={`t${t}_end`} defaultValue={row?.end_date} className="input" /></div>
+              // Phones: the term name on its own line, the two dates side by side below it. Date fields
+              // don't shrink by themselves, so min-w-0 keeps them inside the card.
+              <div key={t} className="col-span-2 grid grid-cols-2 sm:grid-cols-[5rem_1fr_1fr] items-end gap-x-3 gap-y-1">
+                <span className="col-span-2 sm:col-span-1 text-sm font-semibold sm:pb-2.5">Term {t}</span>
+                <div className="min-w-0"><label className="label">Starts</label><input type="date" name={`t${t}_start`} defaultValue={row?.start_date} className="input min-w-0 px-2.5 sm:px-[0.9rem]" /></div>
+                <div className="min-w-0"><label className="label">Ends</label><input type="date" name={`t${t}_end`} defaultValue={row?.end_date} className="input min-w-0 px-2.5 sm:px-[0.9rem]" /></div>
               </div>
             );
           })}

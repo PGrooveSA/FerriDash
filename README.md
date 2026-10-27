@@ -6,7 +6,7 @@ notices, calendar, library and messaging, with a modern glass interface in light
 
 Copyright © Infinite Q Graphics
 
-**Live:** https://ferri-dash.vercel.app (Vercel, region Paris, deploys automatically from `main`). Android and iOS
+**Live:** https://ferridash.autogration.co.za (Vercel, region Paris, deploys automatically from `main`; also at https://ferri-dash.vercel.app). Android and iOS
 apps in `mobile/` open the same site.
 
 ## Database: Supabase (PostgreSQL)
