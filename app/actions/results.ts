@@ -95,7 +95,7 @@ export async function setResultStatus(csId: number, term: number, status: "draft
     if (!rule.from.includes(current)) fail(`Cannot move from ${current} to ${status}.`);
     await run(`INSERT INTO result_sets (school_id, class_subject_id, year, term, status, submitted_by, approved_by, updated_at) VALUES (?,?,?,?,?,?,?,datetime('now'))
          ON CONFLICT(class_subject_id, year, term) DO UPDATE SET status = excluded.status, updated_at = excluded.updated_at,
-           submitted_by = COALESCE(excluded.submitted_by, submitted_by), approved_by = COALESCE(excluded.approved_by, approved_by)`,
+           submitted_by = COALESCE(excluded.submitted_by, result_sets.submitted_by), approved_by = COALESCE(excluded.approved_by, result_sets.approved_by)`,
             ctx.schoolId, csId, year, term, status, status === "submitted" ? ctx.user.id : null, status === "approved" || status === "published" ? ctx.user.id : null);
     await audit(ctx.schoolId, ctx.user.id, `results_${status}`, "result_set", csId, `term ${term}`);
     revalidatePath("/results", "layout");
@@ -116,7 +116,7 @@ export async function saveComment(_: ActionResult, f: FormData) {
     const learnerId = num(f, "learner_id"), term = num(f, "term");
     if (!(await get("SELECT id FROM learners WHERE id = ? AND school_id = ?", learnerId, ctx.schoolId))) fail("Learner not found.");
     await run(`INSERT INTO report_comments (school_id, learner_id, year, term, class_teacher_comment, principal_comment) VALUES (?,?,?,?,?,?)
-         ON CONFLICT(learner_id, year, term) DO UPDATE SET class_teacher_comment = excluded.class_teacher_comment, principal_comment = COALESCE(excluded.principal_comment, principal_comment)`,
+         ON CONFLICT(learner_id, year, term) DO UPDATE SET class_teacher_comment = excluded.class_teacher_comment, principal_comment = COALESCE(excluded.principal_comment, report_comments.principal_comment)`,
             ctx.schoolId, learnerId, ctx.school.current_year, term, str(f, "class_teacher_comment") || null, ctx.isAdmin ? str(f, "principal_comment") || null : null);
     revalidatePath("/reports/report-cards");
   });

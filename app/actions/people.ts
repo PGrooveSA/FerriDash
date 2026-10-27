@@ -92,7 +92,7 @@ export async function saveTeacher(_: ActionResult, f: FormData) {
             const keep = allocations.length ? allocations : [-1];
             await run(`UPDATE class_subjects SET teacher_id = NULL WHERE teacher_id = ? AND id NOT IN (${keep.map(() => "?").join(",")})`, teacherId!, ...keep);
             for (const cs of allocations) await run("UPDATE class_subjects SET teacher_id = ? WHERE id = ?", teacherId!, cs);
-            await run("UPDATE classes SET class_teacher_id = NULL WHERE class_teacher_id = ? AND id IS NOT ?", teacherId!, homeroom);
+            await run("UPDATE classes SET class_teacher_id = NULL WHERE class_teacher_id = ? AND id IS DISTINCT FROM ?", teacherId!, homeroom);
             if (homeroom) await run("UPDATE classes SET class_teacher_id = ? WHERE id = ?", teacherId!, homeroom);
             await audit(ctx.schoolId, ctx.user.id, "allocate", "teacher", teacherId!, `${allocations.length} subject(s)${homeroom ? ", register class" : ""}`);
           });
