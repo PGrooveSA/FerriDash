@@ -3,6 +3,8 @@
 import { randomBytes } from "node:crypto";
 import { all, audit, get, run, tx } from "./db";
 import { decryptSecret, paymentTransactions, OzowError, type OzowConfig } from "./ozow";
+import { notify, parentsOf } from "./push";
+import { zar } from "./format";
 
 export type PaymentSettings = {
   school_id: number; enabled: number; site_code: string | null; client_id: string | null; client_secret_enc: string | null;
@@ -47,9 +49,9 @@ export const newMerchantReference = (schoolId: number, learnerId: number) =>
  * goes on the latest invoice as a credit). Safe to call repeatedly: only the first call records.
  */
 async function recordSuccess(op: OnlinePayment, transactionId: string, amount: number, completedAt: string | null) {
-  await tx(async () => {
+  const recorded = await tx(async () => {
         const fresh = await get<{ status: string }>("SELECT status FROM online_payments WHERE id = ?", op.id);
-        if (fresh?.status === "Successful") return;
+        if (fresh?.status === "Successful") return false;
         const { invoices } = await outstanding(op.learner_id);
         const paidOn = (completedAt ?? new Date().toISOString()).slice(0, 10);
         const ref = `${transactionId.slice(0, 8)}${op.test_mode ? " · test" : ""}`;
@@ -70,7 +72,12 @@ async function recordSuccess(op: OnlinePayment, transactionId: string, amount: n
         await run("UPDATE online_payments SET status = 'Successful', provider_transaction_id = ?, reason = NULL, completed_at = ?, checked_at = datetime('now') WHERE id = ?",
                 transactionId, completedAt ?? new Date().toISOString(), op.id);
         await audit(op.school_id, op.user_id, "online_payment", "learner", op.learner_id, `R${amount.toFixed(2)} via Ozow (${op.merchant_reference})`);
+        return true;
       });
+  if (recorded) {
+    const l = await get<{ first_name: string }>("SELECT first_name FROM learners WHERE id = ?", op.learner_id);
+    notify(await parentsOf(op.learner_id), { title: "Payment received", body: `${zar(amount)} for ${l?.first_name ?? "your child"} (Ozow). Thank you.`, url: "/finance/statement" });
+  }
 }
 
 /**

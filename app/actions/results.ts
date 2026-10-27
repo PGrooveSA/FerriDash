@@ -1,8 +1,9 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { audit, get, run, tx } from "@/lib/db";
+import { all, audit, get, run, tx } from "@/lib/db";
 import { ADMIN, STAFF, fail, guarded, num, str, type ActionResult } from "@/lib/action-utils";
 import type { Ctx } from "@/lib/auth";
+import { familyOf, notify } from "@/lib/push";
 
 /** Educators may only touch their own class-subjects; admins any in their school. */
 async function ownCs(ctx: Ctx, csId: number) {
@@ -10,6 +11,9 @@ async function ownCs(ctx: Ctx, csId: number) {
   if (!ctx.isAdmin && cs.teacher_id !== ctx.teacherId) fail("You can only capture marks for subjects you teach.");
   return cs;
 }
+
+const classLearners = async (classId: number) =>
+  (await all<{ id: number }>("SELECT id FROM learners WHERE class_id = ? AND status = 'Active'", classId)).map((l) => l.id);
 
 async function statusOf(csId: number, year: number, term: number) {
   return (await get<{ status: string }>("SELECT status FROM result_sets WHERE class_subject_id = ? AND year = ? AND term = ?", csId, year, term))?.status ?? "draft";
@@ -98,13 +102,21 @@ export async function setResultStatus(csId: number, term: number, status: "draft
            submitted_by = COALESCE(excluded.submitted_by, result_sets.submitted_by), approved_by = COALESCE(excluded.approved_by, result_sets.approved_by)`,
             ctx.schoolId, csId, year, term, status, status === "submitted" ? ctx.user.id : null, status === "approved" || status === "published" ? ctx.user.id : null);
     await audit(ctx.schoolId, ctx.user.id, `results_${status}`, "result_set", csId, `term ${term}`);
+    if (status === "published") {
+      const cs = (await get<{ class_id: number; subject: string }>("SELECT cs.class_id, s.name subject FROM class_subjects cs JOIN subjects s ON s.id = cs.subject_id WHERE cs.id = ?", csId))!;
+      notify(await familyOf(await classLearners(cs.class_id)), { title: "Results published", body: `${cs.subject}, Term ${term}`, url: "/results/my" });
+    }
     revalidatePath("/results", "layout");
   });
 }
 
 export async function publishAllApproved(term: number) {
   return guarded(ADMIN, async (ctx) => {
+    const classes = (await all<{ class_id: number }>(`SELECT DISTINCT cs.class_id FROM result_sets r JOIN class_subjects cs ON cs.id = r.class_subject_id
+      WHERE r.school_id = ? AND r.year = ? AND r.term = ? AND r.status = 'approved'`, ctx.schoolId, ctx.school.current_year, term)).map((c) => c.class_id);
     const r = await run("UPDATE result_sets SET status = 'published', approved_by = ?, updated_at = datetime('now') WHERE school_id = ? AND year = ? AND term = ? AND status = 'approved'", ctx.user.id, ctx.schoolId, ctx.school.current_year, term);
+    const learners = (await Promise.all(classes.map(classLearners))).flat();
+    notify(await familyOf(learners), { title: "Results published", body: `Term ${term} results are available.`, url: "/results/my" });
     await audit(ctx.schoolId, ctx.user.id, "results_publish_all", "result_set", null, `term ${term}: ${r.changes}`);
     revalidatePath("/results", "layout");
     return { ok: true, message: `${r.changes} mark sheet(s) published.` };

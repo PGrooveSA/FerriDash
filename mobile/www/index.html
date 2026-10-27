@@ -20,7 +20,9 @@
     .card { background: var(--card); border: 1px solid var(--line); border-radius: 22px; padding: 22px; backdrop-filter: blur(12px); }
     h1 { font-size: 1.35rem; margin: 0 0 6px; }
     p { margin: 0; color: var(--muted); font-size: 0.95rem; line-height: 1.45; }
+    ul { margin: 12px 0 0; padding-left: 20px; color: #cbd5e1; font-size: 0.95rem; line-height: 1.6; }
     button { width: 100%; margin-top: 16px; font-size: 1rem; font-weight: 600; padding: 14px; border: 0; border-radius: 999px; color: #fff; background: linear-gradient(90deg, #f4600c, #b4410a); }
+    button.ghost { margin-top: 10px; background: transparent; border: 1px solid var(--line); color: var(--ink); font-weight: 500; }
     .foot { margin-top: 26px; text-align: center; font-size: 0.75rem; color: #64748b; }
     .spinner { width: 34px; height: 34px; border: 3px solid rgb(255 255 255 / 0.15); border-top-color: var(--sun); border-radius: 50%; margin: 10px auto 0; animation: spin 0.9s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -36,6 +38,28 @@
       <div class="spinner" aria-hidden="true"></div>
     </div>
 
+    <!-- First launch: why notifications matter, before the phone's own question. -->
+    <div class="card" id="ask" hidden>
+      <h1>Allow notifications</h1>
+      <p>FerriDash tells you straight away about:</p>
+      <ul>
+        <li>School notices</li>
+        <li>New messages from the school</li>
+        <li>Published results</li>
+        <li>Fee payments received</li>
+        <li>Your child being marked absent</li>
+      </ul>
+      <button id="allow" type="button">Allow notifications</button>
+    </div>
+
+    <!-- Notifications refused: a reminder on every launch, but FerriDash still opens. -->
+    <div class="card" id="off" hidden>
+      <h1>Notifications are off</h1>
+      <p>You'll miss school notices, messages, results and absence alerts. Switch on notifications for FerriDash in your phone's settings.</p>
+      <button id="settings" type="button">Open settings</button>
+      <button id="skip" type="button" class="ghost">Continue without notifications</button>
+    </div>
+
     <div class="card" id="offline" hidden>
       <h1>No internet connection</h1>
       <p>FerriDash needs the internet. Check your mobile data or Wi-Fi, then try again.</p>
@@ -47,8 +71,75 @@
 
   <script>
     // The app is a shell around the live FerriDash: everything after sign-in comes from the website.
+    // Before opening it, set up push notifications and hand the phone's push token to FerriDash
+    // (#device=..., read by components/DeviceLink.tsx), which links it to whoever signs in.
     const LIVE = "https://ferridash.autogration.co.za";
     const $ = (id) => document.getElementById(id);
+    const Cap = window.Capacitor;
+    const Push = Cap && Cap.Plugins && Cap.Plugins.PushNotifications;
+    const AppPlugin = Cap && Cap.Plugins && Cap.Plugins.App;
+    const platform = Cap && Cap.getPlatform ? Cap.getPlatform() : "web";
+
+    let token = null;   // this phone's push token, once registered
+    let tapUrl = null;  // FerriDash page from a tapped notification
+
+    // A tapped notification that launched the app arrives once a listener exists: listen first.
+    if (Push) Push.addListener("pushNotificationActionPerformed", (a) => {
+      const url = a && a.notification && a.notification.data && a.notification.data.url;
+      if (typeof url === "string" && url.startsWith("/") && !url.startsWith("//")) tapUrl = url;
+    });
+
+    function show(id) {
+      for (const c of ["opening", "ask", "off", "offline"]) $(c).hidden = c !== id;
+    }
+
+    // Android builds without Firebase (google-services.json) would crash on register: skip push there.
+    function pushPossible() {
+      if (!Push) return false;
+      if (platform === "android") return !!(window.FerriDashNative && window.FerriDashNative.hasPush && window.FerriDashNative.hasPush());
+      return platform === "ios";
+    }
+
+    const clicked = (id) => new Promise((resolve) => $(id).addEventListener("click", resolve, { once: true }));
+
+    async function permission() {
+      try { return (await Push.checkPermissions()).receive; } catch { return "denied"; }
+    }
+
+    /** Registers with Firebase / Apple and waits for the token (null if it doesn't come). */
+    async function register() {
+      const got = new Promise((resolve) => {
+        const timer = setTimeout(() => resolve(null), 10000);
+        Push.addListener("registration", (r) => { clearTimeout(timer); resolve(r.value); });
+        Push.addListener("registrationError", () => { clearTimeout(timer); resolve(null); });
+      });
+      try { await Push.register(); } catch { return null; }
+      return got;
+    }
+
+    async function setupPush() {
+      if (!pushPossible()) return;
+      let state = await permission();
+      if (state === "prompt" || state === "prompt-with-rationale") {
+        show("ask");
+        await clicked("allow");
+        try { state = (await Push.requestPermissions()).receive; } catch { state = "denied"; }
+      }
+      if (state !== "granted") {
+        // Reminder: come back from Settings with notifications on, or carry on without them.
+        show("off");
+        state = await new Promise((resolve) => {
+          $("skip").addEventListener("click", () => resolve("skipped"), { once: true });
+          $("settings").addEventListener("click", () => {
+            if (window.FerriDashNative && window.FerriDashNative.openNotificationSettings) window.FerriDashNative.openNotificationSettings();
+            else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.ferridashSettings) window.webkit.messageHandlers.ferridashSettings.postMessage("open");
+          });
+          if (AppPlugin) AppPlugin.addListener("resume", async () => { if ((await permission()) === "granted") resolve("granted"); });
+        });
+      }
+      show("opening");
+      if (state === "granted") token = await register();
+    }
 
     /** True when FerriDash answers (reads its public web app manifest). */
     async function reachable() {
@@ -60,16 +151,16 @@
       } catch { return false; } finally { clearTimeout(t); }
     }
 
-    async function start() {
-      $("offline").hidden = true;
-      $("opening").hidden = false;
-      if (await reachable()) location.replace(LIVE + "/login");
-      else { $("opening").hidden = true; $("offline").hidden = false; }
+    async function open() {
+      show("opening");
+      if (!(await reachable())) return show("offline");
+      const device = token ? "#device=" + encodeURIComponent(token) + "&platform=" + platform : "";
+      location.replace(LIVE + (tapUrl || "/login") + device);
     }
 
-    $("retry").addEventListener("click", start);
-    window.addEventListener("online", start);
-    start();
+    $("retry").addEventListener("click", open);
+    window.addEventListener("online", () => { if (!$("offline").hidden) open(); });
+    setupPush().catch(() => {}).then(open);
   </script>
 </body>
 </html>

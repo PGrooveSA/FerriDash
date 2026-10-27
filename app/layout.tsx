@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import DeviceLink from "@/components/DeviceLink";
 
 export const metadata: Metadata = {
   title: { default: "FerriDash", template: "%s · FerriDash" },
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className="blob" style={{ background: "#86efac", bottom: "-8rem", left: "35%", animationDelay: "-16s" }} />
         </div>
         {children}
+        <DeviceLink />
       </body>
     </html>
   );

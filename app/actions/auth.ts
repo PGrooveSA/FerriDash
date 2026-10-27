@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { audit, get, run } from "@/lib/db";
 import { EVERYONE, requireCtx } from "@/lib/auth";
 import { REMEMBER_DAYS, SCHOOL_COOKIE, SESSION_COOKIE, SESSION_HOURS, signSession } from "@/lib/session";
+import { DEVICE_COOKIE, linkDevice, parseDevice, unlinkDevice } from "@/lib/devices";
 
 // Simple in-memory brute-force guard (per email, per server process).
 const attempts = new Map<string, { n: number; until: number }>();
@@ -35,11 +36,15 @@ export async function login(_: unknown, form: FormData): Promise<{ error?: strin
     httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production" && process.env.INSECURE_COOKIES !== "1", path: "/",
     ...(remember ? { maxAge: hours * 3600 } : {}),
   });
+  // Signing in inside the app: this phone now gets this user's push notifications.
+  const device = parseDevice(store.get(DEVICE_COOKIE)?.value);
+  if (device) await linkDevice(user.id, device);
   redirect("/dashboard");
 }
 
 export async function logout() {
   const store = await cookies();
+  await unlinkDevice(parseDevice(store.get(DEVICE_COOKIE)?.value));
   store.delete(SESSION_COOKIE);
   store.delete(SCHOOL_COOKIE);
   redirect("/login");

@@ -7,6 +7,7 @@ import postgres from "postgres";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { MIGRATIONS } from "../db/migrations";
 
 type Sql = postgres.Sql;
 type Param = string | number | boolean | null | undefined;
@@ -35,13 +36,26 @@ function client(): Sql {
   return g.__ferriSql;
 }
 
-/** Creates the tables on an empty database (first run). Later schema changes go in db/migrations. */
+/** Creates the tables on an empty database (first run), then applies any schema changes it hasn't had (db/migrations.ts). */
 async function ready(): Promise<void> {
   if (!g.__ferriReady) {
     g.__ferriReady = (async () => {
       const sql = client();
       const [{ exists }] = await sql`SELECT to_regclass('public.schools') IS NOT NULL AS exists`;
       if (!exists) await sql.unsafe(readFileSync(join(process.cwd(), "db", "schema.pg.sql"), "utf8"));
+      const [{ v }] = await sql`SELECT COALESCE(MAX(version), 1)::int AS v FROM schema_version`;
+      const pending = MIGRATIONS.filter((m) => m.version > v);
+      if (pending.length) {
+        await sql.begin(async (t) => {
+          // Several servers can start at once: one applies the changes, the others wait and then skip them.
+          await t`SELECT pg_advisory_xact_lock(470211)`;
+          const [{ v: now }] = await t`SELECT COALESCE(MAX(version), 1)::int AS v FROM schema_version`;
+          for (const m of pending.filter((x) => x.version > now)) {
+            await t.unsafe(m.sql);
+            await t`INSERT INTO schema_version (version) VALUES (${m.version})`;
+          }
+        });
+      }
     })().catch((e) => { g.__ferriReady = undefined; throw e; });
   }
   return g.__ferriReady;

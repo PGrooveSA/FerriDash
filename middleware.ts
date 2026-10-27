@@ -7,7 +7,8 @@ export async function middleware(req: NextRequest) {
   const session = await verifySession(req.cookies.get(SESSION_COOKIE)?.value);
   const isLogin = req.nextUrl.pathname.startsWith("/login");
   // Public: legal pages and school logos (school branding, not personal data).
-  if (req.nextUrl.pathname.startsWith("/legal") || req.nextUrl.pathname.startsWith("/api/logo/")) return NextResponse.next();
+  // The app reports its push token before anyone signs in (app/api/device).
+  if (req.nextUrl.pathname.startsWith("/legal") || req.nextUrl.pathname.startsWith("/api/logo/") || req.nextUrl.pathname === "/api/device") return NextResponse.next();
   if (!session && !isLogin) return NextResponse.redirect(new URL("/login", req.url));
   if (session && isLogin) return NextResponse.redirect(new URL("/dashboard", req.url));
   // The platform admin only manages schools: everything inside a school is off limits

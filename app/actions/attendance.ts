@@ -2,6 +2,8 @@
 import { get, run, tx } from "@/lib/db";
 import { STAFF, fail, guarded } from "@/lib/action-utils";
 import type { Ctx } from "@/lib/auth";
+import { notify, parentsOf } from "@/lib/push";
+import { fmtDate } from "@/lib/format";
 
 async function canMark(ctx: Ctx, classId: number) {
   if (ctx.isAdmin) return !!(await get("SELECT id FROM classes WHERE id = ? AND school_id = ?", classId, ctx.schoolId));
@@ -11,10 +13,13 @@ async function canMark(ctx: Ctx, classId: number) {
 export async function setAttendance(learnerId: number, date: string, status: "P" | "A" | "L" | "E" | null) {
   return guarded(STAFF, async (ctx) => {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) fail("Invalid date.");
-    const l = (await get<{ class_id: number }>("SELECT class_id FROM learners WHERE id = ? AND school_id = ?", learnerId, ctx.schoolId)) ?? fail("Learner not found.");
+    const l = (await get<{ class_id: number; first_name: string }>("SELECT class_id, first_name FROM learners WHERE id = ? AND school_id = ?", learnerId, ctx.schoolId)) ?? fail("Learner not found.");
     if (!(await canMark(ctx, l.class_id))) fail("You can only take the register for your own classes.");
+    const before = (await get<{ status: string }>("SELECT status FROM attendance WHERE learner_id = ? AND date = ?", learnerId, date))?.status;
     if (status == null) await run("DELETE FROM attendance WHERE learner_id = ? AND date = ?", learnerId, date);
     else await run("INSERT INTO attendance (school_id, learner_id, date, status, recorded_by) VALUES (?,?,?,?,?) ON CONFLICT(learner_id, date) DO UPDATE SET status = excluded.status, recorded_by = excluded.recorded_by", ctx.schoolId, learnerId, date, status, ctx.user.id);
+    // Parents hear about an absence once, when it is first marked.
+    if (status === "A" && before !== "A") notify(await parentsOf(learnerId), { title: "Absence", body: `${l.first_name} was marked absent on ${fmtDate(date)}.`, url: "/attendance" });
   });
 }
 

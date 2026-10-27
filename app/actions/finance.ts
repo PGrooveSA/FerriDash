@@ -4,6 +4,8 @@ import { audit, get, run, tx } from "@/lib/db";
 import { ADMIN, fail, guarded, num, opt, str, type ActionResult } from "@/lib/action-utils";
 import { MAX_EXPENSE_DOC_BYTES, isPdf } from "@/lib/uploads";
 import { putFile, removeFile, storageKey } from "@/lib/storage";
+import { notify, parentsOf } from "@/lib/push";
+import { zar } from "@/lib/format";
 
 export async function recordPayment(_: ActionResult, f: FormData) {
   return guarded(ADMIN, async (ctx) => {
@@ -11,8 +13,13 @@ export async function recordPayment(_: ActionResult, f: FormData) {
     const inv = (await get<{ total: number; paid: number }>(`SELECT tuition + activities + other total, (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE invoice_id = i.id) paid FROM invoices i WHERE id = ? AND school_id = ?`, invoiceId, ctx.schoolId)) ?? fail("Invoice not found.");
     if (!amount || amount <= 0) fail("Enter an amount greater than R0.");
     if (amount > inv.total - inv.paid + 0.01) fail(`The outstanding balance is only R${(inv.total - inv.paid).toFixed(2)}.`);
-    const r = await run("INSERT INTO payments (school_id, invoice_id, amount, paid_on, method, reference, recorded_by) VALUES (?,?,?,?,?,?,?)", ctx.schoolId, invoiceId, amount, str(f, "paid_on"), str(f, "method") || "EFT", opt(f, "reference"), ctx.user.id);
+    const method = str(f, "method") || "EFT";
+    const r = await run("INSERT INTO payments (school_id, invoice_id, amount, paid_on, method, reference, recorded_by) VALUES (?,?,?,?,?,?,?)", ctx.schoolId, invoiceId, amount, str(f, "paid_on"), method, opt(f, "reference"), ctx.user.id);
     await audit(ctx.schoolId, ctx.user.id, "payment", "invoice", invoiceId, `R${amount}`);
+    if (method !== "Exemption") {
+      const l = (await get<{ id: number; first_name: string }>("SELECT l.id, l.first_name FROM invoices i JOIN learners l ON l.id = i.learner_id WHERE i.id = ?", invoiceId))!;
+      notify(await parentsOf(l.id), { title: "Payment received", body: `${zar(amount)} for ${l.first_name}. Thank you.`, url: "/finance/statement" });
+    }
     revalidatePath("/finance", "layout");
     return { ok: true, message: `Receipt #${r.id} recorded.` };
   });

@@ -1,8 +1,9 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { audit, get, run, tx } from "@/lib/db";
+import { all, audit, get, run, tx } from "@/lib/db";
 import { ADMIN, STAFF, fail, guarded, num, opt, str, type ActionResult } from "@/lib/action-utils";
 import { today, addDays } from "@/lib/today";
+import { notify, noticeAudienceUsers } from "@/lib/push";
 
 // ---------------- Notices ----------------
 export async function saveNotice(_: ActionResult, f: FormData) {
@@ -14,7 +15,10 @@ export async function saveNotice(_: ActionResult, f: FormData) {
       const n = (await get<{ author_id: number }>("SELECT author_id FROM notices WHERE id = ? AND school_id = ?", id, ctx.schoolId)) ?? fail("Notice not found.");
       if (!ctx.isAdmin && n.author_id !== ctx.user.id) fail("You can only edit your own notices.");
       await run("UPDATE notices SET title=?, body=?, audience=?, tags=? WHERE id = ?", ...vals, id);
-    } else await run("INSERT INTO notices (title, body, audience, tags, school_id, author_id) VALUES (?,?,?,?,?,?)", ...vals, ctx.schoolId, ctx.user.id);
+    } else {
+      await run("INSERT INTO notices (title, body, audience, tags, school_id, author_id) VALUES (?,?,?,?,?,?)", ...vals, ctx.schoolId, ctx.user.id);
+      notify(await noticeAudienceUsers(ctx.schoolId, vals[2]!, ctx.user.id), { title: vals[0]!, body: vals[1]!.replace(/\s+/g, " "), url: "/notices" });
+    }
     revalidatePath("/notices");
   });
 }
@@ -90,6 +94,13 @@ async function member(convId: number, userId: number) {
   return !!(await get("SELECT 1 FROM conversation_members WHERE conversation_id = ? AND user_id = ?", convId, userId));
 }
 
+/** Tells the other people in the chat. The text itself stays out of the notification (lock screens). */
+async function notifyMessage(sender: { id: number; title: string | null; first_name: string; last_name: string }, convId: number) {
+  const others = (await all<{ user_id: number }>("SELECT user_id FROM conversation_members WHERE conversation_id = ? AND user_id <> ?", convId, sender.id)).map((r) => r.user_id);
+  const name = [sender.title, sender.first_name, sender.last_name].filter(Boolean).join(" ");
+  notify(others, { title: `New message from ${name}`, body: "Open FerriDash to read and reply.", url: `/messages?c=${convId}` });
+}
+
 export async function sendMessage(convId: number, body: string): Promise<ActionResult> {
   return guarded(undefined, async (ctx) => {
     const text = body.trim();
@@ -98,6 +109,7 @@ export async function sendMessage(convId: number, body: string): Promise<ActionR
     if (!(await member(convId, ctx.user.id))) fail("You are not part of this conversation.");
     await run("INSERT INTO messages (conversation_id, sender_id, body) VALUES (?,?,?)", convId, ctx.user.id, text);
     await run("UPDATE conversation_members SET last_read_at = datetime('now') WHERE conversation_id = ? AND user_id = ?", convId, ctx.user.id);
+    await notifyMessage(ctx.user, convId);
   });
 }
 
@@ -117,7 +129,10 @@ export async function startChat(_: ActionResult, f: FormData): Promise<ActionRes
           return c;
         }));
     const first = str(f, "body");
-    if (first) await run("INSERT INTO messages (conversation_id, sender_id, body) VALUES (?,?,?)", id, ctx.user.id, first);
+    if (first) {
+      await run("INSERT INTO messages (conversation_id, sender_id, body) VALUES (?,?,?)", id, ctx.user.id, first);
+      await notifyMessage(ctx.user, id);
+    }
     return { ok: true, message: String(id) };
   });
   revalidatePath("/messages");

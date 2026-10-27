@@ -32,4 +32,5 @@
     <!-- Permissions. Cleartext (http) is allowed because most schools run FerriDash on their own network without HTTPS. -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>
