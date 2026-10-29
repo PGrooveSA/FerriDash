@@ -188,7 +188,9 @@ body {
   main { padding: 0 !important; margin: 0 !important; }
   .print-area { box-shadow: none !important; border: none !important; background: white !important; backdrop-filter: none !important;
     width: 100% !important; max-width: none !important; margin: 0 auto !important; padding: 0 !important; border-radius: 0 !important; }
-  .page-break { break-after: page; }
+  .page-break, .pdf-pages .pdf-page { break-after: page; }
+  .pdf-pages { display: block !important; }
+  .pdf-pages .pdf-page { box-shadow: none !important; border-radius: 0 !important; margin: 0 !important; }
   .page-break:last-child { break-after: auto; }
   /* Everything is sized in rem, so the root size scales the whole report to the paper. */
   html.print-a4 { font-size: 13px; }

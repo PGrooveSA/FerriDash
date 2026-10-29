@@ -52,7 +52,7 @@ export async function saveAssignment(_: ActionResult, f: FormData): Promise<Acti
     if (!id) {
       const cs = (await get<{ class_id: number; subject: string }>("SELECT cs.class_id, s.name subject FROM class_subjects cs JOIN subjects s ON s.id = cs.subject_id WHERE cs.id = ?", csId))!;
       const learners = (await all<{ id: number }>("SELECT id FROM learners WHERE class_id = ? AND status = 'Active'", cs.class_id)).map((l) => l.id);
-      notify(await familyOf(learners), { title: `New assignment: ${cs.subject}`, body: `${title}. Due ${fmtDate(due, { weekday: "short", day: "numeric", month: "short" })}.`, url: "/assignments" });
+      notify(await familyOf(learners), { title: `New assignment: ${cs.subject}`, body: `${title}. Due ${fmtDate(due, { weekday: "short", day: "numeric", month: "short" })}.`, url: `/assignments/${assignmentId}` });
     }
     revalidatePath("/assignments");
     revalidatePath("/calendar");

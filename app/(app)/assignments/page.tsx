@@ -82,16 +82,16 @@ export default async function AssignmentsPage({ searchParams }: { searchParams: 
                 <div className="flex flex-wrap items-start gap-2">
                   <div className="flex-1 min-w-[12rem]">
                     <p className="text-xs font-semibold text-brand-600 dark:text-brand-300 uppercase tracking-wide">{a.subject} · Class {a.class_name}{childNames(a.class_id) ? ` · ${childNames(a.class_id)}` : ""}</p>
-                    <h2 className="text-lg font-semibold mt-0.5">{a.title}</h2>
+                    <h2 className="text-lg font-semibold mt-0.5"><Link href={`/assignments/${a.id}`} className="hover:underline">{a.title}</Link></h2>
                   </div>
                   <span className={`chip ${due.tone}`}><CalendarClock className="w-3 h-3" />{due.text}</span>
                 </div>
                 {a.instructions && <p className="text-sm whitespace-pre-line">{a.instructions}</p>}
                 <div className="flex flex-wrap items-center gap-2 mt-auto pt-1">
                   {a.document_name && (
-                    <a href={`/api/assignment-doc/${a.id}`} target="_blank" rel="noopener" className="flex items-center gap-2 rounded-2xl px-3 py-2 bg-black/5 hover:bg-black/10 dark:bg-white/10 text-sm font-medium max-w-full">
+                    <Link href={`/assignments/${a.id}`} className="flex items-center gap-2 rounded-2xl px-3 py-2 bg-black/5 hover:bg-black/10 dark:bg-white/10 text-sm font-medium max-w-full">
                       <FileText className="w-4 h-4 shrink-0 text-rose-600" /><span className="truncate">{a.document_name}</span>
-                    </a>
+                    </Link>
                   )}
                   <span className="text-xs muted ml-auto">Due {fmtDate(a.due_date, { weekday: "long", day: "numeric", month: "long" })}{a.author ? ` · set by ${a.author}` : ""}</span>
                 </div>

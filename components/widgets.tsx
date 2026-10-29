@@ -75,7 +75,7 @@ export async function AssignmentsDue({ ctx, limit = 4 }: { ctx: Ctx; limit?: num
           const days = Math.round((Date.parse(a.due_date) - Date.parse(t)) / 86_400_000);
           return (
             <li key={a.id}>
-              <Link href="/assignments" className={`block rounded-2xl px-4 py-3 ${catTone("assignment")} hover:brightness-95`}>
+              <Link href={`/assignments/${a.id}`} className={`block rounded-2xl px-4 py-3 ${catTone("assignment")} hover:brightness-95`}>
                 <p className="text-xs opacity-80 flex justify-between gap-2">
                   <span>{a.subject} · Class {a.class_name}</span>
                   <span className={`shrink-0 font-semibold ${days <= 1 ? "text-rose-700 dark:text-rose-100" : ""}`}>{days === 0 ? "Due today" : days === 1 ? "Due tomorrow" : `Due ${fmtDate(a.due_date, { weekday: "short", day: "numeric", month: "short" })}`}</span>

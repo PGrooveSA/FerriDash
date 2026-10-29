@@ -85,7 +85,7 @@ export default async function LearnerDashboard({ ctx }: { ctx: Ctx }) {
         <Card title="Assignments" action={<Link href="/assignments" className="text-xs muted">View all</Link>}>
           {assignments.length ? (
             <div className="overflow-x-auto"><table className="table"><thead><tr><th>Task</th><th>Subject</th><th>Due</th></tr></thead>
-              <tbody>{assignments.slice(0, 6).map((a) => <tr key={a.id}><td className="font-medium"><Link href="/assignments" className="hover:underline">{a.title}</Link></td><td>{a.subject}</td><td>{fmtDate(a.due_date)}</td></tr>)}</tbody></table></div>
+              <tbody>{assignments.slice(0, 6).map((a) => <tr key={a.id}><td className="font-medium"><Link href={`/assignments/${a.id}`} className="hover:underline">{a.title}</Link></td><td>{a.subject}</td><td>{fmtDate(a.due_date)}</td></tr>)}</tbody></table></div>
           ) : <Empty title="No assignments due" />}
         </Card>
       </div>

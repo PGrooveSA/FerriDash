@@ -30,7 +30,7 @@ export async function canTeach(ctx: Ctx, classSubjectId: number): Promise<boolea
  * Assignments this user may see, by due date. Learners and parents: their classes. Educators: work they set or
  * for classes they teach. Admins: the whole school, or only their own with `ownOnly` (keeps calendars readable).
  */
-export async function visibleAssignments(ctx: Ctx, opts: { from?: string; to?: string; ownOnly?: boolean } = {}): Promise<Assignment[]> {
+export async function visibleAssignments(ctx: Ctx, opts: { from?: string; to?: string; ownOnly?: boolean; id?: number } = {}): Promise<Assignment[]> {
   const where = ["a.school_id = ?"], args: (string | number)[] = [ctx.schoolId];
   if (ctx.user.role === "learner" || ctx.user.role === "parent") {
     const classes = await familyClassIds(ctx);
@@ -41,6 +41,7 @@ export async function visibleAssignments(ctx: Ctx, opts: { from?: string; to?: s
   } else {
     where.push("(a.created_by = ? OR cs.teacher_id = ? OR c.class_teacher_id = ?)"); args.push(ctx.user.id, ctx.teacherId ?? -1, ctx.teacherId ?? -1);
   }
+  if (opts.id) { where.push("a.id = ?"); args.push(opts.id); }
   if (opts.from) { where.push("a.due_date >= ?"); args.push(opts.from); }
   if (opts.to) { where.push("a.due_date <= ?"); args.push(opts.to); }
   return all<Assignment>(`${SELECT} WHERE ${where.join(" AND ")} ORDER BY a.due_date, c.grade, c.name, s.name`, ...args);
