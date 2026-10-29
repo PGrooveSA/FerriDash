@@ -7,7 +7,7 @@ import { today, addDays } from "@/lib/today";
 import { visibleAssignments, markAssignmentsSeen, type Assignment } from "@/lib/assignments";
 import { Card, Empty, PageHeader, hrefWith } from "@/components/ui/kit";
 import { DeleteButton, Filters, FormDialog, type Field } from "@/components/ui/forms";
-import { saveAssignment, deleteAssignment } from "@/app/actions/assignments";
+import { saveAssignment, deleteAssignment, deleteOldAssignments } from "@/app/actions/assignments";
 
 export const metadata = { title: "Assignments" };
 
@@ -64,6 +64,8 @@ export default async function AssignmentsPage({ searchParams }: { searchParams: 
           ))}
         </div>
         {staff && classes.length > 1 && <Filters filters={[{ name: "class", label: "Class", value: classFilter, allLabel: "All classes", options: classes.map(([id, name]) => ({ value: id, label: `Class ${name}` })) }]} />}
+        {ctx.isAdmin && <FormDialog trigger="button" title="Delete old assignments" triggerLabel="Delete old…" submitLabel="Delete assignments" action={deleteOldAssignments}
+          fields={[{ name: "before", label: "Delete every assignment due before", type: "date", required: true, defaultValue: addDays(t, -90), help: "Their PDFs are deleted too. This can't be undone. Assignments due on or after this date are kept." }]} />}
         {staff && teachable.length > 0 && <FormDialog title="New assignment" triggerLabel="New assignment" fields={fields()} action={saveAssignment} submitLabel="Set assignment" />}
       </PageHeader>
 
@@ -96,7 +98,7 @@ export default async function AssignmentsPage({ searchParams }: { searchParams: 
                 {staff && mine && (
                   <div className="flex gap-1.5">
                     <FormDialog trigger="edit" title="Edit assignment" fields={fields(a)} hidden={{ id: a.id }} action={saveAssignment} />
-                    <DeleteButton action={deleteAssignment.bind(null, a.id)} label={a.title} />
+                    {ctx.isAdmin && <DeleteButton action={deleteAssignment.bind(null, a.id)} label={a.title} />}
                   </div>
                 )}
               </article>

@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { all, audit, get, run } from "@/lib/db";
-import { STAFF, fail, guarded, num, opt, str, type ActionResult } from "@/lib/action-utils";
+import { ADMIN, STAFF, fail, guarded, num, opt, str, type ActionResult } from "@/lib/action-utils";
 import { canTeach } from "@/lib/assignments";
 import type { Ctx } from "@/lib/auth";
 import { fmtDate } from "@/lib/format";
@@ -60,13 +60,28 @@ export async function saveAssignment(_: ActionResult, f: FormData): Promise<Acti
   return res.error ? res : { ok: true, message: num(f, "id") ? "Assignment updated." : "Assignment set. Learners and parents have been notified." };
 }
 
+/** Only school admins delete assignments. */
 export async function deleteAssignment(id: number): Promise<ActionResult> {
-  return guarded(STAFF, async (ctx) => {
-    await editable(ctx, id);
-    await run("DELETE FROM assignments WHERE id = ?", id);
+  return guarded(ADMIN, async (ctx) => {
+    if (!(await run("DELETE FROM assignments WHERE id = ? AND school_id = ?", id, ctx.schoolId)).changes) fail("Assignment not found.");
     await removeFile(storageKey.assignmentDoc(id));
     await audit(ctx.schoolId, ctx.user.id, "delete", "assignment", id);
     revalidatePath("/assignments");
     revalidatePath("/calendar");
+  });
+}
+
+/** School admins clear out assignments that were due before a date, with their PDFs (frees space). */
+export async function deleteOldAssignments(_: ActionResult, f: FormData): Promise<ActionResult> {
+  return guarded(ADMIN, async (ctx) => {
+    const before = str(f, "before");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(before)) fail("Choose a date.");
+    const old = await all<{ id: number; document_name: string | null }>("SELECT id, document_name FROM assignments WHERE school_id = ? AND due_date < ?", ctx.schoolId, before);
+    if (old.length) await run(`DELETE FROM assignments WHERE id IN (${old.map(() => "?").join(",")})`, ...old.map((a) => a.id));
+    for (const a of old) if (a.document_name) await removeFile(storageKey.assignmentDoc(a.id));
+    await audit(ctx.schoolId, ctx.user.id, "delete_old", "assignment", null, `${old.length} due before ${before}`);
+    revalidatePath("/assignments");
+    revalidatePath("/calendar");
+    return { ok: true, message: old.length ? `${old.length} assignment${old.length === 1 ? "" : "s"} deleted.` : "No assignments were due before that date." };
   });
 }

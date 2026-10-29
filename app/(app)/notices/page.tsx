@@ -5,7 +5,8 @@ import { all, get, run } from "@/lib/db";
 import { fmtDate, fullName } from "@/lib/format";
 import { Card, PageHeader, Empty, Pager, hrefWith } from "@/components/ui/kit";
 import { FormDialog, DeleteButton, Filters, type Field } from "@/components/ui/forms";
-import { saveNotice, deleteNotice } from "@/app/actions/content";
+import { saveNotice, deleteNotice, deleteOldNotices } from "@/app/actions/content";
+import { today, addDays } from "@/lib/today";
 import { noticeAudiences, markNoticesSeen } from "@/lib/notices";
 
 export const metadata = { title: "Notice board" };
@@ -43,6 +44,8 @@ export default async function NoticesPage({ searchParams }: { searchParams: Prom
     <>
       <PageHeader title="Notice board">
         <Filters filters={[]} search={{ name: "q", placeholder: "Search by title or author", value: q }} />
+        {ctx.isAdmin && <FormDialog trigger="button" title="Delete old notices" triggerLabel="Delete old…" submitLabel="Delete notices" action={deleteOldNotices}
+          fields={[{ name: "before", label: "Delete every notice posted before", type: "date", required: true, defaultValue: addDays(today(), -90), help: "This can't be undone. Notices posted on or after this date are kept." }]} />}
         {staff && <FormDialog title="New notice" triggerLabel="Post notice" fields={fields()} action={saveNotice} />}
       </PageHeader>
       <div className={`grid grid-cols-1 gap-6 ${selected ? "xl:grid-cols-[1fr_26rem]" : ""}`}>
@@ -77,7 +80,7 @@ export default async function NoticesPage({ searchParams }: { searchParams: Prom
             <p className="mt-4 text-sm leading-relaxed whitespace-pre-line">{selected.body}</p>
             {selected.tags && <div className="mt-4"><p className="text-xs font-semibold mb-2">Tags</p><div className="flex flex-wrap gap-2">{selected.tags.split(",").map((t, i) => <span key={t} className={`chip ${TAG_TONES[i % 4]}`}>{t.trim()}</span>)}</div></div>}
             {staff && (ctx.isAdmin || selected.author_id === ctx.user.id) && (
-              <div className="flex gap-2 mt-5"><FormDialog trigger="edit" title="Edit notice" fields={fields(selected)} hidden={{ id: selected.id }} action={saveNotice} /><DeleteButton action={deleteNotice.bind(null, selected.id)} label={selected.title} /></div>
+              <div className="flex gap-2 mt-5"><FormDialog trigger="edit" title="Edit notice" fields={fields(selected)} hidden={{ id: selected.id }} action={saveNotice} />{ctx.isAdmin && <DeleteButton action={deleteNotice.bind(null, selected.id)} label={selected.title} />}</div>
             )}
           </Card>
         )}

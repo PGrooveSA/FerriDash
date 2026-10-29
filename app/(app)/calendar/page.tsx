@@ -132,7 +132,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                       <>
                         <span className={`text-sm font-semibold inline-grid place-items-center w-7 h-7 rounded-full ${date === t ? "bg-gradient-to-br from-brand-500 to-charcoal-500 text-white" : ""}`}>{pad(d)}</span>
                         <div className="space-y-1 mt-1">
-                          {items.slice(0, 2).map((e) => <div key={e.key} className={`text-[0.68rem] sm:text-xs truncate rounded-md border-l-[3px] px-1.5 py-0.5 ${catTone(e.cat)}`}>{e.title}</div>)}
+                          {items.slice(0, 2).map((e) => <div key={e.key} className={`text-[0.68rem] sm:text-xs truncate rounded-md px-1.5 py-0.5 ${catTone(e.cat)}`}>{e.title}</div>)}
                           {items.length > 2 && <div className="text-[0.65rem] muted">{items.length - 2} more</div>}
                         </div>
                       </>
@@ -142,15 +142,15 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
               })}
             </div>
           )}
-          <div className="flex flex-wrap gap-3 mt-4 text-xs">{[...CATS, ...(ctx.isAdmin && !assignments.length ? [] : [{ value: "assignment", label: "Assignment due" }])].map((c) => <span key={c.value} className={`rounded-md border-l-[3px] px-2 py-0.5 ${catTone(c.value)}`}>{c.label}</span>)}</div>
+          <div className="flex flex-wrap gap-3 mt-4 text-xs">{[...CATS, ...(ctx.isAdmin && !assignments.length ? [] : [{ value: "assignment", label: "Assignment due" }])].map((c) => <span key={c.value} className={`rounded-md px-2 py-0.5 ${catTone(c.value)}`}>{c.label}</span>)}</div>
         </Card>
 
         {!yearView && (
           <div className="space-y-6">
             <Card title={fmtDate(selected, { weekday: "long", day: "numeric", month: "long" })}>
-              {holidayOn.get(selected) && <p className={`text-sm font-semibold rounded-xl border-l-[3px] px-3 py-2 mb-3 ${catTone("holiday")}`}>Public holiday: {holidayOn.get(selected)!.name}</p>}
+              {holidayOn.get(selected) && <p className={`text-sm font-semibold rounded-xl px-3 py-2 mb-3 ${catTone("holiday")}`}>Public holiday: {holidayOn.get(selected)!.name}</p>}
               {dayAssignments.map((a) => (
-                <Link key={a.id} href="/assignments" className={`block rounded-xl border-l-[3px] px-3 py-2 mb-3 hover:underline ${catTone("assignment")}`}>
+                <Link key={a.id} href="/assignments" className={`block rounded-xl px-3 py-2 mb-3 hover:underline ${catTone("assignment")}`}>
                   <span className="block text-xs font-semibold uppercase tracking-wide">Assignment due · {a.subject} · Class {a.class_name}</span>
                   <span className="block text-sm font-semibold">{a.title}</span>
                 </Link>

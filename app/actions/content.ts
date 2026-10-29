@@ -26,12 +26,24 @@ export async function saveNotice(_: ActionResult, f: FormData) {
   });
 }
 
+/** Only school admins delete notices. */
 export async function deleteNotice(id: number) {
-  return guarded(STAFF, async (ctx) => {
-    const n = (await get<{ author_id: number }>("SELECT author_id FROM notices WHERE id = ? AND school_id = ?", id, ctx.schoolId)) ?? fail("Notice not found.");
-    if (!ctx.isAdmin && n.author_id !== ctx.user.id) fail("You can only delete your own notices.");
-    await run("DELETE FROM notices WHERE id = ?", id);
+  return guarded(ADMIN, async (ctx) => {
+    if (!(await run("DELETE FROM notices WHERE id = ? AND school_id = ?", id, ctx.schoolId)).changes) fail("Notice not found.");
+    await audit(ctx.schoolId, ctx.user.id, "delete", "notice", id);
     revalidatePath("/notices");
+  });
+}
+
+/** School admins clear out notices posted before a date (frees space in the database). */
+export async function deleteOldNotices(_: ActionResult, f: FormData): Promise<ActionResult> {
+  return guarded(ADMIN, async (ctx) => {
+    const before = str(f, "before");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(before)) fail("Choose a date.");
+    const r = await run("DELETE FROM notices WHERE school_id = ? AND created_at < ?", ctx.schoolId, before);
+    await audit(ctx.schoolId, ctx.user.id, "delete_old", "notice", null, `${r.changes} posted before ${before}`);
+    revalidatePath("/notices");
+    return { ok: true, message: r.changes ? `${r.changes} notice${r.changes === 1 ? "" : "s"} deleted.` : "No notices were posted before that date." };
   });
 }
 

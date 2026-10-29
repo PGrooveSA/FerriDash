@@ -6,10 +6,14 @@ import Avatar from "./ui/Avatar";
 import type { Ctx } from "@/lib/auth";
 import { visibleAssignments } from "@/lib/assignments";
 
+/** Calendar categories as solid colour labels (no edge stripe); each colour is distinct at a glance. */
 const CAT_TONE: Record<string, string> = {
-  academic: "bg-brand-100/80 border-brand-400 dark:bg-brand-500/15", sport: "bg-rose-100/70 border-rose-400 dark:bg-rose-500/15",
-  meeting: "bg-butter-100/80 border-butter-500 dark:bg-butter-500/15", school: "bg-gold-100/80 border-gold-500 dark:bg-gold-500/15",
-  holiday: "bg-emerald-100/70 border-emerald-500 dark:bg-emerald-500/15", assignment: "bg-sky-100/80 border-sky-500 dark:bg-sky-500/15",
+  school: "bg-gold-300 text-slate-900 dark:bg-gold-500/70 dark:text-white",
+  academic: "bg-brand-300 text-slate-900 dark:bg-brand-500/70 dark:text-white",
+  sport: "bg-rose-300 text-slate-900 dark:bg-rose-500/70 dark:text-white",
+  meeting: "bg-violet-300 text-slate-900 dark:bg-violet-500/70 dark:text-white",
+  holiday: "bg-emerald-300 text-slate-900 dark:bg-emerald-500/70 dark:text-white",
+  assignment: "bg-sky-300 text-slate-900 dark:bg-sky-500/70 dark:text-white",
 };
 export const catTone = (c: string) => CAT_TONE[c] ?? CAT_TONE.school;
 
@@ -71,10 +75,10 @@ export async function AssignmentsDue({ ctx, limit = 4 }: { ctx: Ctx; limit?: num
           const days = Math.round((Date.parse(a.due_date) - Date.parse(t)) / 86_400_000);
           return (
             <li key={a.id}>
-              <Link href="/assignments" className={`block rounded-2xl px-4 py-3 border-l-[3px] ${catTone("assignment")} hover:brightness-[0.98]`}>
-                <p className="text-xs muted flex justify-between gap-2">
+              <Link href="/assignments" className={`block rounded-2xl px-4 py-3 ${catTone("assignment")} hover:brightness-95`}>
+                <p className="text-xs opacity-80 flex justify-between gap-2">
                   <span>{a.subject} · Class {a.class_name}</span>
-                  <span className={`shrink-0 font-semibold ${days <= 1 ? "text-rose-600 dark:text-rose-300" : ""}`}>{days === 0 ? "Due today" : days === 1 ? "Due tomorrow" : `Due ${fmtDate(a.due_date, { weekday: "short", day: "numeric", month: "short" })}`}</span>
+                  <span className={`shrink-0 font-semibold ${days <= 1 ? "text-rose-700 dark:text-rose-100" : ""}`}>{days === 0 ? "Due today" : days === 1 ? "Due tomorrow" : `Due ${fmtDate(a.due_date, { weekday: "short", day: "numeric", month: "short" })}`}</span>
                 </p>
                 <p className="font-semibold text-sm mt-0.5">{a.title}{a.created_at > seen && <span className="ml-2 align-middle text-[0.65rem] font-bold uppercase rounded-full px-1.5 py-0.5 bg-rose-500 text-white">New</span>}</p>
               </Link>
