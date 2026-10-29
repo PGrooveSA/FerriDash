@@ -5,6 +5,7 @@ import { today, MONTHS } from "@/lib/today";
 import Avatar from "./ui/Avatar";
 import type { Ctx } from "@/lib/auth";
 import { visibleAssignments } from "@/lib/assignments";
+import { messageText } from "@/lib/richtext";
 
 /** Calendar categories as solid colour labels (no edge stripe); each colour is distinct at a glance. */
 const CAT_TONE: Record<string, string> = {
@@ -129,7 +130,7 @@ export async function RecentMessages({ userId, limit = 4 }: { userId: number; li
                 <p className="font-semibold text-sm truncate group-hover:underline">{r.is_group ? r.conv_title : fullName(r, true)}</p>
                 <span className="text-[0.7rem] muted shrink-0">{fmtDate(r.created_at, { day: "numeric", month: "short" })}</span>
               </div>
-              <p className="text-xs muted line-clamp-2">{r.is_group ? `${r.first_name}: ` : ""}{r.body}</p>
+              <p className="text-xs muted line-clamp-2">{r.is_group ? `${r.first_name}: ` : ""}{messageText(r.body)}</p>
             </div>
           </Link>
         </li>

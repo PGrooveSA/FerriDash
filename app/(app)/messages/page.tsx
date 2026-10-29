@@ -6,8 +6,11 @@ import { fmtDate, fullName, ROLE_LABEL, avatarUrl } from "@/lib/format";
 import { Card, Empty, hrefWith } from "@/components/ui/kit";
 import { FormDialog } from "@/components/ui/forms";
 import Avatar from "@/components/ui/Avatar";
+import PersonLink from "@/components/ProfileCard";
 import { startChat, markRead } from "@/app/actions/content";
 import Thread from "./Thread";
+import AutoRefresh from "./AutoRefresh";
+import { messageHtml, messageText } from "@/lib/richtext";
 
 export const metadata = { title: "Messages" };
 
@@ -27,6 +30,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
     LEFT JOIN users su ON su.id = m.sender_id
     LEFT JOIN users o ON c.is_group = 0 AND o.id = (SELECT user_id FROM conversation_members WHERE conversation_id = c.id AND user_id <> ?1 LIMIT 1)
     ORDER BY COALESCE(m.created_at, c.created_at) DESC`, ctx.user.id))
+    .map((c) => ({ ...c, body: c.body === null ? null : messageText(c.body) }))
     .filter((c) => !q || (c.title ?? `${c.other_first} ${c.other_last}`).toLowerCase().includes(q));
   // No chat is open until the user picks one; picking the open one again closes it.
   const activeId = convs.some((c) => c.id === Number(sp.c)) ? Number(sp.c) : undefined;
@@ -35,7 +39,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
 
   const messages = activeId ? (await all<{ id: number; body: string; created_at: string; sender_id: number; first_name: string; last_name: string; title: string | null; role: string; avatar_updated_at: string | null; attachment_name: string | null; attachment_type: string | null; attachment_size: number | null }>(`
     SELECT m.id, m.body, m.created_at, m.sender_id, u.first_name, u.last_name, u.title, u.role, u.avatar_updated_at, m.attachment_name, m.attachment_type, m.attachment_size FROM messages m JOIN users u ON u.id = m.sender_id
-    WHERE m.conversation_id = ? ORDER BY m.created_at, m.id LIMIT 300`, activeId)) : [];
+    WHERE m.conversation_id = ? ORDER BY m.created_at, m.id LIMIT 300`, activeId)).map(({ body, ...m }) => ({ ...m, html: messageHtml(body) })) : [];
   const members = activeId ? (await all<{ id: number; first_name: string; last_name: string; title: string | null; role: string; avatar_updated_at: string | null }>("SELECT u.id, u.first_name, u.last_name, u.title, u.role, u.avatar_updated_at FROM conversation_members cm JOIN users u ON u.id = cm.user_id WHERE cm.conversation_id = ? ORDER BY u.last_name", activeId)) : [];
 
   // Who can this user start a chat with?
@@ -43,10 +47,15 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
   const people = await all<{ id: number; name: string; role: string }>(`
     SELECT id, COALESCE(title || ' ', '') || first_name || ' ' || last_name name, role FROM users
     WHERE school_id = ? AND id <> ? AND active = 1 AND role IN (${family ? "'school_admin','teacher'" : "'school_admin','teacher','parent'"}) ORDER BY role, last_name LIMIT 500`, ctx.schoolId, ctx.user.id);
+  // Who can be @mentioned in the open chat: the people above, plus everyone already in it.
+  const mentionables = [...new Map([...members.filter((m) => m.id !== ctx.user.id).map((m) => ({ id: m.id, name: fullName(m, true), role: m.role })), ...people]
+    .map((p) => [p.id, p])).values()];
   const name = (c: Conv) => c.is_group ? c.title ?? "Group" : c.other_first ? fullName({ title: c.other_title, first_name: c.other_first, last_name: c.other_last! }, true) : "Conversation";
 
   return (
     <div className={`grid grid-cols-1 lg:grid-cols-[22rem_1fr] ${active ? "2xl:grid-cols-[22rem_1fr_20rem]" : ""} gap-0 glass overflow-hidden !rounded-[1.75rem] min-h-[70vh]`}>
+      {/* An open chat refreshes itself (Thread); otherwise keep the list current. */}
+      {!active && <AutoRefresh />}
       <aside className="border-r border-line flex flex-col max-h-[78vh]">
         <div className="p-4 flex gap-2 border-b border-line">
           <form className="flex-1"><input name="q" defaultValue={q} placeholder="Search" className="input !rounded-full" aria-label="Search conversations" /></form>
@@ -73,10 +82,14 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
         {active ? (
           <>
             <header className="px-5 py-4 border-b border-line flex items-center gap-3">
-              {active.is_group ? <span className="w-11 h-11 rounded-full grid place-items-center bg-gradient-to-br from-brand-400 to-charcoal-400 text-white"><Users className="w-5 h-5" /></span> : <Avatar first={active.other_first ?? "?"} last={active.other_last ?? ""} size={44} photo={avatarUrl(active.other_id, active.other_av)} />}
-              <div><p className="font-semibold">{name(active)}</p><p className="text-xs muted">{active.is_group ? `${active.members} members` : ROLE_LABEL[active.other_role ?? ""] ?? ""}</p></div>
+              {active.is_group ? <><span className="w-11 h-11 rounded-full grid place-items-center bg-gradient-to-br from-brand-400 to-charcoal-400 text-white"><Users className="w-5 h-5" /></span>
+                <div><p className="font-semibold">{name(active)}</p><p className="text-xs muted">{active.members} members</p></div></> : (
+                <PersonLink userId={active.other_id} className="flex items-center gap-3 !rounded-2xl pr-2 hover:bg-black/5 dark:hover:bg-white/5">
+                  <Avatar first={active.other_first ?? "?"} last={active.other_last ?? ""} size={44} photo={avatarUrl(active.other_id, active.other_av)} />
+                  <div><p className="font-semibold">{name(active)}</p><p className="text-xs muted">{ROLE_LABEL[active.other_role ?? ""] ?? ""} · <span className="underline-offset-2 hover:underline">View profile</span></p></div>
+                </PersonLink>)}
             </header>
-            <Thread key={active.id} convId={active.id} meId={ctx.user.id} isGroup={!!active.is_group} messages={messages} />
+            <Thread key={active.id} convId={active.id} meId={ctx.user.id} isGroup={!!active.is_group} messages={messages} mentionables={mentionables} />
           </>
         ) : <div className="grid place-items-center flex-1"><Empty title="Select a conversation to read it" hint="Or start a new one with the New button." /></div>}
       </section>
@@ -86,14 +99,14 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
           <>
             <p className="font-semibold mb-4">{active.is_group ? "Group info" : "Contact info"}</p>
             <div className="text-center">
-              {active.is_group ? <span className="w-24 h-24 mx-auto rounded-full grid place-items-center bg-gradient-to-br from-brand-400 via-charcoal-400 to-gold-300 text-white"><Users className="w-10 h-10" /></span> : <div className="inline-block"><Avatar first={active.other_first ?? "?"} last={active.other_last ?? ""} size={96} photo={avatarUrl(active.other_id, active.other_av)} /></div>}
+              {active.is_group ? <span className="w-24 h-24 mx-auto rounded-full grid place-items-center bg-gradient-to-br from-brand-400 via-charcoal-400 to-gold-300 text-white"><Users className="w-10 h-10" /></span> : <PersonLink userId={active.other_id} className="inline-block"><Avatar first={active.other_first ?? "?"} last={active.other_last ?? ""} size={96} photo={avatarUrl(active.other_id, active.other_av)} /></PersonLink>}
               <p className="font-semibold mt-3">{name(active)}</p>
               <p className="text-xs muted">{active.is_group ? `Group · ${active.members} members` : ROLE_LABEL[active.other_role ?? ""]}</p>
             </div>
             {active.description && <><p className="text-sm font-semibold mt-6 mb-1">Description</p><p className="text-xs muted">{active.description}</p></>}
             <p className="text-sm font-semibold mt-6 mb-3">Members</p>
             <ul className="space-y-3">{members.map((m) => (
-              <li key={m.id} className="flex items-center gap-3"><Avatar first={m.first_name} last={m.last_name} size={34} photo={avatarUrl(m.id, m.avatar_updated_at)} /><div><p className="text-sm font-medium">{fullName(m, true)}</p><p className="text-xs muted">{ROLE_LABEL[m.role]}</p></div></li>
+              <li key={m.id}><PersonLink userId={m.id} className="flex items-center gap-3 w-full !rounded-2xl hover:bg-black/5 dark:hover:bg-white/5"><Avatar first={m.first_name} last={m.last_name} size={34} photo={avatarUrl(m.id, m.avatar_updated_at)} /><div><p className="text-sm font-medium">{fullName(m, true)}</p><p className="text-xs muted">{ROLE_LABEL[m.role]}</p></div></PersonLink></li>
             ))}</ul>
           </>
         )}

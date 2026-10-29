@@ -129,7 +129,7 @@ export default function Sidebar({ role, school }: { role: Role; school: { id: nu
       </div>
       <div className="flex items-center gap-3 mx-1 mb-5 p-2.5 rounded-2xl bg-white/45 dark:bg-white/5 border border-white/60 dark:border-white/10">
         {school ? <>
-          <SchoolCrest school={school} size={44} />
+          <SchoolCrest school={school} size={44} zoom />
           <p className="text-sm font-semibold leading-snug line-clamp-2">{school.name}</p>
         </> : <>
           <span className="w-11 h-11 rounded-xl grid place-items-center bg-brand-500/15 text-brand-600 shrink-0"><Building2 className="w-5 h-5" /></span>
@@ -151,11 +151,6 @@ export default function Sidebar({ role, school }: { role: Role; school: { id: nu
           </li>
         </ul>
       </nav>
-      {school && <div className="mt-4 rounded-3xl p-5 text-white relative overflow-hidden bg-gradient-to-br from-brand-500 via-brand-500 to-charcoal-500">
-        <div className="absolute -right-8 -bottom-10 w-32 h-32 rounded-full bg-white/20 blur-xl" />
-        <p className="font-semibold leading-snug relative">CAPS results made simple</p>
-        <p className="text-xs text-white/85 mt-1 relative">Capture marks, moderate and publish report cards in one place.</p>
-      </div>}
     </div>
   );
 

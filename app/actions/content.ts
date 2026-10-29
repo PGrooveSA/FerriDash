@@ -7,6 +7,7 @@ import { notify, noticeAudienceUsers } from "@/lib/push";
 import { randomUUID } from "node:crypto";
 import { fileSize, removeFile, signedUploadUrl, storageKey } from "@/lib/storage";
 import { MAX_MESSAGE_FILE_BYTES, MESSAGE_FILE_TYPES, fileExt } from "@/lib/uploads";
+import { cleanMessageHtml, dropMentions, mentionIds, messageText } from "@/lib/richtext";
 
 // ---------------- Notices ----------------
 export async function saveNotice(_: ActionResult, f: FormData) {
@@ -110,10 +111,27 @@ async function member(convId: number, userId: number) {
 }
 
 /** Tells the other people in the chat. The text itself stays out of the notification (lock screens). */
-async function notifyMessage(sender: { id: number; title: string | null; first_name: string; last_name: string }, convId: number) {
-  const others = (await all<{ user_id: number }>("SELECT user_id FROM conversation_members WHERE conversation_id = ? AND user_id <> ?", convId, sender.id)).map((r) => r.user_id);
+async function notifyMessage(sender: { id: number; title: string | null; first_name: string; last_name: string }, convId: number, mentioned: number[] = []) {
+  const others = (await all<{ user_id: number }>("SELECT user_id FROM conversation_members WHERE conversation_id = ? AND user_id <> ?", convId, sender.id))
+    .map((r) => r.user_id).filter((id) => !mentioned.includes(id));
   const name = [sender.title, sender.first_name, sender.last_name].filter(Boolean).join(" ");
   notify(others, { title: `New message from ${name}`, body: "Open FerriDash to read and reply.", url: `/messages?c=${convId}` });
+  if (mentioned.length) notify(mentioned, { title: `${name} mentioned you`, body: "Tap to open the chat and reply.", url: `/messages?c=${convId}` });
+}
+
+/**
+ * People mentioned with @ in a message. Who may be mentioned follows the same rule as starting a chat (learners
+ * and parents: school staff only), plus anyone already in the chat. Someone new joins the chat so they can read
+ * and reply; a one-to-one chat then becomes a group.
+ */
+async function addMentioned(ctx: { schoolId: number; user: { id: number; role: string } }, convId: number, html: string): Promise<{ html: string; ids: number[] }> {
+  const asked = mentionIds(html).filter((id) => id !== ctx.user.id);
+  if (!asked.length) return { html, ids: [] };
+  const family = ctx.user.role === "learner" || ctx.user.role === "parent";
+  const ok = await all<{ id: number; role: string; member: number }>(`SELECT u.id, u.role, (SELECT COUNT(*) FROM conversation_members WHERE conversation_id = ? AND user_id = u.id) member FROM users u
+    WHERE u.id IN (${asked.map(() => "?").join(",")}) AND u.school_id = ? AND u.active = 1`, convId, ...asked, ctx.schoolId);
+  const allowed = ok.filter((u) => u.member > 0 || !family || !["learner", "parent"].includes(u.role)).map((u) => u.id);
+  return { html: dropMentions(html, asked.filter((id) => !allowed.includes(id))), ids: allowed };
 }
 
 /**
@@ -136,11 +154,13 @@ export async function prepareAttachment(convId: number, name: string, size: numb
 
 const MESSAGE_KEY = /^messages\/(\d+)\/[0-9a-f-]{36}\.([a-z0-9]+)$/;
 
+/** `body` is the formatted message from the chat editor (HTML; cleaned here). */
 export async function sendMessage(convId: number, body: string, file?: { key: string; name: string }): Promise<ActionResult> {
   return guarded(undefined, async (ctx) => {
-    const text = body.trim();
+    let html = cleanMessageHtml(body);
+    const text = messageText(html);
     if (!text && !file) fail("Type a message first.");
-    if (text.length > 4000) fail("Message is too long.");
+    if (text.length > 4000 || html.length > 60_000) fail("Message is too long.");
     if (!(await member(convId, ctx.user.id))) fail("You are not part of this conversation.");
     let attachment: [string, string, string, number] | [null, null, null, null] = [null, null, null, null];
     if (file) {
@@ -152,10 +172,21 @@ export async function sendMessage(convId: number, body: string, file?: { key: st
       const name = file.name.replace(/^.*[\\/]/, "").replace(/[\u0000-\u001f"]/g, "").slice(-120) || `attachment.${m[2]}`;
       attachment = [file.key, name, MESSAGE_FILE_TYPES[m[2]], size];
     }
-    await run("INSERT INTO messages (conversation_id, sender_id, body, attachment_key, attachment_name, attachment_type, attachment_size) VALUES (?,?,?,?,?,?,?)",
-      convId, ctx.user.id, text, ...attachment);
-    await run("UPDATE conversation_members SET last_read_at = datetime('now') WHERE conversation_id = ? AND user_id = ?", convId, ctx.user.id);
-    await notifyMessage(ctx.user, convId);
+    const mentioned = await addMentioned(ctx, convId, html);
+    html = mentioned.html;
+    await tx(async () => {
+      await run("INSERT INTO messages (conversation_id, sender_id, body, attachment_key, attachment_name, attachment_type, attachment_size) VALUES (?,?,?,?,?,?,?)",
+        convId, ctx.user.id, text ? html : "", ...attachment);
+      let joined = 0;
+      for (const id of mentioned.ids) joined += (await run("INSERT INTO conversation_members (conversation_id, user_id) VALUES (?, ?) ON CONFLICT DO NOTHING", convId, id)).changes;
+      if (joined) {
+        // Three or more people: name the group after them.
+        const names = (await all<{ first_name: string }>("SELECT u.first_name FROM conversation_members cm JOIN users u ON u.id = cm.user_id WHERE cm.conversation_id = ? ORDER BY u.first_name", convId)).map((u) => u.first_name);
+        await run("UPDATE conversations SET is_group = 1, title = COALESCE(title, ?) WHERE id = ? AND is_group = 0", names.length > 1 ? `${names.slice(0, -1).join(", ")} & ${names.at(-1)}` : names[0], convId);
+      }
+      await run("UPDATE conversation_members SET last_read_at = datetime('now') WHERE conversation_id = ? AND user_id = ?", convId, ctx.user.id);
+    });
+    await notifyMessage(ctx.user, convId, mentioned.ids);
   });
 }
 

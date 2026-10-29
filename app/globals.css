@@ -347,3 +347,13 @@ body {
 .table thead th, .table thead th * { color: #fff; }
 .table thead th :where(.font-normal, .muted, [class*="text-[0.6"], [class*="text-[0.7"]) { color: rgb(255 255 255 / 0.72); }
 .table thead th button:hover { color: var(--color-gold-300); }
+
+/* ---------- Formatted chat messages (and the message box) ---------- */
+.rt ul { list-style: disc; padding-left: 1.4rem; }
+.rt ol { list-style: decimal; padding-left: 1.4rem; }
+.rt table { border-collapse: collapse; margin: 0.35rem 0; max-width: 100%; }
+.rt td, .rt th { border: 1px solid rgb(148 163 184 / 0.7); padding: 0.25rem 0.5rem; min-width: 2.5rem; vertical-align: top; }
+.rt .mention { font-weight: 600; border-radius: 0.4rem; padding: 0 0.2rem; background: rgb(244 96 12 / 0.15); color: #c2410c; white-space: nowrap; }
+.dark .rt .mention { color: #fdba74; }
+.rt-mine .mention { background: rgb(255 255 255 / 0.22); color: inherit; }
+.rt-empty:before { content: attr(data-placeholder); color: rgb(148 163 184); pointer-events: none; }
