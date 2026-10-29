@@ -3,7 +3,7 @@ import type { Ctx } from "@/lib/auth";
 import { ownLearnerIds } from "@/lib/auth";
 import { zar, fullName, avatarUrl } from "@/lib/format";
 import { Card, Empty, LevelBadge } from "@/components/ui/kit";
-import { MiniCalendar, Agenda, NoticeList, RecentMessages } from "@/components/widgets";
+import { MiniCalendar, Agenda, AssignmentsDue, NoticeList, RecentMessages } from "@/components/widgets";
 import Avatar from "@/components/ui/Avatar";
 import { SchoolMark } from "@/components/SchoolCrest";
 import { learnerSnapshot, classLine } from "./LearnerDashboard";
@@ -56,7 +56,7 @@ export default async function ParentDashboard({ ctx }: { ctx: Ctx }) {
         ))}
       </div>
       <aside className="space-y-6">
-        <Card><MiniCalendar schoolId={ctx.schoolId} /><h3 className="font-semibold mt-6 mb-3">Agenda</h3><Agenda schoolId={ctx.schoolId} /></Card>
+        <Card><MiniCalendar schoolId={ctx.schoolId} ctx={ctx} /><h3 className="font-semibold mt-6 mb-3">Assignments due</h3><AssignmentsDue ctx={ctx} /><h3 className="font-semibold mt-6 mb-3">Agenda</h3><Agenda schoolId={ctx.schoolId} /></Card>
         <Card title="Notices"><NoticeList schoolId={ctx.schoolId} audiences={["all", "parents"]} /></Card>
         <Card title="Messages"><RecentMessages userId={ctx.user.id} /></Card>
       </aside>

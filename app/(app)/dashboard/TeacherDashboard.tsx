@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { visibleAssignments } from "@/lib/assignments";
 import { BookOpen, ClipboardList, Users, CalendarCheck } from "lucide-react";
 import type { Ctx } from "@/lib/auth";
 import { all, get } from "@/lib/db";
@@ -36,9 +37,7 @@ export default async function TeacherDashboard({ ctx }: { ctx: Ctx }) {
       return { name: `${m.className} ${m.subject.split(" ")[0]}`, average: vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null };
     })));
 
-  const homework = await all<{ id: number; title: string; due_date: string; className: string }>(`
-    SELECT h.id, h.title, h.due_date, c.name className FROM homework h JOIN class_subjects cs ON cs.id = h.class_subject_id JOIN classes c ON c.id = cs.class_id
-    WHERE cs.teacher_id = ? AND h.due_date >= ? ORDER BY h.due_date LIMIT 5`, ctx.teacherId, t);
+  const assignments = (await visibleAssignments(ctx, { from: t })).slice(0, 5);
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-[1fr_22rem] gap-6">
@@ -85,8 +84,8 @@ export default async function TeacherDashboard({ ctx }: { ctx: Ctx }) {
       </div>
       <aside className="space-y-6">
         <Card><MiniCalendar schoolId={sid} /><h3 className="font-semibold mt-6 mb-3">Agenda</h3><Agenda schoolId={sid} /></Card>
-        <Card title="Homework set">
-          {homework.length ? <ul className="space-y-3">{homework.map((h) => <li key={h.id} className="text-sm"><p className="font-medium">{h.title}</p><p className="text-xs muted">{h.className} · due {fmtDate(h.due_date)}</p></li>)}</ul> : <p className="text-sm muted">No upcoming homework.</p>}
+        <Card title="Assignments set" action={<Link href="/assignments" className="text-xs muted">View all</Link>}>
+          {assignments.length ? <ul className="space-y-3">{assignments.map((a) => <li key={a.id} className="text-sm"><Link href="/assignments" className="font-medium hover:underline">{a.title}</Link><p className="text-xs muted">{a.subject} · Class {a.class_name} · due {fmtDate(a.due_date)}</p></li>)}</ul> : <p className="text-sm muted">No upcoming assignments. <Link href="/assignments" className="underline">Set one</Link></p>}
         </Card>
         <Card title="Messages" action={<Link href="/messages" className="text-xs muted">View all</Link>}><RecentMessages userId={ctx.user.id} /></Card>
         <Card title="Notices"><NoticeList schoolId={sid} audiences={["all", "staff"]} /></Card>

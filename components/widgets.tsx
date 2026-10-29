@@ -1,8 +1,10 @@
 import Link from "next/link";
-import { all } from "@/lib/db";
+import { all, get } from "@/lib/db";
 import { fmtDate, fullName, avatarUrl } from "@/lib/format";
 import { today, MONTHS } from "@/lib/today";
 import Avatar from "./ui/Avatar";
+import type { Ctx } from "@/lib/auth";
+import { visibleAssignments } from "@/lib/assignments";
 
 const CAT_TONE: Record<string, string> = {
   academic: "bg-brand-100/80 border-brand-400 dark:bg-brand-500/15", sport: "bg-rose-100/70 border-rose-400 dark:bg-rose-500/15",
@@ -21,13 +23,16 @@ const CARD_TONES = [
 ];
 export const cardTone = (i: number) => CARD_TONES[i % CARD_TONES.length];
 
-export async function MiniCalendar({ schoolId }: { schoolId: number }) {
+/** This month at a glance: school events (gold dots) and, given a learner or parent, their assignment due dates (blue). */
+export async function MiniCalendar({ schoolId, ctx }: { schoolId: number; ctx?: Ctx }) {
   const t = today();
   const [y, m] = t.split("-").map(Number);
   const first = new Date(Date.UTC(y, m - 1, 1));
   const startPad = first.getUTCDay();
   const days = new Date(Date.UTC(y, m, 0)).getUTCDate();
   const eventDays = new Set((await all<{ date: string }>("SELECT DISTINCT date FROM events WHERE school_id = ? AND date LIKE ?", schoolId, `${y}-${String(m).padStart(2, "0")}-%`)).map((e) => Number(e.date.slice(8))));
+  const ym = `${y}-${String(m).padStart(2, "0")}`;
+  const dueDays = new Set(ctx ? (await visibleAssignments(ctx, { from: `${ym}-01`, to: `${ym}-31` })).map((a) => Number(a.due_date.slice(8))) : []);
   const cells = [...Array(startPad).fill(null), ...Array.from({ length: days }, (_, i) => i + 1)];
   return (
     <div>
@@ -40,11 +45,45 @@ export async function MiniCalendar({ schoolId }: { schoolId: number }) {
         {cells.map((d, i) => (
           <span key={i} className={`relative py-1.5 rounded-xl text-sm ${d === Number(t.slice(8)) ? "bg-gradient-to-br from-brand-300 to-gold-300 text-slate-900 font-bold" : ""}`}>
             {d}
-            {d && eventDays.has(d) && <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-gold-500" />}
+            {d && (eventDays.has(d) || dueDays.has(d)) && (
+              <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 flex gap-0.5">
+                {eventDays.has(d) && <span className="w-1 h-1 rounded-full bg-gold-500" />}
+                {dueDays.has(d) && <span className="w-1 h-1 rounded-full bg-sky-500" title="Assignment due" />}
+              </span>
+            )}
           </span>
         ))}
       </div>
     </div>
+  );
+}
+
+/** Upcoming assignments for a learner or parent (their classes), soonest first; new ones since they last looked are marked. */
+export async function AssignmentsDue({ ctx, limit = 4 }: { ctx: Ctx; limit?: number }) {
+  const t = today();
+  const all_ = await visibleAssignments(ctx, { from: t });
+  const seen = (await get<{ s: string | null }>("SELECT assignments_seen_at s FROM users WHERE id = ?", ctx.user.id))?.s ?? "";
+  if (!all_.length) return <p className="text-sm muted">No assignments due. New ones from teachers appear here.</p>;
+  return (
+    <>
+      <ul className="space-y-2.5">
+        {all_.slice(0, limit).map((a) => {
+          const days = Math.round((Date.parse(a.due_date) - Date.parse(t)) / 86_400_000);
+          return (
+            <li key={a.id}>
+              <Link href="/assignments" className={`block rounded-2xl px-4 py-3 border-l-[3px] ${catTone("assignment")} hover:brightness-[0.98]`}>
+                <p className="text-xs muted flex justify-between gap-2">
+                  <span>{a.subject} · Class {a.class_name}</span>
+                  <span className={`shrink-0 font-semibold ${days <= 1 ? "text-rose-600 dark:text-rose-300" : ""}`}>{days === 0 ? "Due today" : days === 1 ? "Due tomorrow" : `Due ${fmtDate(a.due_date, { weekday: "short", day: "numeric", month: "short" })}`}</span>
+                </p>
+                <p className="font-semibold text-sm mt-0.5">{a.title}{a.created_at > seen && <span className="ml-2 align-middle text-[0.65rem] font-bold uppercase rounded-full px-1.5 py-0.5 bg-rose-500 text-white">New</span>}</p>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+      {all_.length > limit && <Link href="/assignments" className="block text-xs muted mt-2 hover:text-[var(--ink)]">{all_.length - limit} more due · see all assignments</Link>}
+    </>
   );
 }
 

@@ -8,7 +8,8 @@ import { classResults, attendanceSummary, termDates } from "@/lib/results";
 import { capsLevel } from "@/lib/caps";
 import { Card, StatCard, Empty } from "@/components/ui/kit";
 import { HBars, Trend } from "@/components/charts";
-import { MiniCalendar, Agenda, NoticeList } from "@/components/widgets";
+import { visibleAssignments } from "@/lib/assignments";
+import { MiniCalendar, Agenda, AssignmentsDue, NoticeList } from "@/components/widgets";
 import Avatar from "@/components/ui/Avatar";
 import { SchoolMark } from "@/components/SchoolCrest";
 
@@ -44,9 +45,7 @@ export default async function LearnerDashboard({ ctx }: { ctx: Ctx }) {
   if (!snap) return <Empty title="No learner profile linked to this account" />;
   const { learner: l, latest, att } = snap;
   const t = today();
-  const homework = await all<{ id: number; title: string; due_date: string; subject: string }>(`
-    SELECT h.id, h.title, h.due_date, s.name subject FROM homework h JOIN class_subjects cs ON cs.id = h.class_subject_id JOIN subjects s ON s.id = cs.subject_id
-    WHERE cs.class_id = ? AND h.due_date >= ? ORDER BY h.due_date LIMIT 6`, l.class_id, t);
+  const assignments = await visibleAssignments(ctx, { from: t });
   const loans = (await get<{ n: number }>("SELECT COUNT(*) n FROM book_loans WHERE learner_id = ? AND returned_on IS NULL", l.id))!.n;
 
   const bars = latest ? latest.cr!.subjects.map((s) => {
@@ -74,7 +73,7 @@ export default async function LearnerDashboard({ ctx }: { ctx: Ctx }) {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard label="Attendance" value={att.rate != null ? `${att.rate}%` : "-"} icon={CalendarCheck} tone="sky" hint={`${att.absent ?? 0} days absent this year`} />
           <StatCard label={latest ? `Term ${latest.term} average` : "Average"} value={latest?.row?.average != null ? `${latest.row.average}%` : "-"} icon={Award} tone="green" hint={latest?.row?.position ? `Position ${latest.row.position} of ${latest.cr!.learners.length}` : undefined} />
-          <StatCard label="Homework due" value={homework.length} icon={ClipboardList} tone="gold" />
+          <StatCard label="Assignments due" value={assignments.length} icon={ClipboardList} tone="gold" />
           <StatCard label="Library books out" value={loans} icon={Library} tone="orange" />
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_20rem] gap-6">
@@ -83,15 +82,15 @@ export default async function LearnerDashboard({ ctx }: { ctx: Ctx }) {
           </Card>
           <Card title="Progress">{trend.length ? <Trend data={trend} xKey="term" series={[{ key: "average", name: "Average %", color: "#38bdf8" }]} /> : <Empty />}</Card>
         </div>
-        <Card title="Homework">
-          {homework.length ? (
+        <Card title="Assignments" action={<Link href="/assignments" className="text-xs muted">View all</Link>}>
+          {assignments.length ? (
             <div className="overflow-x-auto"><table className="table"><thead><tr><th>Task</th><th>Subject</th><th>Due</th></tr></thead>
-              <tbody>{homework.map((h) => <tr key={h.id}><td className="font-medium">{h.title}</td><td>{h.subject}</td><td>{fmtDate(h.due_date)}</td></tr>)}</tbody></table></div>
-          ) : <Empty title="No homework due" />}
+              <tbody>{assignments.slice(0, 6).map((a) => <tr key={a.id}><td className="font-medium"><Link href="/assignments" className="hover:underline">{a.title}</Link></td><td>{a.subject}</td><td>{fmtDate(a.due_date)}</td></tr>)}</tbody></table></div>
+          ) : <Empty title="No assignments due" />}
         </Card>
       </div>
       <aside className="space-y-6">
-        <Card><MiniCalendar schoolId={ctx.schoolId} /><h3 className="font-semibold mt-6 mb-3">Agenda</h3><Agenda schoolId={ctx.schoolId} /></Card>
+        <Card><MiniCalendar schoolId={ctx.schoolId} ctx={ctx} /><h3 className="font-semibold mt-6 mb-3">Assignments due</h3><AssignmentsDue ctx={ctx} /><h3 className="font-semibold mt-6 mb-3">Agenda</h3><Agenda schoolId={ctx.schoolId} /></Card>
         <Card title="Notices"><NoticeList schoolId={ctx.schoolId} audiences={["all", "learners"]} /></Card>
       </aside>
     </div>
