@@ -17,8 +17,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           <section className="login-form-side px-6 py-9 sm:px-12 sm:py-10 flex flex-col justify-center">
             <div className="w-full max-w-sm mx-auto">
               <div className="flex justify-center"><BrandLogo className="w-52" /></div>
-              <h1 className="text-2xl font-semibold tracking-tight text-center mt-7">Hello! Welcome back</h1>
-              <p className="muted text-sm text-center mt-1">Sign in with your school email address.</p>
+              <h1 className="text-2xl font-semibold tracking-tight text-center mt-7">Sign in</h1>
               {ended && <p className="text-sm text-center mt-4 rounded-xl px-3 py-2 bg-brand-500/10">You have been signed out. If you can&apos;t sign in, contact your school office.</p>}
               <LoginForm />
               <p className="text-sm text-center muted mt-6">New to FerriDash? <span className="text-[var(--ink)] font-medium">Your school office creates your login.</span></p>
