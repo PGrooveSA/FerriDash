@@ -2,11 +2,12 @@ import Link from "next/link";
 import { CalendarCheck, Award, ClipboardList, Library } from "lucide-react";
 import type { Ctx } from "@/lib/auth";
 import { all, get } from "@/lib/db";
-import { fmtDate, gradeLabel, avatarUrl } from "@/lib/format";
+import { fmtDate, gradeLabel, avatarUrl, bannerUrl } from "@/lib/format";
 import { today } from "@/lib/today";
 import { classResults, attendanceSummary, termDates } from "@/lib/results";
 import { capsLevel } from "@/lib/caps";
 import { Card, StatCard, Empty } from "@/components/ui/kit";
+import { bannerStyle } from "@/components/ui/banner";
 import { HBars, Trend } from "@/components/charts";
 import { visibleAssignments } from "@/lib/assignments";
 import { MiniCalendar, Agenda, AssignmentsDue, NoticeList } from "@/components/widgets";
@@ -55,11 +56,16 @@ export default async function LearnerDashboard({ ctx }: { ctx: Ctx }) {
   }) : [];
   const trend = snap.terms.filter((x) => x.row?.average != null).map((x) => ({ term: `Term ${x.term}`, average: x.row!.average }));
 
+  const banner = bannerStyle(bannerUrl(ctx.user.id, ctx.user.banner_updated_at));
   return (
     <div className="grid grid-cols-1 xl:grid-cols-[1fr_22rem] gap-6">
       <div className="space-y-6 min-w-0">
-        <div className="glass p-6 sm:p-8 flex flex-wrap items-center gap-6 bg-gradient-to-r from-sky-200/80 via-brand-100/40 to-emerald-200/70 dark:from-sky-500/20 dark:to-emerald-500/10">
-          <Avatar first={l.first_name} last={l.last_name} size={128} photo={avatarUrl(l.user_id, l.av)} />
+        <div className={`glass p-6 sm:p-8 flex flex-wrap items-center gap-6 ${banner?.className ?? "bg-gradient-to-r from-sky-200/80 via-brand-100/40 to-emerald-200/70 dark:from-sky-500/20 dark:to-emerald-500/10"}`} style={banner?.style}>
+          {/* Phones: the school logo sits beside the photo; wider screens keep it on the right. */}
+          <div className="flex items-center gap-4 w-full sm:w-auto">
+            <Avatar first={l.first_name} last={l.last_name} size={128} photo={avatarUrl(l.user_id, l.av)} />
+            <div className="sm:hidden ml-auto"><SchoolMark school={ctx.school} /></div>
+          </div>
           <div className="flex-1 min-w-[14rem]">
             <h1 className="text-2xl font-bold tracking-tight">Welcome, {l.first_name}</h1>
             <p className="text-sm muted mt-1">{classLine(l)} · Admission no. {l.admission_number}</p>
@@ -68,7 +74,7 @@ export default async function LearnerDashboard({ ctx }: { ctx: Ctx }) {
               <Link href="/reports/report-cards" className="btn btn-ghost">Report cards</Link>
             </div>
           </div>
-          <SchoolMark school={ctx.school} />
+          <div className="hidden sm:block ml-auto"><SchoolMark school={ctx.school} /></div>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard label="Attendance" value={att.rate != null ? `${att.rate}%` : "-"} icon={CalendarCheck} tone="sky" hint={`${att.absent ?? 0} days absent this year`} />

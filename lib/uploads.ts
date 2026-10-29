@@ -1,6 +1,7 @@
 // Upload limits and file-type checks. Where files are stored: lib/storage.ts.
 
 export const MAX_AVATAR_BYTES = 2 * 1024 * 1024; // profile photos
+export const MAX_BANNER_BYTES = 3 * 1024 * 1024; // profile banners (resized in the browser first)
 export const MAX_LOGO_BYTES = 2 * 1024 * 1024; // school logos
 export const MAX_EXPENSE_DOC_BYTES = 4 * 1024 * 1024; // expense PDFs (Vercel accepts request bodies up to 4.5 MB)
 export const MAX_ASSIGNMENT_DOC_BYTES = 4 * 1024 * 1024; // assignment PDFs (through the app server, like expense PDFs)

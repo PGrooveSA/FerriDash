@@ -22,9 +22,9 @@ export default function SchoolCrest({ school, size = 64, className = "", zoom = 
 }
 
 /** Banner strip with crest, school name and motto for the top of dashboards. */
-export function SchoolBanner({ school, children }: { school: SchoolLike & { motto: string | null; province: string; current_term: number; current_year: number }; children?: React.ReactNode }) {
+export function SchoolBanner({ school, children, cover }: { school: SchoolLike & { motto: string | null; province: string; current_term: number; current_year: number }; children?: React.ReactNode; cover?: { className: string; style: React.CSSProperties } | null }) {
   return (
-    <div className="glass p-5 sm:p-6 flex flex-wrap items-center gap-5 bg-gradient-to-r from-sky-200/70 via-gold-100/50 to-emerald-200/60 dark:from-brand-500/15 dark:via-transparent dark:to-charcoal-500/15">
+    <div className={`glass p-5 sm:p-6 flex flex-wrap items-center gap-5 ${cover?.className ?? "bg-gradient-to-r from-sky-200/70 via-gold-100/50 to-emerald-200/60 dark:from-brand-500/15 dark:via-transparent dark:to-charcoal-500/15"}`} style={cover?.style}>
       <SchoolCrest school={school} size={76} zoom />
       <div className="flex-1 min-w-[14rem]">
         <h1 className="text-2xl font-bold tracking-tight">{school.name}</h1>

@@ -1,10 +1,10 @@
 "use server";
 import { all, get } from "@/lib/db";
 import { getCtx } from "@/lib/auth";
-import { ROLE_LABEL, avatarUrl, fullName, gradeLabel, logoUrl } from "@/lib/format";
+import { ROLE_LABEL, avatarUrl, bannerUrl, fullName, gradeLabel, logoUrl } from "@/lib/format";
 
 export type PersonProfile = {
-  first_name: string; last_name: string; name: string; role: string; photo: string | null;
+  first_name: string; last_name: string; name: string; role: string; photo: string | null; banner: string | null;
   details: { label: string; value: string }[];
   school: { id: number; name: string; logo_updated_at: string | null; logo: string | null } | null;
 };
@@ -16,8 +16,8 @@ export type PersonProfile = {
 export async function personProfile(userId: number): Promise<PersonProfile | null> {
   const ctx = await getCtx();
   if (!ctx || !Number.isInteger(userId)) return null;
-  const u = await get<{ id: number; school_id: number | null; role: string; title: string | null; first_name: string; last_name: string; avatar_updated_at: string | null }>(
-    "SELECT id, school_id, role, title, first_name, last_name, avatar_updated_at FROM users WHERE id = ? AND active = 1", userId);
+  const u = await get<{ id: number; school_id: number | null; role: string; title: string | null; first_name: string; last_name: string; avatar_updated_at: string | null; banner_updated_at: string | null }>(
+    "SELECT id, school_id, role, title, first_name, last_name, avatar_updated_at, banner_updated_at FROM users WHERE id = ? AND active = 1", userId);
   if (!u || (u.school_id !== ctx.schoolId && ctx.user.role !== "super_admin")) return null;
   const year = ctx.school.current_year, staff = ctx.isAdmin || ctx.user.role === "teacher";
   const details: PersonProfile["details"] = [];
@@ -44,7 +44,7 @@ export async function personProfile(userId: number): Promise<PersonProfile | nul
   const s = u.school_id ? await get<{ id: number; name: string; logo_updated_at: string | null }>("SELECT id, name, logo_updated_at FROM schools WHERE id = ?", u.school_id) : null;
   return {
     first_name: u.first_name, last_name: u.last_name, name: fullName(u, true), role: ROLE_LABEL[u.role] ?? u.role,
-    photo: avatarUrl(u.id, u.avatar_updated_at), details,
+    photo: avatarUrl(u.id, u.avatar_updated_at), banner: bannerUrl(u.id, u.banner_updated_at), details,
     school: s ? { ...s, logo: logoUrl(s.id, s.logo_updated_at) } : null,
   };
 }

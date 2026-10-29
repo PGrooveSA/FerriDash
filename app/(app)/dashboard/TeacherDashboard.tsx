@@ -3,10 +3,11 @@ import { visibleAssignments } from "@/lib/assignments";
 import { BookOpen, ClipboardList, Users, CalendarCheck } from "lucide-react";
 import type { Ctx } from "@/lib/auth";
 import { all, get } from "@/lib/db";
-import { fmtDate, fullName } from "@/lib/format";
+import { fmtDate, fullName, bannerUrl } from "@/lib/format";
 import { today } from "@/lib/today";
 import { classResults } from "@/lib/results";
 import { Card, StatCard, StatusChip } from "@/components/ui/kit";
+import { bannerStyle } from "@/components/ui/banner";
 import { Bars } from "@/components/charts";
 import { SchoolMark } from "@/components/SchoolCrest";
 import { MiniCalendar, Agenda, RecentMessages, NoticeList } from "@/components/widgets";
@@ -39,10 +40,11 @@ export default async function TeacherDashboard({ ctx }: { ctx: Ctx }) {
 
   const assignments = (await visibleAssignments(ctx, { from: t })).slice(0, 5);
 
+  const banner = bannerStyle(bannerUrl(ctx.user.id, ctx.user.banner_updated_at));
   return (
     <div className="grid grid-cols-1 xl:grid-cols-[1fr_22rem] gap-6">
       <div className="space-y-6 min-w-0">
-        <div className="glass p-6 sm:p-8 flex flex-wrap items-center gap-6 bg-gradient-to-r from-sky-200/80 via-brand-100/50 to-emerald-200/70 dark:from-sky-500/20 dark:to-emerald-500/15">
+        <div className={`glass p-6 sm:p-8 flex flex-wrap items-center gap-6 ${banner?.className ?? "bg-gradient-to-r from-sky-200/80 via-brand-100/50 to-emerald-200/70 dark:from-sky-500/20 dark:to-emerald-500/15"}`} style={banner?.style}>
           <div className="flex-1 min-w-[16rem]">
           <p className="text-sm muted">Sawubona · Dumela · Welcome</p>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mt-1">{fullName(ctx.user, true)}</h1>

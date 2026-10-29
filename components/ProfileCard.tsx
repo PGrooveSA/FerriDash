@@ -23,11 +23,14 @@ export default function PersonLink({ userId, children, className = "" }: { userI
       <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setP(undefined); setOpen(true); }} className={`text-left rounded-full focus-visible:outline-2 focus-visible:outline-brand-500 ${className}`}>{children}</button>
       <dialog ref={ref} onClose={() => setOpen(false)} className="m-auto w-[calc(100%-2rem)] max-w-sm bg-transparent backdrop:bg-slate-900/30 backdrop:backdrop-blur-sm">
         {open && (
-          <div className="glass-solid p-6 text-[var(--ink)] relative">
-            <button type="button" className="icon-btn !w-8 !h-8 absolute top-4 right-4" onClick={() => setOpen(false)} aria-label="Close"><X className="w-4 h-4" /></button>
+          <div className="glass-solid p-6 text-[var(--ink)] relative overflow-hidden">
+            <button type="button" className="icon-btn !w-8 !h-8 absolute top-4 right-4 z-10" onClick={() => setOpen(false)} aria-label="Close"><X className="w-4 h-4" /></button>
             {p === undefined ? <p className="text-sm muted text-center py-10">Loading…</p> : p === null ? <p className="text-sm text-center py-10">This profile isn&apos;t available.</p> : (
               <div className="text-center">
-                <ViewImage src={p.photo} alt={p.name}><Avatar first={p.first_name} last={p.last_name} size={112} photo={p.photo} /></ViewImage>
+                {/* Their banner across the top, or a soft colour band; the photo overlaps its lower edge. */}
+                <div className="-mx-6 -mt-6 mb-[-3.5rem] h-28 bg-cover bg-center bg-gradient-to-r from-sky-200/80 via-brand-100/50 to-emerald-200/70 dark:from-sky-500/20 dark:to-emerald-500/15"
+                  style={p.banner ? { backgroundImage: `url("${p.banner}")` } : undefined} />
+                <ViewImage src={p.photo} alt={p.name} className="relative"><Avatar first={p.first_name} last={p.last_name} size={112} photo={p.photo} /></ViewImage>
                 <p className="text-lg font-semibold mt-3">{p.name}</p>
                 <p className="text-sm muted">{p.role}</p>
                 {p.details.length > 0 && (

@@ -1,7 +1,7 @@
 "use server";
 import bcrypt from "bcryptjs";
 import { randomBytes } from "node:crypto";
-import { MAX_AVATAR_BYTES, imageType } from "@/lib/uploads";
+import { MAX_AVATAR_BYTES, MAX_BANNER_BYTES, imageType } from "@/lib/uploads";
 import { putFile, removeFile, storageKey } from "@/lib/storage";
 import { revalidatePath } from "next/cache";
 import { all, audit, get, run, tx } from "@/lib/db";
@@ -172,7 +172,7 @@ export async function deleteTeacher(id: number) {
       UNION SELECT 1 FROM marks WHERE updated_by = ?3 UNION SELECT 1 FROM attendance WHERE recorded_by = ?3 LIMIT 1`, id, ctx.school.current_year, t.user_id);
     if (history) fail("This teacher has teaching records, so they can't be deleted. Use \"Leaves school\" instead: their history is kept and their login is switched off.");
     await tx(async () => { await run("DELETE FROM teachers WHERE id = ?", id); await run("DELETE FROM users WHERE id = ?", t.user_id); });
-    await removeAvatarFile(t.user_id);
+    await removeUserFiles(t.user_id);
     await audit(ctx.schoolId, ctx.user.id, "delete", "teacher", id);
     revalidatePath("/teachers");
   });
@@ -228,7 +228,7 @@ export async function deleteLearner(id: number) {
   return guarded(ADMIN, async (ctx) => {
     const l = (await get<{ user_id: number | null }>("SELECT user_id FROM learners WHERE id = ? AND school_id = ?", id, ctx.schoolId)) ?? fail("Learner not found.");
     await tx(async () => { await run("DELETE FROM learners WHERE id = ?", id); if (l.user_id) await run("DELETE FROM users WHERE id = ?", l.user_id); });
-    await removeAvatarFile(l.user_id);
+    await removeUserFiles(l.user_id);
     await audit(ctx.schoolId, ctx.user.id, "delete", "learner", id);
     revalidatePath("/learners");
   });
@@ -275,7 +275,7 @@ export async function deleteUser(id: number) {
     const u = (await get<{ role: string }>("SELECT role FROM users WHERE id = ? AND school_id = ?", id, ctx.schoolId)) ?? fail("User not found.");
     if (u.role === "school_admin" && id === ctx.user.id) fail("You cannot delete your own account.");
     await run("DELETE FROM users WHERE id = ?", id);
-    await removeAvatarFile(id);
+    await removeUserFiles(id);
     await audit(ctx.schoolId, ctx.user.id, "delete", "user", id);
     revalidatePath("/parents");
   });
@@ -296,6 +296,10 @@ export async function resetPassword(_: ActionResult, f: FormData) {
 // ---------------- Profile photo ----------------
 async function removeAvatarFile(userId: number | null | undefined) {
   if (userId) await removeFile(storageKey.avatar(userId));
+}
+/** A deleted account's photo and banner. */
+async function removeUserFiles(userId: number | null | undefined) {
+  if (userId) await Promise.all([removeFile(storageKey.avatar(userId)), removeFile(storageKey.banner(userId))]);
 }
 
 /** Any signed-in user may set their own profile photo (resized in the browser first). */
@@ -318,6 +322,30 @@ export async function removeAvatar(): Promise<ActionResult> {
     await removeAvatarFile(ctx.user.id);
     await run("UPDATE users SET avatar_updated_at = NULL WHERE id = ?", ctx.user.id);
     await audit(ctx.schoolId, ctx.user.id, "remove_photo", "user", ctx.user.id);
+    revalidatePath("/", "layout");
+  });
+}
+
+/** Any signed-in user may set a banner picture for their profile and dashboard (resized in the browser first). */
+export async function uploadBanner(f: FormData): Promise<ActionResult> {
+  return guarded(EVERYONE, async (ctx) => {
+    const file = f.get("banner");
+    if (!(file instanceof File) || file.size === 0) fail("Choose a picture to upload.");
+    if (file.size > MAX_BANNER_BYTES) fail("That picture is too large. Please use an image under 3 MB.");
+    const buf = new Uint8Array(await file.arrayBuffer());
+    const type = imageType(buf) ?? fail("Only JPG, PNG or WebP pictures are allowed.");
+    await putFile(storageKey.banner(ctx.user.id), buf, type);
+    await run("UPDATE users SET banner_updated_at = datetime('now') WHERE id = ?", ctx.user.id);
+    await audit(ctx.schoolId, ctx.user.id, "upload_banner", "user", ctx.user.id);
+    revalidatePath("/", "layout");
+  });
+}
+
+export async function removeBanner(): Promise<ActionResult> {
+  return guarded(EVERYONE, async (ctx) => {
+    await removeFile(storageKey.banner(ctx.user.id));
+    await run("UPDATE users SET banner_updated_at = NULL WHERE id = ?", ctx.user.id);
+    await audit(ctx.schoolId, ctx.user.id, "remove_banner", "user", ctx.user.id);
     revalidatePath("/", "layout");
   });
 }

@@ -33,6 +33,7 @@ const localPath = (key: string) => join(LOCAL_DIR, ...key.split("/"));
 /** Keys used across the app. */
 export const storageKey = {
   avatar: (userId: number) => `avatars/${userId}.img`,
+  banner: (userId: number) => `banners/${userId}.img`,
   logo: (schoolId: number) => `logos/${schoolId}.img`,
   expenseDoc: (expenseId: number) => `expense-docs/${expenseId}.pdf`,
   assignmentDoc: (assignmentId: number) => `assignment-docs/${assignmentId}.pdf`,

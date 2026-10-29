@@ -2,7 +2,8 @@ import Link from "next/link";
 import { Users, GraduationCap, UsersRound, Wallet, Building2, Award } from "lucide-react";
 import type { Ctx } from "@/lib/auth";
 import { all, get } from "@/lib/db";
-import { zar, fmtDate } from "@/lib/format";
+import { zar, fmtDate, bannerUrl } from "@/lib/format";
+import { bannerStyle } from "@/components/ui/banner";
 import { MONTHS, today } from "@/lib/today";
 import { classResults } from "@/lib/results";
 import { Card, StatCard } from "@/components/ui/kit";
@@ -49,7 +50,7 @@ export default async function AdminDashboard({ ctx }: { ctx: Ctx }) {
 
   return (
     <div className="space-y-6">
-      <SchoolBanner school={ctx.school}>
+      <SchoolBanner school={ctx.school} cover={bannerStyle(bannerUrl(ctx.user.id, ctx.user.banner_updated_at))}>
         <div className="text-right">
           <p className="text-sm font-semibold">{fmtDate(today(), { weekday: "long", day: "numeric", month: "long" })}</p>
           <p className="text-xs muted">EMIS {ctx.school.emis_number} · Quintile {ctx.school.quintile}</p>

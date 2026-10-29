@@ -51,5 +51,9 @@ export const avatarUrl = (userId: number | null | undefined, version: string | n
   userId && version ? `/api/avatar/${userId}?v=${encodeURIComponent(version)}` : null;
 
 /** URL of a school's logo, or null when it has none. */
+/** A user's banner picture, or null when they haven't added one. */
+export const bannerUrl = (userId: number | null | undefined, version: string | null | undefined) =>
+  userId && version ? `/api/banner/${userId}?v=${encodeURIComponent(version)}` : null;
+
 export const logoUrl = (schoolId: number | null | undefined, version: string | null | undefined) =>
   schoolId && version ? `/api/logo/${schoolId}?v=${encodeURIComponent(version)}` : null;

@@ -11,7 +11,7 @@ export const EVERYONE: Role[] = ["super_admin", ...SCHOOL_ROLES];
 
 export type User = {
   id: number; school_id: number | null; role: Role; title: string | null;
-  first_name: string; last_name: string; email: string; phone: string | null; avatar_updated_at: string | null;
+  first_name: string; last_name: string; email: string; phone: string | null; avatar_updated_at: string | null; banner_updated_at: string | null;
 };
 
 export type School = {
@@ -40,7 +40,7 @@ export async function getCtx(): Promise<Ctx | null> {
   const store = await cookies();
   const session = await verifySession(store.get(SESSION_COOKIE)?.value);
   if (!session) return null;
-  const user = await get<User>("SELECT id, school_id, role, title, first_name, last_name, email, phone, avatar_updated_at FROM users WHERE id = ? AND active = 1", session.uid);
+  const user = await get<User>("SELECT id, school_id, role, title, first_name, last_name, email, phone, avatar_updated_at, banner_updated_at FROM users WHERE id = ? AND active = 1", session.uid);
   if (!user) return null;
 
   // Platform admins don't belong to a school and never act inside one; the first school only fills

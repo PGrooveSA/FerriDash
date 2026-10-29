@@ -1,8 +1,9 @@
 import { EVERYONE, requireCtx } from "@/lib/auth";
 import { get } from "@/lib/db";
-import { ROLE_LABEL, fullName, avatarUrl, fmtDate } from "@/lib/format";
+import { ROLE_LABEL, fullName, avatarUrl, bannerUrl, fmtDate } from "@/lib/format";
 import { Card, PageHeader } from "@/components/ui/kit";
 import PhotoUploader from "./PhotoUploader";
+import BannerUploader from "./BannerUploader";
 import ProfileForms from "./ProfileForms";
 
 export const metadata = { title: "Profile" };
@@ -13,6 +14,10 @@ export default async function ProfilePage() {
   return (
     <>
       <PageHeader title="My profile" />
+      <BannerUploader banner={bannerUrl(ctx.user.id, ctx.user.banner_updated_at)}>
+        <p className="text-2xl font-bold tracking-tight">{fullName(ctx.user, true)}</p>
+        <p className="text-sm muted">{ROLE_LABEL[ctx.user.role]} · {ctx.school.name}</p>
+      </BannerUploader>
       <div className="grid grid-cols-1 lg:grid-cols-[22rem_1fr] gap-6">
         <Card>
           <div className="text-center">

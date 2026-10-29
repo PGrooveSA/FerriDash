@@ -1,8 +1,9 @@
 import Link from "next/link";
 import type { Ctx } from "@/lib/auth";
 import { ownLearnerIds } from "@/lib/auth";
-import { zar, fullName, avatarUrl } from "@/lib/format";
+import { zar, fullName, avatarUrl, bannerUrl } from "@/lib/format";
 import { Card, Empty, LevelBadge } from "@/components/ui/kit";
+import { bannerStyle } from "@/components/ui/banner";
 import { MiniCalendar, Agenda, AssignmentsDue, NoticeList, RecentMessages } from "@/components/widgets";
 import Avatar from "@/components/ui/Avatar";
 import { SchoolMark } from "@/components/SchoolCrest";
@@ -12,10 +13,11 @@ import { ozowConfig } from "@/lib/online-payments";
 export default async function ParentDashboard({ ctx }: { ctx: Ctx }) {
   const payOnline = !!ctx.school.fee_paying && !!(await ozowConfig(ctx.schoolId));
   const kids = (await Promise.all(((await ownLearnerIds(ctx)) ?? []).map((id) => learnerSnapshot(ctx, id)))).filter((x): x is NonNullable<typeof x> => !!x);
+  const banner = bannerStyle(bannerUrl(ctx.user.id, ctx.user.banner_updated_at));
   return (
     <div className="grid grid-cols-1 xl:grid-cols-[1fr_22rem] gap-6">
       <div className="space-y-6 min-w-0">
-        <div className="glass p-6 sm:p-8 flex flex-wrap items-center gap-6 bg-gradient-to-r from-emerald-200/70 via-butter-100/50 to-sky-200/70 dark:from-gold-500/20 dark:to-transparent">
+        <div className={`glass p-6 sm:p-8 flex flex-wrap items-center gap-6 ${banner?.className ?? "bg-gradient-to-r from-emerald-200/70 via-butter-100/50 to-sky-200/70 dark:from-gold-500/20 dark:to-transparent"}`} style={banner?.style}>
           <div className="flex-1 min-w-[14rem]">
             <h1 className="text-2xl font-bold tracking-tight">Welcome, {fullName(ctx.user, true)}</h1>
             <p className="text-sm muted mt-1">Follow your {kids.length === 1 ? "child's" : "children's"} progress at {ctx.school.name}.</p>

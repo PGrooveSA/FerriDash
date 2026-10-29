@@ -47,4 +47,9 @@ export const MIGRATIONS: { version: number; sql: string }[] = [
       ALTER TABLE assignments ENABLE ROW LEVEL SECURITY;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS assignments_seen_at TEXT;`,
   },
+  {
+    version: 5,
+    // A banner (cover) picture on each user's profile and dashboard (the image is in storage, banners/<id>.img).
+    sql: `ALTER TABLE users ADD COLUMN IF NOT EXISTS banner_updated_at TEXT;`,
+  },
 ];
