@@ -7,7 +7,7 @@ import Avatar from "./ui/Avatar";
 const CAT_TONE: Record<string, string> = {
   academic: "bg-brand-100/80 border-brand-400 dark:bg-brand-500/15", sport: "bg-rose-100/70 border-rose-400 dark:bg-rose-500/15",
   meeting: "bg-butter-100/80 border-butter-500 dark:bg-butter-500/15", school: "bg-gold-100/80 border-gold-500 dark:bg-gold-500/15",
-  holiday: "bg-emerald-100/70 border-emerald-500 dark:bg-emerald-500/15",
+  holiday: "bg-emerald-100/70 border-emerald-500 dark:bg-emerald-500/15", assignment: "bg-sky-100/80 border-sky-500 dark:bg-sky-500/15",
 };
 export const catTone = (c: string) => CAT_TONE[c] ?? CAT_TONE.school;
 

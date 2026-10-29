@@ -5,6 +5,7 @@ import { all } from "@/lib/db";
 import { fmtDate } from "@/lib/format";
 import { today } from "@/lib/today";
 import { saHolidays, type Holiday } from "@/lib/holidays";
+import { visibleAssignments } from "@/lib/assignments";
 import { Card, PageHeader } from "@/components/ui/kit";
 import { FormDialog, DeleteButton, type Field } from "@/components/ui/forms";
 import { catTone, cardTone } from "@/components/widgets";
@@ -38,10 +39,13 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   const m = Number(ym.slice(5, 7));
   const span = yearView ? `${y}-%` : `${ym}-%`;
   const events = await all<E>("SELECT * FROM events WHERE school_id = ? AND date LIKE ? ORDER BY date, start_time", ctx.schoolId, span);
+  // Due dates of assignments this person is involved in (admins: only ones they set, so the calendar stays readable).
+  const assignments = await visibleAssignments(ctx, yearView ? { from: `${y}-01-01`, to: `${y}-12-31`, ownOnly: true } : { from: `${ym}-01`, to: `${ym}-31`, ownOnly: true });
   const holidays = saHolidays(y);
   const holidayOn = new Map<string, Holiday>(holidays.map((h) => [h.date, h]));
   const selected = /^\d{4}-\d{2}-\d{2}$/.test(sp.d ?? "") && sp.d!.startsWith(ym) ? sp.d! : t.startsWith(ym) ? t : `${ym}-01`;
   const dayEvents = events.filter((e) => e.date === selected);
+  const dayAssignments = assignments.filter((a) => a.due_date === selected);
   const staff = ctx.isAdmin || ctx.user.role === "teacher";
   const nextHoliday = holidays.find((h) => h.date >= t);
 
@@ -99,7 +103,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                       {WEEKDAYS.map((d) => <span key={d} className="muted font-semibold py-1">{d[0]}</span>)}
                       {monthCells(y, mm).map((d, k) => {
                         if (!d) return <span key={k} />;
-                        const date = `${prefix}-${pad(d)}`, hol = holidayOn.get(date), has = events.some((e) => e.date === date);
+                        const date = `${prefix}-${pad(d)}`, hol = holidayOn.get(date), has = events.some((e) => e.date === date) || assignments.some((a) => a.due_date === date);
                         return (
                           <Link key={k} href={monthHref(y, mm, date)} title={hol?.name}
                             className={`relative mx-auto w-7 h-7 grid place-items-center rounded-full text-xs ${date === t ? "bg-gradient-to-br from-brand-500 to-charcoal-500 text-white font-semibold" : hol ? "bg-emerald-200/80 text-emerald-900 font-semibold dark:bg-emerald-500/30 dark:text-emerald-100" : "hover:bg-white/60 dark:hover:bg-white/10"}`}>
@@ -119,7 +123,9 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
               {monthCells(y, m).map((d, i) => {
                 const date = d ? `${ym}-${pad(d)}` : "";
                 const evs = events.filter((e) => e.date === date), hol = holidayOn.get(date);
-                const items = [...(hol ? [{ key: "h", title: hol.name, cat: "holiday" }] : []), ...evs.map((e) => ({ key: String(e.id), title: e.title, cat: e.category }))];
+                const items = [...(hol ? [{ key: "h", title: hol.name, cat: "holiday" }] : []),
+                  ...assignments.filter((a) => a.due_date === date).map((a) => ({ key: `a${a.id}`, title: `Due: ${a.subject} – ${a.title}`, cat: "assignment" })),
+                  ...evs.map((e) => ({ key: String(e.id), title: e.title, cat: e.category }))];
                 return (
                   <Link key={i} href={d ? monthHref(y, m, date) : "#"} className={`min-h-[5.5rem] sm:min-h-[7rem] p-1.5 sm:p-2 border-t border-l border-line first:border-l-0 [&:nth-child(7n+1)]:border-l-0 ${!d ? "pointer-events-none bg-slate-500/5" : date === selected ? "bg-gold-100/50 dark:bg-gold-500/10" : hol ? "bg-emerald-50/70 dark:bg-emerald-500/[0.06] hover:bg-emerald-100/60" : "hover:bg-white/40 dark:hover:bg-white/5"}`}>
                     {d && (
@@ -136,14 +142,20 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
               })}
             </div>
           )}
-          <div className="flex flex-wrap gap-3 mt-4 text-xs">{CATS.map((c) => <span key={c.value} className={`rounded-md border-l-[3px] px-2 py-0.5 ${catTone(c.value)}`}>{c.label}</span>)}</div>
+          <div className="flex flex-wrap gap-3 mt-4 text-xs">{[...CATS, ...(ctx.isAdmin && !assignments.length ? [] : [{ value: "assignment", label: "Assignment due" }])].map((c) => <span key={c.value} className={`rounded-md border-l-[3px] px-2 py-0.5 ${catTone(c.value)}`}>{c.label}</span>)}</div>
         </Card>
 
         {!yearView && (
           <div className="space-y-6">
             <Card title={fmtDate(selected, { weekday: "long", day: "numeric", month: "long" })}>
               {holidayOn.get(selected) && <p className={`text-sm font-semibold rounded-xl border-l-[3px] px-3 py-2 mb-3 ${catTone("holiday")}`}>Public holiday: {holidayOn.get(selected)!.name}</p>}
-              {dayEvents.length === 0 ? <p className="text-sm muted">Nothing scheduled.</p> : (
+              {dayAssignments.map((a) => (
+                <Link key={a.id} href="/assignments" className={`block rounded-xl border-l-[3px] px-3 py-2 mb-3 hover:underline ${catTone("assignment")}`}>
+                  <span className="block text-xs font-semibold uppercase tracking-wide">Assignment due · {a.subject} · Class {a.class_name}</span>
+                  <span className="block text-sm font-semibold">{a.title}</span>
+                </Link>
+              ))}
+              {dayEvents.length === 0 ? (dayAssignments.length || holidayOn.get(selected) ? null : <p className="text-sm muted">Nothing scheduled.</p>) : (
                 <ul className="space-y-3">{dayEvents.map((e, i) => (
                   <li key={e.id} className={`rounded-2xl p-4 border ${cardTone(i)}`}>
                     <div className="flex justify-between gap-2">
@@ -157,6 +169,13 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                 </ul>
               )}
             </Card>
+            {assignments.length > 0 && (
+              <Card title={`Assignments due this month (${assignments.length})`}>
+                <ul className="space-y-2 text-sm">{assignments.map((a) => (
+                  <li key={a.id}><Link href={monthHref(y, m, a.due_date)} className="flex gap-3 hover:underline"><span className="muted w-12 shrink-0">{fmtDate(a.due_date, { day: "numeric", month: "short" })}</span><span><b>{a.subject}</b> – {a.title}</span></Link></li>
+                ))}</ul>
+              </Card>
+            )}
             <Card title={`This month (${events.length})`}>
               {events.length === 0 ? <p className="text-sm muted">No events this month.</p> : (
                 <ul className="space-y-2 text-sm">{events.map((e) => (

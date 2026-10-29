@@ -7,12 +7,14 @@ import ThemeToggle from "./ThemeToggle";
 import Indicators from "./Indicators";
 import { unreadNoticeCount } from "@/lib/notices";
 import { unreadMessageCount } from "@/lib/messages";
+import { unreadAssignmentCount } from "@/lib/assignments";
 import Avatar from "../ui/Avatar";
 
 export default async function Topbar({ ctx }: { ctx: Ctx }) {
   // The platform admin only manages schools: no school search, notices or messages.
   const platform = ctx.user.role === "super_admin";
-  const unread = platform ? null : { notices: await unreadNoticeCount(ctx), messages: await unreadMessageCount(ctx.user.id) };
+  const family = ctx.user.role === "learner" || ctx.user.role === "parent";
+  const unread = platform ? null : { notices: await unreadNoticeCount(ctx), messages: await unreadMessageCount(ctx.user.id), assignments: family ? await unreadAssignmentCount(ctx) : null };
   return (
     <header className="flex flex-wrap items-center gap-3 pl-14 lg:pl-0">
       {platform ? (

@@ -2,14 +2,15 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { Bell, MessageSquare } from "lucide-react";
+import { Bell, ClipboardList, MessageSquare } from "lucide-react";
 
-type Counts = { notices: number; messages: number };
+/** assignments is null for staff (they set them; nothing to be told about). */
+type Counts = { notices: number; messages: number; assignments: number | null };
 
 const Dot = () => <span className="absolute top-2 right-2.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900" />;
 
 /**
- * Messages and notices icons with unread dots.
+ * Messages, notices and (learners and parents) assignments icons with unread dots.
  * The top bar lives in the shared layout, which Next.js does not re-render between pages,
  * so counts are re-fetched on every navigation, when the window regains focus, and every 30s.
  */
@@ -35,6 +36,7 @@ export default function Indicators({ initial }: { initial: Counts }) {
   // While reading the notice board everything on it counts as read.
   const notices = path.startsWith("/notices") ? 0 : counts.notices;
   const messages = counts.messages;
+  const assignments = counts.assignments === null ? null : path.startsWith("/assignments") ? 0 : counts.assignments;
   const plural = (n: number, w: string) => `${n} unread ${w}${n === 1 ? "" : "s"}`;
 
   return (
@@ -43,6 +45,12 @@ export default function Indicators({ initial }: { initial: Counts }) {
         <MessageSquare className="w-[1.1rem] h-[1.1rem]" />
         {messages > 0 && <Dot />}
       </Link>
+      {assignments !== null && (
+        <Link href="/assignments" className="icon-btn relative" aria-label={assignments ? `Assignments, ${assignments} new` : "Assignments"} title={assignments ? `${assignments} new assignment${assignments === 1 ? "" : "s"}` : "Assignments"}>
+          <ClipboardList className="w-[1.1rem] h-[1.1rem]" />
+          {assignments > 0 && <Dot />}
+        </Link>
+      )}
       <Link href="/notices" className="icon-btn relative" aria-label={notices ? `Notices, ${notices} unread` : "Notices"} title={notices ? plural(notices, "notice") : "Notices"}>
         <Bell className="w-[1.1rem] h-[1.1rem]" />
         {notices > 0 && <Dot />}

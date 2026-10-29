@@ -1,4 +1,4 @@
-// Uploaded files (profile photos, school logos, expense PDFs, message attachments).
+// Uploaded files (profile photos, school logos, expense and assignment PDFs, message attachments).
 // Production: a private Supabase Storage bucket, reached with the server-only service role key.
 // Development (no Supabase keys): a local folder, data/uploads. Files are never served directly:
 // FerriDash's own /api routes check who is asking, then stream the bytes.
@@ -35,6 +35,7 @@ export const storageKey = {
   avatar: (userId: number) => `avatars/${userId}.img`,
   logo: (schoolId: number) => `logos/${schoolId}.img`,
   expenseDoc: (expenseId: number) => `expense-docs/${expenseId}.pdf`,
+  assignmentDoc: (assignmentId: number) => `assignment-docs/${assignmentId}.pdf`,
   /** Random part, so a key can't be guessed from another one. */
   messageFile: (convId: number, random: string, ext: string) => `messages/${convId}/${random}.${ext}`,
 };

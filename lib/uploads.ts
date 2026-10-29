@@ -3,6 +3,7 @@
 export const MAX_AVATAR_BYTES = 2 * 1024 * 1024; // profile photos
 export const MAX_LOGO_BYTES = 2 * 1024 * 1024; // school logos
 export const MAX_EXPENSE_DOC_BYTES = 4 * 1024 * 1024; // expense PDFs (Vercel accepts request bodies up to 4.5 MB)
+export const MAX_ASSIGNMENT_DOC_BYTES = 4 * 1024 * 1024; // assignment PDFs (through the app server, like expense PDFs)
 export const MAX_MESSAGE_FILE_BYTES = 5 * 1024 * 1024; // message attachments (uploaded straight to storage)
 
 /** Files that can be attached to a message, by extension, with the type they are stored and served as. */
