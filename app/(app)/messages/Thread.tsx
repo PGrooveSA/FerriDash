@@ -5,6 +5,7 @@ import { Download, FileText, Paperclip, Send, X } from "lucide-react";
 import { prepareAttachment, sendMessage } from "@/app/actions/content";
 import Avatar from "@/components/ui/Avatar";
 import PersonLink from "@/components/ProfileCard";
+import { useT } from "@/components/I18nProvider";
 import RichEditor, { type Mentionable, type RichEditorHandle } from "./RichEditor";
 import { avatarUrl } from "@/lib/format";
 import { MAX_MESSAGE_FILE_BYTES, MESSAGE_FILE_TYPES, fileExt, fmtBytes } from "@/lib/uploads";
@@ -22,6 +23,7 @@ export default function Thread({ convId, meId, isGroup, messages, mentionables }
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const router = useRouter();
+  const t = useT();
   const end = useRef<HTMLDivElement>(null);
   const picker = useRef<HTMLInputElement>(null);
 
@@ -34,8 +36,8 @@ export default function Thread({ convId, meId, isGroup, messages, mentionables }
   const choose = (f: File | undefined) => {
     if (picker.current) picker.current.value = "";
     if (!f) return;
-    if (!MESSAGE_FILE_TYPES[fileExt(f.name)]) { setError("Attach a picture (JPG, PNG, WebP or GIF) or a document (PDF, Word, Excel, PowerPoint, text or CSV)."); return; }
-    if (f.size > MAX_MESSAGE_FILE_BYTES) { setError(`"${f.name}" is ${fmtBytes(f.size)}. Files must be 5 MB or smaller.`); return; }
+    if (!MESSAGE_FILE_TYPES[fileExt(f.name)]) { setError(t("Attach a picture (JPG, PNG, WebP or GIF) or a document (PDF, Word, Excel, PowerPoint, text or CSV).")); return; }
+    if (f.size > MAX_MESSAGE_FILE_BYTES) { setError(t("\"{name}\" is {size}. Files must be 5 MB or smaller.", { name: f.name, size: fmtBytes(f.size) })); return; }
     setError(null);
     setFile(f);
   };
@@ -48,13 +50,13 @@ export default function Thread({ convId, meId, isGroup, messages, mentionables }
       let attached: { key: string; name: string } | undefined;
       if (file) {
         const prep = await prepareAttachment(convId, file.name, file.size);
-        if (prep.error || !prep.key || !prep.url) { setError(prep.error ?? "Could not attach the file."); return; }
+        if (prep.error || !prep.key || !prep.url) { setError(prep.error ?? t("Could not attach the file.")); return; }
         // The same form the storage service expects; the file goes there directly, not through the app server.
         const fd = new FormData();
         fd.append("cacheControl", "3600");
         fd.append("", new File([file], file.name, { type: MESSAGE_FILE_TYPES[fileExt(file.name)] }));
         const up = await fetch(prep.url, { method: "PUT", body: fd }).catch(() => null);
-        if (!up?.ok) { setError("The file could not be uploaded. Check your connection and try again."); return; }
+        if (!up?.ok) { setError(t("The file could not be uploaded. Check your connection and try again.")); return; }
         attached = { key: prep.key, name: file.name };
       }
       const r = await sendMessage(convId, body, attached);
@@ -65,7 +67,7 @@ export default function Thread({ convId, meId, isGroup, messages, mentionables }
   return (
     <>
       <div className="flex-1 overflow-y-auto p-5 space-y-4">
-        {messages.length === 0 && <p className="text-sm muted text-center mt-10">Say hello 👋</p>}
+        {messages.length === 0 && <p className="text-sm muted text-center mt-10">{t("Say hello")} 👋</p>}
         {messages.map((m) => {
           const mine = m.sender_id === meId;
           const href = `/api/message-file/${m.id}`;
@@ -97,16 +99,16 @@ export default function Thread({ convId, meId, isGroup, messages, mentionables }
       {file && (
         <div className="px-4 pt-3 flex">
           <span className="chip chip-slate !py-1.5 max-w-full"><Paperclip className="w-3.5 h-3.5 shrink-0" /><span className="truncate">{file.name}</span><span className="muted shrink-0">{fmtBytes(file.size)}</span>
-            <button type="button" onClick={() => setFile(null)} aria-label="Remove attachment" className="shrink-0"><X className="w-3.5 h-3.5" /></button></span>
+            <button type="button" onClick={() => setFile(null)} aria-label={t("Remove attachment")} className="shrink-0"><X className="w-3.5 h-3.5" /></button></span>
         </div>
       )}
       <form onSubmit={(e) => { e.preventDefault(); send(); }} className="p-4 border-t border-line flex gap-2 items-end">
         <input ref={picker} type="file" accept={ACCEPT} className="hidden" onChange={(e) => choose(e.target.files?.[0])} />
-        <button type="button" onClick={() => picker.current?.click()} disabled={pending} className="icon-btn !w-11 !h-11 shrink-0" aria-label="Attach a document or picture (up to 5 MB)" title="Attach a document or picture (up to 5 MB)"><Paperclip className="w-4 h-4" /></button>
-        <RichEditor ref={editor} placeholder={file ? "Add a message (optional)" : "Type your message · @ to mention"} mentionables={mentionables} onEnter={send} disabled={pending} />
-        <button disabled={pending} className="icon-btn !w-11 !h-11 shrink-0 !bg-gradient-to-br from-brand-500 to-charcoal-500 text-white disabled:opacity-50" aria-label={pending && file ? "Uploading" : "Send"}><Send className="w-4 h-4" /></button>
+        <button type="button" onClick={() => picker.current?.click()} disabled={pending} className="icon-btn !w-11 !h-11 shrink-0" aria-label={t("Attach a document or picture (up to 5 MB)")} title={t("Attach a document or picture (up to 5 MB)")}><Paperclip className="w-4 h-4" /></button>
+        <RichEditor ref={editor} placeholder={file ? t("Add a message (optional)") : t("Type your message · @ to mention")} mentionables={mentionables} onEnter={send} disabled={pending} />
+        <button disabled={pending} className="icon-btn !w-11 !h-11 shrink-0 !bg-gradient-to-br from-brand-500 to-charcoal-500 text-white disabled:opacity-50" aria-label={pending && file ? t("Uploading…") : t("Send")}><Send className="w-4 h-4" /></button>
       </form>
-      {pending && file && <p className="text-xs muted px-4 pb-3">Uploading {file.name}…</p>}
+      {pending && file && <p className="text-xs muted px-4 pb-3">{t("Uploading {name}…", { name: file.name })}</p>}
       {error && <p className="text-sm text-rose-600 px-4 pb-3">{error}</p>}
     </>
   );

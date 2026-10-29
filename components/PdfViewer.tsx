@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Download } from "lucide-react";
 import { printPage } from "@/components/ui/forms";
+import { useT } from "@/components/I18nProvider";
 
 /**
  * Shows a PDF inside the page, one picture per page (pdf.js). Phones can't always open a PDF themselves: the
@@ -10,6 +11,7 @@ import { printPage } from "@/components/ui/forms";
 export function PdfViewer({ src }: { src: string }) {
   const box = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const t = useT();
 
   useEffect(() => {
     let cancelled = false;
@@ -35,7 +37,7 @@ export function PdfViewer({ src }: { src: string }) {
           canvas.width = Math.floor(viewport.width);
           canvas.height = Math.floor(viewport.height);
           canvas.className = "pdf-page w-full h-auto rounded-xl bg-white shadow";
-          canvas.setAttribute("aria-label", `Page ${i} of ${pdf.numPages}`);
+          canvas.setAttribute("aria-label", t("Page {n} of {total}", { n: i, total: pdf.numPages }));
           el.appendChild(canvas);
           await page.render({ canvasContext: canvas.getContext("2d")!, viewport }).promise;
           if (i === 1 && !cancelled) setState("ready");
@@ -49,8 +51,8 @@ export function PdfViewer({ src }: { src: string }) {
 
   return (
     <>
-      {state === "loading" && <p className="text-sm muted py-10 text-center no-print">Opening the PDF…</p>}
-      {state === "error" && <p className="text-sm py-10 text-center no-print">The PDF couldn&apos;t be shown here. Use Download to open it on your device.</p>}
+      {state === "loading" && <p className="text-sm muted py-10 text-center no-print">{t("Opening the PDF…")}</p>}
+      {state === "error" && <p className="text-sm py-10 text-center no-print">{t("The PDF couldn't be shown here. Use Download to open it on your device.")}</p>}
       <div ref={box} className="pdf-pages space-y-4" />
     </>
   );
@@ -62,15 +64,16 @@ export function PdfViewer({ src }: { src: string }) {
  */
 export function PdfDownload({ src, name }: { src: string; name: string }) {
   const [inApp, setInApp] = useState(false);
+  const t = useT();
   useEffect(() => setInApp(navigator.userAgent.includes("FerriDashApp")), []);
   const icon = <Download className="w-4 h-4" />;
-  if (!inApp) return <a href={`${src}?download`} download={name} className="btn btn-primary">{icon}Download</a>;
+  if (!inApp) return <a href={`${src}?download`} download={name} className="btn btn-primary">{icon}{t("Download")}</a>;
   return (
     <button type="button" className="btn btn-primary" onClick={() => {
       const title = document.title;
       document.title = name.replace(/\.pdf$/i, "");
       printPage(document.title);
       setTimeout(() => { document.title = title; }, 1500);
-    }}>{icon}Save PDF</button>
+    }}>{icon}{t("Save PDF")}</button>
   );
 }

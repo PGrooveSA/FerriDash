@@ -1,5 +1,6 @@
 "use client";
 import { forwardRef, useImperativeHandle, useRef, useState } from "react";
+import { useT } from "@/components/I18nProvider";
 import { AlignCenter, AlignLeft, AlignRight, Bold, Italic, List, ListOrdered, Palette, Smile, Strikethrough, Table, Type, Underline } from "lucide-react";
 
 export type Mentionable = { id: number; name: string; role: string };
@@ -19,6 +20,7 @@ type Menu = null | "emoji" | "color" | "size" | "align" | "table";
 const RichEditor = forwardRef<RichEditorHandle, { placeholder: string; mentionables: Mentionable[]; onEnter(): void; disabled?: boolean }>(
   function RichEditor({ placeholder, mentionables, onEnter, disabled }, ref) {
     const box = useRef<HTMLDivElement>(null);
+    const t = useT();
     const saved = useRef<Range | null>(null);
     const [menu, setMenu] = useState<Menu>(null);
     const [empty, setEmpty] = useState(true);
@@ -106,7 +108,7 @@ const RichEditor = forwardRef<RichEditorHandle, { placeholder: string; mentionab
     // Toolbar buttons keep the cursor in the message box.
     const keep = (e: React.SyntheticEvent) => e.preventDefault();
     const tool = (label: string, icon: React.ReactNode, onClick: () => void, active = false) => (
-      <button type="button" title={label} aria-label={label} onMouseDown={keep} onClick={onClick} disabled={disabled}
+      <button type="button" title={t(label)} aria-label={t(label)} onMouseDown={keep} onClick={onClick} disabled={disabled}
         className={`w-8 h-8 shrink-0 grid place-items-center rounded-lg hover:bg-black/5 dark:hover:bg-white/10 ${active ? "bg-black/10 dark:bg-white/15" : ""}`}>{icon}</button>
     );
     const toggle = (m: Menu) => { remember(); setMenu((cur) => (cur === m ? null : m)); };
@@ -117,12 +119,12 @@ const RichEditor = forwardRef<RichEditorHandle, { placeholder: string; mentionab
         {menu && (
           <div className="absolute bottom-full left-0 mb-2 z-30 glass-solid !rounded-2xl p-2 shadow-xl max-w-[min(20rem,calc(100vw-2rem))]" onMouseDown={keep}>
             {menu === "emoji" && <div className="grid grid-cols-8 gap-0.5">{EMOJI.map((e) => <button key={e} type="button" onMouseDown={keep} onClick={() => exec("insertText", e)} className="w-8 h-8 text-lg rounded-lg hover:bg-black/5 dark:hover:bg-white/10">{e}</button>)}</div>}
-            {menu === "color" && <div className="flex flex-wrap gap-1.5 w-48">{COLORS.map((c) => <button key={c} type="button" aria-label={`Colour ${c}`} onMouseDown={keep} onClick={() => exec("foreColor", c)} className="w-7 h-7 rounded-full ring-2 ring-white/70" style={{ background: c }} />)}</div>}
-            {menu === "size" && <div className="flex flex-col">{SIZES.map(([label, v]) => <button key={v} type="button" onMouseDown={keep} onClick={() => exec("fontSize", v)} className="text-left px-3 py-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10" style={{ fontSize: { "2": "0.8rem", "3": "0.95rem", "5": "1.2rem", "6": "1.5rem" }[v] }}>{label}</button>)}</div>}
+            {menu === "color" && <div className="flex flex-wrap gap-1.5 w-48">{COLORS.map((c) => <button key={c} type="button" aria-label={t("Colour")} onMouseDown={keep} onClick={() => exec("foreColor", c)} className="w-7 h-7 rounded-full ring-2 ring-white/70" style={{ background: c }} />)}</div>}
+            {menu === "size" && <div className="flex flex-col">{SIZES.map(([label, v]) => <button key={v} type="button" onMouseDown={keep} onClick={() => exec("fontSize", v)} className="text-left px-3 py-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10" style={{ fontSize: { "2": "0.8rem", "3": "0.95rem", "5": "1.2rem", "6": "1.5rem" }[v] }}>{t(label)}</button>)}</div>}
             {menu === "align" && <div className="flex gap-1">{tool("Align left", <AlignLeft className={i} />, () => exec("justifyLeft"))}{tool("Centre", <AlignCenter className={i} />, () => exec("justifyCenter"))}{tool("Align right", <AlignRight className={i} />, () => exec("justifyRight"))}</div>}
             {menu === "table" && (
               <div>
-                <p className="text-xs muted mb-1.5">{grid[0]} rows × {grid[1]} columns</p>
+                <p className="text-xs muted mb-1.5">{t("{rows} rows × {cols} columns", { rows: grid[0], cols: grid[1] })}</p>
                 <div className="grid grid-cols-6 gap-1">
                   {Array.from({ length: 36 }, (_, k) => [Math.floor(k / 6) + 1, (k % 6) + 1]).map(([r, c]) => (
                     <button key={`${r}-${c}`} type="button" aria-label={`${r} by ${c} table`} onMouseDown={keep} onMouseEnter={() => setGrid([r, c])}
@@ -130,21 +132,21 @@ const RichEditor = forwardRef<RichEditorHandle, { placeholder: string; mentionab
                       className={`w-6 h-6 rounded border ${r <= grid[0] && c <= grid[1] ? "bg-brand-500/40 border-brand-500" : "border-line"}`} />
                   ))}
                 </div>
-                <button type="button" onMouseDown={keep} onClick={insertTable} className="btn btn-primary btn-sm w-full mt-2">Insert table</button>
+                <button type="button" onMouseDown={keep} onClick={insertTable} className="btn btn-primary btn-sm w-full mt-2">{t("Insert table")}</button>
               </div>
             )}
           </div>
         )}
         {mention && matches.length > 0 && (
-          <ul className="absolute bottom-full left-0 mb-2 z-30 glass-solid !rounded-2xl p-1 shadow-xl w-64 max-w-full" role="listbox" aria-label="Mention someone">
+          <ul className="absolute bottom-full left-0 mb-2 z-30 glass-solid !rounded-2xl p-1 shadow-xl w-64 max-w-full" role="listbox" aria-label={t("Mention someone")}>
             {matches.map((p, k) => (
               <li key={p.id}><button type="button" onMouseDown={keep} onClick={() => insertMention(p)} role="option" aria-selected={k === mention.pick}
                 className={`w-full text-left px-3 py-2 rounded-xl text-sm flex justify-between gap-2 ${k === mention.pick ? "bg-brand-500/15" : "hover:bg-black/5 dark:hover:bg-white/10"}`}>
-                <span className="truncate font-medium">{p.name}</span><span className="text-xs muted shrink-0">{ROLE[p.role] ?? ""}</span></button></li>
+                <span className="truncate font-medium">{p.name}</span><span className="text-xs muted shrink-0">{t(ROLE[p.role] ?? "")}</span></button></li>
             ))}
           </ul>
         )}
-        <div className="flex items-center gap-0.5 overflow-x-auto pb-1 -mx-1 px-1 muted" role="toolbar" aria-label="Formatting">
+        <div className="flex items-center gap-0.5 overflow-x-auto pb-1 -mx-1 px-1 muted" role="toolbar" aria-label={t("Formatting")}>
           {tool("Emoji", <Smile className={i} />, () => toggle("emoji"), menu === "emoji")}
           {tool("Bold", <Bold className={i} />, () => exec("bold"))}
           {tool("Italic", <Italic className={i} />, () => exec("italic"))}
@@ -158,7 +160,7 @@ const RichEditor = forwardRef<RichEditorHandle, { placeholder: string; mentionab
           {tool("Table", <Table className={i} />, () => toggle("table"), menu === "table")}
           {tool("Mention someone", <span className="text-sm font-bold">@</span>, () => exec("insertText", " @"))}
         </div>
-        <div ref={box} contentEditable={!disabled} suppressContentEditableWarning role="textbox" aria-multiline aria-label="Message" data-placeholder={placeholder}
+        <div ref={box} contentEditable={!disabled} suppressContentEditableWarning role="textbox" aria-multiline aria-label={t("Message")} data-placeholder={placeholder}
           className={`rt input !rounded-3xl max-h-40 min-h-[2.75rem] overflow-y-auto break-words ${empty ? "rt-empty" : ""}`}
           onInput={changed} onKeyUp={remember} onMouseUp={remember} onBlur={() => setTimeout(() => setMention(null), 150)}
           onPaste={(e) => { e.preventDefault(); document.execCommand("insertText", false, e.clipboardData.getData("text/plain")); }}

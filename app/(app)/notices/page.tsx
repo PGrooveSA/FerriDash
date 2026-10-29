@@ -8,6 +8,7 @@ import { FormDialog, DeleteButton, Filters, type Field } from "@/components/ui/f
 import { saveNotice, deleteNotice, deleteOldNotices } from "@/app/actions/content";
 import { today, addDays } from "@/lib/today";
 import { noticeAudiences, markNoticesSeen } from "@/lib/notices";
+import { tFor } from "@/lib/i18n";
 
 export const metadata = { title: "Notice board" };
 const PER_PAGE = 6;
@@ -16,6 +17,7 @@ type N = { id: number; title: string; body: string; audience: string; tags: stri
 
 export default async function NoticesPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const ctx = await requireCtx();
+  const tr = tFor(ctx.user);
   const sp = await searchParams;
   const role = ctx.user.role;
   const audiences = noticeAudiences(ctx);
@@ -42,7 +44,7 @@ export default async function NoticesPage({ searchParams }: { searchParams: Prom
 
   return (
     <>
-      <PageHeader title="Notice board">
+      <PageHeader title={tr("Notice board")}>
         <Filters filters={[]} search={{ name: "q", placeholder: "Search by title or author", value: q }} />
         {ctx.isAdmin && <FormDialog trigger="button" title="Delete old notices" triggerLabel="Delete old…" submitLabel="Delete notices" action={deleteOldNotices}
           fields={[{ name: "before", label: "Delete every notice posted before", type: "date", required: true, defaultValue: addDays(today(), -90), help: "This can't be undone. Notices posted on or after this date are kept." }]} />}
@@ -50,14 +52,14 @@ export default async function NoticesPage({ searchParams }: { searchParams: Prom
       </PageHeader>
       <div className={`grid grid-cols-1 gap-6 ${selected ? "xl:grid-cols-[1fr_26rem]" : ""}`}>
         <div>
-          {rows.length === 0 ? <Card><Empty title="No notices" /></Card> : (
+          {rows.length === 0 ? <Card><Empty title={tr("No notices")} /></Card> : (
             <div className="space-y-4">
               {rows.map((n) => (
                 <Link key={n.id} href={hrefWith("/notices", sp, { id: n.id === selected?.id ? null : n.id })} scroll={false} aria-expanded={n.id === selected?.id} className={`glass block p-5 transition ${n.id === selected?.id ? "ring-2 ring-gold-300 bg-gold-100/40 dark:bg-gold-500/10" : "hover:-translate-y-0.5"}`}>
                   <div className="flex flex-wrap items-start gap-3">
                     <div className="flex-1 min-w-[12rem]">
                       <h2 className="text-lg font-semibold">{n.title}</h2>
-                      <p className="text-sm muted">By {by(n)}{n.audience !== "all" && <> · <span className="capitalize">{n.audience}</span></>}</p>
+                      <p className="text-sm muted">{tr("By {name}", { name: by(n) })}{n.audience !== "all" && <> · <span className="capitalize">{tr(n.audience)}</span></>}</p>
                     </div>
                     <span className="chip chip-slate">{fmtDate(n.created_at)}</span>
                     <span className="chip chip-slate"><Eye className="w-3 h-3" />{n.views.toLocaleString("en-ZA")}</span>
@@ -75,10 +77,10 @@ export default async function NoticesPage({ searchParams }: { searchParams: Prom
               {selected.title.slice(0, 1)}
             </div>
             <h2 className="text-xl font-semibold mt-4">{selected.title}</h2>
-            <p className="text-sm muted">By {by(selected)}</p>
+            <p className="text-sm muted">{tr("By {name}", { name: by(selected) })}</p>
             <div className="flex gap-2 mt-2"><span className="chip chip-slate">{fmtDate(selected.created_at)}</span><span className="chip chip-slate"><Eye className="w-3 h-3" />{selected.views}</span></div>
             <p className="mt-4 text-sm leading-relaxed whitespace-pre-line">{selected.body}</p>
-            {selected.tags && <div className="mt-4"><p className="text-xs font-semibold mb-2">Tags</p><div className="flex flex-wrap gap-2">{selected.tags.split(",").map((t, i) => <span key={t} className={`chip ${TAG_TONES[i % 4]}`}>{t.trim()}</span>)}</div></div>}
+            {selected.tags && <div className="mt-4"><p className="text-xs font-semibold mb-2">{tr("Tags")}</p><div className="flex flex-wrap gap-2">{selected.tags.split(",").map((t, i) => <span key={t} className={`chip ${TAG_TONES[i % 4]}`}>{t.trim()}</span>)}</div></div>}
             {staff && (ctx.isAdmin || selected.author_id === ctx.user.id) && (
               <div className="flex gap-2 mt-5"><FormDialog trigger="edit" title="Edit notice" fields={fields(selected)} hidden={{ id: selected.id }} action={saveNotice} />{ctx.isAdmin && <DeleteButton action={deleteNotice.bind(null, selected.id)} label={selected.title} />}</div>
             )}

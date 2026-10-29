@@ -13,6 +13,7 @@ import { visibleAssignments } from "@/lib/assignments";
 import { MiniCalendar, Agenda, AssignmentsDue, NoticeList } from "@/components/widgets";
 import Avatar from "@/components/ui/Avatar";
 import { SchoolMark } from "@/components/SchoolCrest";
+import { tFor, makeT, type T } from "@/lib/i18n";
 
 export type LearnerSnapshot = ReturnType<typeof learnerSnapshot>;
 
@@ -37,13 +38,14 @@ export async function learnerSnapshot(ctx: Ctx, learnerId: number) {
 }
 
 /** "Grade 10 · Class 10A", or a note while the learner has no class yet. */
-export const classLine = (l: { grade: number | null; className: string | null }) =>
-  l.className != null && l.grade != null ? `${gradeLabel(l.grade)} · Class ${l.className}` : "Not placed in a class yet";
+export const classLine = (l: { grade: number | null; className: string | null }, tr: T = makeT({})) =>
+  l.className != null && l.grade != null ? `${tr("Grade {n}", { n: gradeLabel(l.grade).replace("Grade ", "") })} · ${tr("Class {name}", { name: l.className })}` : tr("Not placed in a class yet");
 
 export default async function LearnerDashboard({ ctx }: { ctx: Ctx }) {
-  if (!ctx.learnerId) return <Empty title="No learner profile linked to this account" />;
+  const tr = tFor(ctx.user);
+  if (!ctx.learnerId) return <Empty title={tr("No learner profile linked to this account")} />;
   const snap = await learnerSnapshot(ctx, ctx.learnerId);
-  if (!snap) return <Empty title="No learner profile linked to this account" />;
+  if (!snap) return <Empty title={tr("No learner profile linked to this account")} />;
   const { learner: l, latest, att } = snap;
   const t = today();
   const assignments = await visibleAssignments(ctx, { from: t });
@@ -54,7 +56,7 @@ export default async function LearnerDashboard({ ctx }: { ctx: Ctx }) {
     const lv = capsLevel(v)?.level ?? 0;
     return { name: s.name.replace(" Home Language", " HL").replace(" First Additional Language", " FAL"), value: v, color: lv >= 6 ? "#34d399" : lv >= 4 ? "#38bdf8" : lv === 3 ? "#fde68a" : "#fda4af" };
   }) : [];
-  const trend = snap.terms.filter((x) => x.row?.average != null).map((x) => ({ term: `Term ${x.term}`, average: x.row!.average }));
+  const trend = snap.terms.filter((x) => x.row?.average != null).map((x) => ({ term: tr("Term {n}", { n: x.term }), average: x.row!.average }));
 
   const banner = bannerStyle(bannerUrl(ctx.user.id, ctx.user.banner_updated_at));
   return (
@@ -67,37 +69,37 @@ export default async function LearnerDashboard({ ctx }: { ctx: Ctx }) {
             <div className="sm:hidden ml-auto"><SchoolMark school={ctx.school} /></div>
           </div>
           <div className="flex-1 min-w-[14rem]">
-            <h1 className="text-2xl font-bold tracking-tight">Welcome, {l.first_name}</h1>
-            <p className="text-sm muted mt-1">{classLine(l)} · Admission no. {l.admission_number}</p>
+            <h1 className="text-2xl font-bold tracking-tight">{tr("Welcome, {name}", { name: l.first_name })}</h1>
+            <p className="text-sm muted mt-1">{classLine(l, tr)} · {tr("Admission no. {n}", { n: l.admission_number })}</p>
             <div className="flex flex-wrap gap-2 mt-4">
-              <Link href="/results/my" className="btn btn-primary">My results</Link>
-              <Link href="/reports/report-cards" className="btn btn-ghost">Report cards</Link>
+              <Link href="/results/my" className="btn btn-primary">{tr("My results")}</Link>
+              <Link href="/reports/report-cards" className="btn btn-ghost">{tr("Report cards")}</Link>
             </div>
           </div>
           <div className="hidden sm:block ml-auto"><SchoolMark school={ctx.school} /></div>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard label="Attendance" value={att.rate != null ? `${att.rate}%` : "-"} icon={CalendarCheck} tone="sky" hint={`${att.absent ?? 0} days absent this year`} />
-          <StatCard label={latest ? `Term ${latest.term} average` : "Average"} value={latest?.row?.average != null ? `${latest.row.average}%` : "-"} icon={Award} tone="green" hint={latest?.row?.position ? `Position ${latest.row.position} of ${latest.cr!.learners.length}` : undefined} />
-          <StatCard label="Assignments due" value={assignments.length} icon={ClipboardList} tone="gold" />
-          <StatCard label="Library books out" value={loans} icon={Library} tone="orange" />
+          <StatCard label={tr("Attendance")} value={att.rate != null ? `${att.rate}%` : "-"} icon={CalendarCheck} tone="sky" hint={tr("{n} days absent this year", { n: att.absent ?? 0 })} />
+          <StatCard label={latest ? tr("Term {n} average", { n: latest.term }) : tr("Average")} value={latest?.row?.average != null ? `${latest.row.average}%` : "-"} icon={Award} tone="green" hint={latest?.row?.position ? tr("Position {n} of {total}", { n: latest.row.position, total: latest.cr!.learners.length }) : undefined} />
+          <StatCard label={tr("Assignments due")} value={assignments.length} icon={ClipboardList} tone="gold" />
+          <StatCard label={tr("Library books out")} value={loans} icon={Library} tone="orange" />
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_20rem] gap-6">
-          <Card title={latest ? `Marks by subject · Term ${latest.term}` : "Marks by subject"}>
-            {bars.length ? <HBars data={bars} /> : <Empty title="No published results yet" />}
+          <Card title={latest ? `${tr("Marks by subject")} · ${tr("Term {n}", { n: latest.term })}` : tr("Marks by subject")}>
+            {bars.length ? <HBars data={bars} /> : <Empty title={tr("No published results yet")} />}
           </Card>
-          <Card title="Progress">{trend.length ? <Trend data={trend} xKey="term" series={[{ key: "average", name: "Average %", color: "#38bdf8" }]} /> : <Empty />}</Card>
+          <Card title={tr("Progress")}>{trend.length ? <Trend data={trend} xKey="term" series={[{ key: "average", name: tr("Average %"), color: "#38bdf8" }]} /> : <Empty title={tr("Nothing here yet")} />}</Card>
         </div>
-        <Card title="Assignments" action={<Link href="/assignments" className="text-xs muted">View all</Link>}>
+        <Card title={tr("Assignments")} action={<Link href="/assignments" className="text-xs muted">{tr("View all")}</Link>}>
           {assignments.length ? (
-            <div className="overflow-x-auto"><table className="table"><thead><tr><th>Task</th><th>Subject</th><th>Due</th></tr></thead>
+            <div className="overflow-x-auto"><table className="table"><thead><tr><th>{tr("Task")}</th><th>{tr("Subject")}</th><th>{tr("Due")}</th></tr></thead>
               <tbody>{assignments.slice(0, 6).map((a) => <tr key={a.id}><td className="font-medium"><Link href={`/assignments/${a.id}`} className="hover:underline">{a.title}</Link></td><td>{a.subject}</td><td>{fmtDate(a.due_date)}</td></tr>)}</tbody></table></div>
-          ) : <Empty title="No assignments due" />}
+          ) : <Empty title={tr("No assignments due")} />}
         </Card>
       </div>
       <aside className="space-y-6">
-        <Card><MiniCalendar schoolId={ctx.schoolId} ctx={ctx} /><h3 className="font-semibold mt-6 mb-3">Assignments due</h3><AssignmentsDue ctx={ctx} /><h3 className="font-semibold mt-6 mb-3">Agenda</h3><Agenda schoolId={ctx.schoolId} /></Card>
-        <Card title="Notices"><NoticeList schoolId={ctx.schoolId} audiences={["all", "learners"]} /></Card>
+        <Card><MiniCalendar tr={tr} schoolId={ctx.schoolId} ctx={ctx} /><h3 className="font-semibold mt-6 mb-3">{tr("Assignments due")}</h3><AssignmentsDue tr={tr} ctx={ctx} /><h3 className="font-semibold mt-6 mb-3">{tr("Agenda")}</h3><Agenda tr={tr} schoolId={ctx.schoolId} /></Card>
+        <Card title={tr("Notices")}><NoticeList tr={tr} schoolId={ctx.schoolId} audiences={["all", "learners"]} /></Card>
       </aside>
     </div>
   );

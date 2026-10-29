@@ -1,5 +1,6 @@
 import { logoUrl } from "@/lib/format";
 import ViewImage from "@/components/ui/ViewImage";
+import { makeT, type T } from "@/lib/i18n/core";
 
 type SchoolLike = { id: number; name: string; logo_updated_at: string | null };
 
@@ -22,14 +23,14 @@ export default function SchoolCrest({ school, size = 64, className = "", zoom = 
 }
 
 /** Banner strip with crest, school name and motto for the top of dashboards. */
-export function SchoolBanner({ school, children, cover }: { school: SchoolLike & { motto: string | null; province: string; current_term: number; current_year: number }; children?: React.ReactNode; cover?: { className: string; style: React.CSSProperties } | null }) {
+export function SchoolBanner({ school, children, cover, tr = makeT({}) }: { school: SchoolLike & { motto: string | null; province: string; current_term: number; current_year: number }; children?: React.ReactNode; cover?: { className: string; style: React.CSSProperties } | null; tr?: T }) {
   return (
     <div className={`glass p-5 sm:p-6 flex flex-wrap items-center gap-5 ${cover?.className ?? "bg-gradient-to-r from-sky-200/70 via-gold-100/50 to-emerald-200/60 dark:from-brand-500/15 dark:via-transparent dark:to-charcoal-500/15"}`} style={cover?.style}>
       <SchoolCrest school={school} size={76} zoom />
       <div className="flex-1 min-w-[14rem]">
         <h1 className="text-2xl font-bold tracking-tight">{school.name}</h1>
         {school.motto && <p className="text-sm italic muted">“{school.motto}”</p>}
-        <p className="text-xs muted mt-1">{school.province} · Term {school.current_term}, {school.current_year}</p>
+        <p className="text-xs muted mt-1">{school.province} · {tr("Term {n}", { n: school.current_term })}, {school.current_year}</p>
       </div>
       {children}
     </div>

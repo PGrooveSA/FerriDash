@@ -2,11 +2,14 @@ import { Mail, Phone } from "lucide-react";
 import { EVERYONE, requireCtx } from "@/lib/auth";
 import Sidebar from "@/components/shell/Sidebar";
 import Topbar from "@/components/shell/Topbar";
+import { I18nProvider } from "@/components/I18nProvider";
+import { dictFor } from "@/lib/i18n";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const ctx = await requireCtx(EVERYONE);
   const platform = ctx.user.role === "super_admin";
   return (
+    <I18nProvider dict={dictFor(ctx.user.language)}>
     <div className="min-h-screen">
       <div className="no-print"><Sidebar role={ctx.user.role} school={platform ? null : { id: ctx.school.id, name: ctx.school.name, logo_updated_at: ctx.school.logo_updated_at }} /></div>
       <div className="app-content lg:pl-[17rem]">
@@ -23,5 +26,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </div>
     </div>
+    </I18nProvider>
   );
 }

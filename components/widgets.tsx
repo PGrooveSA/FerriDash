@@ -1,11 +1,16 @@
 import Link from "next/link";
 import { all, get } from "@/lib/db";
 import { fmtDate, fullName, avatarUrl } from "@/lib/format";
-import { today, MONTHS } from "@/lib/today";
+import { today } from "@/lib/today";
+
+const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 import Avatar from "./ui/Avatar";
 import type { Ctx } from "@/lib/auth";
 import { visibleAssignments } from "@/lib/assignments";
 import { messageText } from "@/lib/richtext";
+import { makeT, type T } from "@/lib/i18n";
+
+const EN = makeT({});
 
 /** Calendar categories as solid colour labels (no edge stripe); each colour is distinct at a glance. */
 const CAT_TONE: Record<string, string> = {
@@ -29,7 +34,7 @@ const CARD_TONES = [
 export const cardTone = (i: number) => CARD_TONES[i % CARD_TONES.length];
 
 /** This month at a glance: school events (gold dots) and, given a learner or parent, their assignment due dates (blue). */
-export async function MiniCalendar({ schoolId, ctx }: { schoolId: number; ctx?: Ctx }) {
+export async function MiniCalendar({ schoolId, ctx, tr = EN }: { schoolId: number; ctx?: Ctx; tr?: T }) {
   const t = today();
   const [y, m] = t.split("-").map(Number);
   const first = new Date(Date.UTC(y, m - 1, 1));
@@ -42,18 +47,18 @@ export async function MiniCalendar({ schoolId, ctx }: { schoolId: number; ctx?: 
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <p className="font-semibold">{MONTHS[m - 1]} {y}</p>
-        <Link href="/calendar" className="text-xs muted hover:text-[var(--ink)]">Open calendar</Link>
+        <p className="font-semibold">{tr(MONTH_NAMES[m - 1])} {y}</p>
+        <Link href="/calendar" className="text-xs muted hover:text-[var(--ink)]">{tr("Open calendar")}</Link>
       </div>
       <div className="grid grid-cols-7 gap-1 text-center text-xs">
-        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => <span key={d} className="muted py-1">{d}</span>)}
+        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => <span key={d} className="muted py-1">{tr(d)}</span>)}
         {cells.map((d, i) => (
           <span key={i} className={`relative py-1.5 rounded-xl text-sm ${d === Number(t.slice(8)) ? "bg-gradient-to-br from-brand-300 to-gold-300 text-slate-900 font-bold" : ""}`}>
             {d}
             {d && (eventDays.has(d) || dueDays.has(d)) && (
               <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 flex gap-0.5">
                 {eventDays.has(d) && <span className="w-1 h-1 rounded-full bg-gold-500" />}
-                {dueDays.has(d) && <span className="w-1 h-1 rounded-full bg-sky-500" title="Assignment due" />}
+                {dueDays.has(d) && <span className="w-1 h-1 rounded-full bg-sky-500" title={tr("Assignment due")} />}
               </span>
             )}
           </span>
@@ -64,11 +69,11 @@ export async function MiniCalendar({ schoolId, ctx }: { schoolId: number; ctx?: 
 }
 
 /** Upcoming assignments for a learner or parent (their classes), soonest first; new ones since they last looked are marked. */
-export async function AssignmentsDue({ ctx, limit = 4 }: { ctx: Ctx; limit?: number }) {
+export async function AssignmentsDue({ ctx, limit = 4, tr = EN }: { ctx: Ctx; limit?: number; tr?: T }) {
   const t = today();
   const all_ = await visibleAssignments(ctx, { from: t });
   const seen = (await get<{ s: string | null }>("SELECT assignments_seen_at s FROM users WHERE id = ?", ctx.user.id))?.s ?? "";
-  if (!all_.length) return <p className="text-sm muted">No assignments due. New ones from teachers appear here.</p>;
+  if (!all_.length) return <p className="text-sm muted">{tr("No assignments due. New ones from teachers appear here.")}</p>;
   return (
     <>
       <ul className="space-y-2.5">
@@ -78,24 +83,24 @@ export async function AssignmentsDue({ ctx, limit = 4 }: { ctx: Ctx; limit?: num
             <li key={a.id}>
               <Link href={`/assignments/${a.id}`} className={`block rounded-2xl px-4 py-3 ${catTone("assignment")} hover:brightness-95`}>
                 <p className="text-xs opacity-80 flex justify-between gap-2">
-                  <span>{a.subject} · Class {a.class_name}</span>
-                  <span className={`shrink-0 font-semibold ${days <= 1 ? "text-rose-700 dark:text-rose-100" : ""}`}>{days === 0 ? "Due today" : days === 1 ? "Due tomorrow" : `Due ${fmtDate(a.due_date, { weekday: "short", day: "numeric", month: "short" })}`}</span>
+                  <span>{a.subject} · {tr("Class {name}", { name: a.class_name })}</span>
+                  <span className={`shrink-0 font-semibold ${days <= 1 ? "text-rose-700 dark:text-rose-100" : ""}`}>{days === 0 ? tr("Due today") : days === 1 ? tr("Due tomorrow") : tr("Due {date}", { date: fmtDate(a.due_date, { weekday: "short", day: "numeric", month: "short" }) })}</span>
                 </p>
-                <p className="font-semibold text-sm mt-0.5">{a.title}{a.created_at > seen && <span className="ml-2 align-middle text-[0.65rem] font-bold uppercase rounded-full px-1.5 py-0.5 bg-rose-500 text-white">New</span>}</p>
+                <p className="font-semibold text-sm mt-0.5">{a.title}{a.created_at > seen && <span className="ml-2 align-middle text-[0.65rem] font-bold uppercase rounded-full px-1.5 py-0.5 bg-rose-500 text-white">{tr("New")}</span>}</p>
               </Link>
             </li>
           );
         })}
       </ul>
-      {all_.length > limit && <Link href="/assignments" className="block text-xs muted mt-2 hover:text-[var(--ink)]">{all_.length - limit} more due · see all assignments</Link>}
+      {all_.length > limit && <Link href="/assignments" className="block text-xs muted mt-2 hover:text-[var(--ink)]">{tr("{n} more due · see all assignments", { n: all_.length - limit })}</Link>}
     </>
   );
 }
 
-export async function Agenda({ schoolId, limit = 4 }: { schoolId: number; limit?: number }) {
+export async function Agenda({ schoolId, limit = 4, tr = EN }: { schoolId: number; limit?: number; tr?: T }) {
   const events = await all<{ id: number; title: string; date: string; start_time: string | null; category: string; audience: string | null }>(
       "SELECT * FROM events WHERE school_id = ? AND date >= ? ORDER BY date, start_time LIMIT ?", schoolId, today(), limit);
-  if (!events.length) return <p className="text-sm muted">No upcoming events.</p>;
+  if (!events.length) return <p className="text-sm muted">{tr("No upcoming events.")}</p>;
   return (
     <ul className="space-y-2.5">
       {events.map((e, i) => (
@@ -108,7 +113,7 @@ export async function Agenda({ schoolId, limit = 4 }: { schoolId: number; limit?
   );
 }
 
-export async function RecentMessages({ userId, limit = 4 }: { userId: number; limit?: number }) {
+export async function RecentMessages({ userId, limit = 4, tr = EN }: { userId: number; limit?: number; tr?: T }) {
   // For direct chats, show the other person rather than the last sender.
   const rows = await all<{ conversation_id: number; body: string; created_at: string; first_name: string; last_name: string; title: string | null; conv_title: string | null; is_group: number; uid: number; av: string | null }>(`
     SELECT m.conversation_id, COALESCE(NULLIF(m.body, ''), '📎 ' || m.attachment_name) body, m.created_at, c.title AS conv_title, c.is_group,
@@ -118,7 +123,7 @@ export async function RecentMessages({ userId, limit = 4 }: { userId: number; li
     LEFT JOIN users o ON c.is_group = 0 AND o.id = (SELECT user_id FROM conversation_members cm WHERE cm.conversation_id = c.id AND cm.user_id <> ?1 LIMIT 1)
     WHERE m.id IN (SELECT MAX(id) FROM messages WHERE conversation_id IN (SELECT conversation_id FROM conversation_members WHERE user_id = ?1) GROUP BY conversation_id)
     ORDER BY m.created_at DESC LIMIT ?2`, userId, limit);
-  if (!rows.length) return <p className="text-sm muted">No messages yet.</p>;
+  if (!rows.length) return <p className="text-sm muted">{tr("No messages yet.")}</p>;
   return (
     <ul className="space-y-4">
       {rows.map((r) => (
@@ -139,9 +144,10 @@ export async function RecentMessages({ userId, limit = 4 }: { userId: number; li
   );
 }
 
-export async function NoticeList({ schoolId, audiences, limit = 4 }: { schoolId: number; audiences: string[]; limit?: number }) {
+export async function NoticeList({ schoolId, audiences, limit = 4, tr = EN }: { schoolId: number; audiences: string[]; limit?: number; tr?: T }) {
   const rows = await all<{ id: number; title: string; body: string; created_at: string; views: number; tags: string | null }>(
       `SELECT id, title, body, created_at, views, tags FROM notices WHERE school_id = ? AND audience IN (${audiences.map(() => "?").join(",")}) ORDER BY created_at DESC LIMIT ?`, schoolId, ...audiences, limit);
+  if (!rows.length) return <p className="text-sm muted">{tr("No notices yet.")}</p>;
   return (
     <ul className="divide-line">
       {rows.map((n) => (

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { Bell, ClipboardList, MessageSquare } from "lucide-react";
+import { useT } from "@/components/I18nProvider";
 
 /** assignments is null for staff (they set them; nothing to be told about). */
 type Counts = { notices: number; messages: number; assignments: number | null };
@@ -15,6 +16,7 @@ const Dot = () => <span className="absolute top-2 right-2.5 w-2 h-2 rounded-full
  * so counts are re-fetched on every navigation, when the window regains focus, and every 30s.
  */
 export default function Indicators({ initial }: { initial: Counts }) {
+  const t = useT();
   const [counts, setCounts] = useState(initial);
   const path = usePathname();
   const search = useSearchParams().toString();
@@ -37,21 +39,20 @@ export default function Indicators({ initial }: { initial: Counts }) {
   const notices = path.startsWith("/notices") ? 0 : counts.notices;
   const messages = counts.messages;
   const assignments = counts.assignments === null ? null : path.startsWith("/assignments") ? 0 : counts.assignments;
-  const plural = (n: number, w: string) => `${n} unread ${w}${n === 1 ? "" : "s"}`;
 
   return (
     <>
-      <Link href="/messages" className="icon-btn relative" aria-label={messages ? `Messages, ${messages} unread` : "Messages"} title={messages ? plural(messages, "message") : "Messages"}>
+      <Link href="/messages" className="icon-btn relative" aria-label={messages ? t("Messages, {n} unread", { n: messages }) : t("Messages")} title={messages ? t("Messages, {n} unread", { n: messages }) : t("Messages")}>
         <MessageSquare className="w-[1.1rem] h-[1.1rem]" />
         {messages > 0 && <Dot />}
       </Link>
       {assignments !== null && (
-        <Link href="/assignments" className="icon-btn relative" aria-label={assignments ? `Assignments, ${assignments} new` : "Assignments"} title={assignments ? `${assignments} new assignment${assignments === 1 ? "" : "s"}` : "Assignments"}>
+        <Link href="/assignments" className="icon-btn relative" aria-label={assignments ? t("Assignments, {n} new", { n: assignments }) : t("Assignments")} title={assignments ? t("Assignments, {n} new", { n: assignments }) : t("Assignments")}>
           <ClipboardList className="w-[1.1rem] h-[1.1rem]" />
           {assignments > 0 && <Dot />}
         </Link>
       )}
-      <Link href="/notices" className="icon-btn relative" aria-label={notices ? `Notices, ${notices} unread` : "Notices"} title={notices ? plural(notices, "notice") : "Notices"}>
+      <Link href="/notices" className="icon-btn relative" aria-label={notices ? t("Notices, {n} unread", { n: notices }) : t("Notices")} title={notices ? t("Notices, {n} unread", { n: notices }) : t("Notices")}>
         <Bell className="w-[1.1rem] h-[1.1rem]" />
         {notices > 0 && <Dot />}
       </Link>

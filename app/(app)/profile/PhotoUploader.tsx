@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { Camera, Trash2 } from "lucide-react";
 import Avatar from "@/components/ui/Avatar";
 import { uploadAvatar, removeAvatar } from "@/app/actions/people";
+import { useT } from "@/components/I18nProvider";
 
 const SIZE = 320; // stored photo is a 320×320 square
 
@@ -31,12 +32,13 @@ export default function PhotoUploader({ first, last, photo }: { first: string; l
   const [dragging, setDragging] = useState(false);
   const [pending, start] = useTransition();
   const router = useRouter();
+  const t = useT();
 
   const handle = (file: File | undefined) => {
     if (!file) return;
     setError(null);
-    if (!file.type.startsWith("image/")) return setError("Please choose a JPG, PNG or WebP image.");
-    if (file.size > 15 * 1024 * 1024) return setError("That file is very large. Please choose a photo under 15 MB.");
+    if (!file.type.startsWith("image/")) return setError(t("Please choose a JPG, PNG or WebP image."));
+    if (file.size > 15 * 1024 * 1024) return setError(t("That file is very large. Please choose a photo under 15 MB."));
     start(async () => {
       try {
         const blob = await toSquare(file);
@@ -46,7 +48,7 @@ export default function PhotoUploader({ first, last, photo }: { first: string; l
         const r = await uploadAvatar(fd);
         if (r.error) { setError(r.error); setPreview(null); } else router.refresh();
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Upload failed.");
+        setError(t(e instanceof Error ? e.message : "Upload failed."));
         setPreview(null);
       }
     });
@@ -57,24 +59,24 @@ export default function PhotoUploader({ first, last, photo }: { first: string; l
       <button type="button" onClick={() => input.current?.click()} disabled={pending}
         onDragOver={(e) => { e.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)}
         onDrop={(e) => { e.preventDefault(); setDragging(false); handle(e.dataTransfer.files[0]); }}
-        className={`group relative rounded-full transition ${dragging ? "ring-4 ring-brand-400 scale-105" : ""}`} aria-label="Change profile photo">
+        className={`group relative rounded-full transition ${dragging ? "ring-4 ring-brand-400 scale-105" : ""}`} aria-label={t("Change profile photo")}>
         <Avatar first={first} last={last} size={112} online photo={preview ?? photo} />
         <span className="absolute inset-0 rounded-full grid place-items-center bg-slate-900/45 text-white opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition">
           <Camera className="w-7 h-7" />
         </span>
-        {pending && <span className="absolute inset-0 rounded-full grid place-items-center bg-white/60 dark:bg-slate-900/60 text-xs font-semibold">Uploading…</span>}
+        {pending && <span className="absolute inset-0 rounded-full grid place-items-center bg-white/60 dark:bg-slate-900/60 text-xs font-semibold">{t("Uploading…")}</span>}
       </button>
       <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => { handle(e.target.files?.[0]); e.target.value = ""; }} />
       <div className="flex gap-2 mt-4">
-        <button type="button" className="btn btn-primary btn-sm" disabled={pending} onClick={() => input.current?.click()}><Camera className="w-3.5 h-3.5" />{photo || preview ? "Change photo" : "Upload photo"}</button>
+        <button type="button" className="btn btn-primary btn-sm" disabled={pending} onClick={() => input.current?.click()}><Camera className="w-3.5 h-3.5" />{photo || preview ? t("Change photo") : t("Upload photo")}</button>
         {(photo || preview) && (
           <button type="button" className="btn btn-danger btn-sm" disabled={pending} onClick={() => {
-            if (!confirm("Remove your profile photo?")) return;
+            if (!confirm(t("Remove your profile photo?"))) return;
             start(async () => { const r = await removeAvatar(); if (r.error) setError(r.error); else { setPreview(null); router.refresh(); } });
-          }}><Trash2 className="w-3.5 h-3.5" />Remove</button>
+          }}><Trash2 className="w-3.5 h-3.5" />{t("Remove")}</button>
         )}
       </div>
-      <p className="text-xs muted mt-2 text-center">JPG, PNG or WebP. Drag a photo onto the circle or tap to choose. On a phone you can take one with the camera.</p>
+      <p className="text-xs muted mt-2 text-center">{t("JPG, PNG or WebP. Drag a photo onto the circle or tap to choose. On a phone you can take one with the camera.")}</p>
       {error && <p role="alert" className="text-sm text-rose-600 mt-2 text-center">{error}</p>}
     </div>
   );

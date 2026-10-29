@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { ImagePlus, Trash2 } from "lucide-react";
 import { uploadBanner, removeBanner } from "@/app/actions/people";
 import { bannerStyle } from "@/components/ui/banner";
+import { useT } from "@/components/I18nProvider";
 
 const MAX_W = 1800; // stored banner is at most 1800 px wide and no taller than half its width
 
@@ -33,13 +34,14 @@ export default function BannerUploader({ banner, children }: { banner: string | 
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const router = useRouter();
+  const t = useT();
   const shown = preview ?? banner;
 
   const handle = (file: File | undefined) => {
     if (!file) return;
     setError(null);
-    if (!file.type.startsWith("image/")) return setError("Please choose a JPG, PNG or WebP image.");
-    if (file.size > 20 * 1024 * 1024) return setError("That file is very large. Please choose a picture under 20 MB.");
+    if (!file.type.startsWith("image/")) return setError(t("Please choose a JPG, PNG or WebP image."));
+    if (file.size > 20 * 1024 * 1024) return setError(t("That file is very large. Please choose a picture under 20 MB."));
     start(async () => {
       try {
         const blob = await toBanner(file);
@@ -49,7 +51,7 @@ export default function BannerUploader({ banner, children }: { banner: string | 
         const r = await uploadBanner(fd);
         if (r.error) { setError(r.error); setPreview(null); } else router.refresh();
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Upload failed.");
+        setError(t(e instanceof Error ? e.message : "Upload failed."));
         setPreview(null);
       }
     });
@@ -61,17 +63,17 @@ export default function BannerUploader({ banner, children }: { banner: string | 
       <div className={`glass relative min-h-[11rem] sm:min-h-[13rem] p-5 sm:p-6 flex items-end ${b?.className ?? "bg-gradient-to-r from-sky-200/80 via-brand-100/50 to-emerald-200/70 dark:from-sky-500/20 dark:to-emerald-500/15"}`} style={b?.style}>
         <div className="flex-1 min-w-0">{children}</div>
         <div className="absolute top-4 right-4 flex gap-2">
-          <button type="button" className="btn btn-primary btn-sm" disabled={pending} onClick={() => input.current?.click()}><ImagePlus className="w-3.5 h-3.5" />{pending ? "Uploading…" : shown ? "Change banner" : "Add banner"}</button>
+          <button type="button" className="btn btn-primary btn-sm" disabled={pending} onClick={() => input.current?.click()}><ImagePlus className="w-3.5 h-3.5" />{pending ? t("Uploading…") : shown ? t("Change banner") : t("Add banner")}</button>
           {shown && !pending && (
             <button type="button" className="btn btn-danger btn-sm" onClick={() => {
-              if (!confirm("Remove your banner?")) return;
+              if (!confirm(t("Remove your banner?"))) return;
               start(async () => { const r = await removeBanner(); if (r.error) setError(r.error); else { setPreview(null); router.refresh(); } });
-            }}><Trash2 className="w-3.5 h-3.5" /><span className="hidden sm:inline">Remove</span></button>
+            }}><Trash2 className="w-3.5 h-3.5" /><span className="hidden sm:inline">{t("Remove")}</span></button>
           )}
         </div>
         <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => { handle(e.target.files?.[0]); e.target.value = ""; }} />
       </div>
-      <p className="text-xs muted mt-2">Your banner shows on your profile and across the top of your dashboard. Wide pictures work best (JPG, PNG or WebP).</p>
+      <p className="text-xs muted mt-2">{t("Your banner shows on your profile and across the top of your dashboard. Wide pictures work best (JPG, PNG or WebP).")}</p>
       {error && <p role="alert" className="text-sm text-rose-600 mt-1">{error}</p>}
     </div>
   );

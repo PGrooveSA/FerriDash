@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
+import { useT } from "@/components/I18nProvider";
 import { personProfile, type PersonProfile } from "@/app/actions/profile";
 import Avatar from "@/components/ui/Avatar";
 import ViewImage from "@/components/ui/ViewImage";
@@ -9,6 +10,7 @@ import SchoolCrest from "@/components/SchoolCrest";
 /** Wraps a person's photo or name: tapping it shows their profile (photo, role, classes or subjects, school). */
 export default function PersonLink({ userId, children, className = "" }: { userId: number | null | undefined; children: React.ReactNode; className?: string }) {
   const [open, setOpen] = useState(false);
+  const t = useT();
   const [p, setP] = useState<PersonProfile | null | undefined>(undefined);
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -24,8 +26,8 @@ export default function PersonLink({ userId, children, className = "" }: { userI
       <dialog ref={ref} onClose={() => setOpen(false)} className="m-auto w-[calc(100%-2rem)] max-w-sm bg-transparent backdrop:bg-slate-900/30 backdrop:backdrop-blur-sm">
         {open && (
           <div className="glass-solid p-6 text-[var(--ink)] relative overflow-hidden">
-            <button type="button" className="icon-btn !w-8 !h-8 absolute top-4 right-4 z-10" onClick={() => setOpen(false)} aria-label="Close"><X className="w-4 h-4" /></button>
-            {p === undefined ? <p className="text-sm muted text-center py-10">Loading…</p> : p === null ? <p className="text-sm text-center py-10">This profile isn&apos;t available.</p> : (
+            <button type="button" className="icon-btn !w-8 !h-8 absolute top-4 right-4 z-10" onClick={() => setOpen(false)} aria-label={t("Close")}><X className="w-4 h-4" /></button>
+            {p === undefined ? <p className="text-sm muted text-center py-10">{t("Loading…")}</p> : p === null ? <p className="text-sm text-center py-10">{t("This profile isn't available.")}</p> : (
               <div className="text-center">
                 {/* Their banner across the top, or a soft colour band; the photo overlaps its lower edge. */}
                 <div className="-mx-6 -mt-6 mb-[-3.5rem] h-28 bg-cover bg-center bg-gradient-to-r from-sky-200/80 via-brand-100/50 to-emerald-200/70 dark:from-sky-500/20 dark:to-emerald-500/15"

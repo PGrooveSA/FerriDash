@@ -8,11 +8,13 @@ import { today } from "@/lib/today";
 import { classResults } from "@/lib/results";
 import { Card, StatCard, StatusChip } from "@/components/ui/kit";
 import { bannerStyle } from "@/components/ui/banner";
+import { tFor } from "@/lib/i18n";
 import { Bars } from "@/components/charts";
 import { SchoolMark } from "@/components/SchoolCrest";
 import { MiniCalendar, Agenda, RecentMessages, NoticeList } from "@/components/widgets";
 
 export default async function TeacherDashboard({ ctx }: { ctx: Ctx }) {
+  const tr = tFor(ctx.user);
   const sid = ctx.schoolId, year = ctx.school.current_year, term = ctx.school.current_term, t = today();
   const my = await all<{ csId: number; classId: number; className: string; subject: string; learners: number; status: string }>(`
     SELECT cs.id csId, c.id classId, c.name className, s.name subject,
@@ -46,37 +48,38 @@ export default async function TeacherDashboard({ ctx }: { ctx: Ctx }) {
       <div className="space-y-6 min-w-0">
         <div className={`glass p-6 sm:p-8 flex flex-wrap items-center gap-6 ${banner?.className ?? "bg-gradient-to-r from-sky-200/80 via-brand-100/50 to-emerald-200/70 dark:from-sky-500/20 dark:to-emerald-500/15"}`} style={banner?.style}>
           <div className="flex-1 min-w-[16rem]">
-          <p className="text-sm muted">Sawubona · Dumela · Welcome</p>
+          <p className="text-sm muted">Sawubona · Dumela · {tr("Welcome")}</p>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mt-1">{fullName(ctx.user, true)}</h1>
-          <p className="mt-2 text-sm max-w-xl">You have <b>{toCapture}</b> assessment{toCapture === 1 ? "" : "s"} waiting for marks and {homeroom ? (registerDone ? "today's register is complete." : <>the <b>{homeroom.name}</b> register still needs to be taken today.</>) : "no register class."}</p>
+          <p className="mt-2 text-sm max-w-xl">{tr(toCapture === 1 ? "You have 1 assessment waiting for marks." : "You have {n} assessments waiting for marks.", { n: toCapture })}{" "}
+            {homeroom ? (registerDone ? tr("Today's register is complete.") : tr("The {class} register still needs to be taken today.", { class: homeroom.name })) : tr("You have no register class.")}</p>
           <div className="flex flex-wrap gap-2 mt-4">
-            <Link href="/results" className="btn btn-primary">Capture marks</Link>
-            {homeroom && <Link href={`/attendance?class=${homeroom.id}`} className="btn btn-ghost">Take register</Link>}
+            <Link href="/results" className="btn btn-primary">{tr("Capture marks")}</Link>
+            {homeroom && <Link href={`/attendance?class=${homeroom.id}`} className="btn btn-ghost">{tr("Take register")}</Link>}
           </div>
           </div>
           <SchoolMark school={ctx.school} />
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard label="Subjects taught" value={my.length} icon={BookOpen} tone="sky" />
-          <StatCard label="Learners" value={[...new Map(my.map((m) => [m.classId, m.learners])).values()].reduce((a, b) => a + b, 0)} icon={Users} tone="green" />
-          <StatCard label="To capture" value={toCapture} icon={ClipboardList} tone="gold" />
-          <StatCard label="Register class" value={homeroom?.name ?? "-"} icon={CalendarCheck} tone="orange" hint={homeroom ? (registerDone ? "Taken today" : "Not yet taken") : undefined} />
+          <StatCard label={tr("Subjects taught")} value={my.length} icon={BookOpen} tone="sky" />
+          <StatCard label={tr("Learners")} value={[...new Map(my.map((m) => [m.classId, m.learners])).values()].reduce((a, b) => a + b, 0)} icon={Users} tone="green" />
+          <StatCard label={tr("To capture")} value={toCapture} icon={ClipboardList} tone="gold" />
+          <StatCard label={tr("Register class")} value={homeroom?.name ?? "-"} icon={CalendarCheck} tone="orange" hint={homeroom ? (registerDone ? tr("Taken today") : tr("Not yet taken")) : undefined} />
         </div>
 
-        <Card title={`My classes · Term ${prev} averages`}>
-          <Bars data={perf} xKey="name" yMax={100} unit="%" series={[{ key: "average", name: "Average", color: "#38bdf8" }]} />
+        <Card title={tr("My classes · Term {n} averages", { n: prev })}>
+          <Bars data={perf} xKey="name" yMax={100} unit="%" series={[{ key: "average", name: tr("Average"), color: "#38bdf8" }]} />
         </Card>
 
-        <Card title="My mark sheets" action={<span className="text-xs muted">Term {term}</span>}>
+        <Card title={tr("My mark sheets")} action={<span className="text-xs muted">{tr("Term {n}", { n: term })}</span>}>
           <div className="overflow-x-auto">
             <table className="table">
-              <thead><tr><th>Class</th><th>Subject</th><th>Learners</th><th>Status</th><th></th></tr></thead>
+              <thead><tr><th>{tr("Class")}</th><th>{tr("Subject")}</th><th>{tr("Learners")}</th><th>{tr("Status")}</th><th></th></tr></thead>
               <tbody>
                 {my.map((m) => (
                   <tr key={m.csId}>
                     <td className="font-medium">{m.className}</td><td>{m.subject}</td><td>{m.learners}</td><td><StatusChip status={m.status} /></td>
-                    <td className="text-right"><Link className="btn btn-ghost btn-sm" href={`/results?cs=${m.csId}&term=${term}`}>Open</Link></td>
+                    <td className="text-right"><Link className="btn btn-ghost btn-sm" href={`/results?cs=${m.csId}&term=${term}`}>{tr("Open")}</Link></td>
                   </tr>
                 ))}
               </tbody>
@@ -85,12 +88,12 @@ export default async function TeacherDashboard({ ctx }: { ctx: Ctx }) {
         </Card>
       </div>
       <aside className="space-y-6">
-        <Card><MiniCalendar schoolId={sid} /><h3 className="font-semibold mt-6 mb-3">Agenda</h3><Agenda schoolId={sid} /></Card>
-        <Card title="Assignments set" action={<Link href="/assignments" className="text-xs muted">View all</Link>}>
-          {assignments.length ? <ul className="space-y-3">{assignments.map((a) => <li key={a.id} className="text-sm"><Link href="/assignments" className="font-medium hover:underline">{a.title}</Link><p className="text-xs muted">{a.subject} · Class {a.class_name} · due {fmtDate(a.due_date)}</p></li>)}</ul> : <p className="text-sm muted">No upcoming assignments. <Link href="/assignments" className="underline">Set one</Link></p>}
+        <Card><MiniCalendar tr={tr} schoolId={sid} /><h3 className="font-semibold mt-6 mb-3">{tr("Agenda")}</h3><Agenda tr={tr} schoolId={sid} /></Card>
+        <Card title={tr("Assignments set")} action={<Link href="/assignments" className="text-xs muted">{tr("View all")}</Link>}>
+          {assignments.length ? <ul className="space-y-3">{assignments.map((a) => <li key={a.id} className="text-sm"><Link href={`/assignments/${a.id}`} className="font-medium hover:underline">{a.title}</Link><p className="text-xs muted">{a.subject} · {tr("Class {name}", { name: a.class_name })} · {tr("Due {date}", { date: fmtDate(a.due_date) })}</p></li>)}</ul> : <p className="text-sm muted">{tr("No upcoming assignments.")} <Link href="/assignments" className="underline">{tr("Set one")}</Link></p>}
         </Card>
-        <Card title="Messages" action={<Link href="/messages" className="text-xs muted">View all</Link>}><RecentMessages userId={ctx.user.id} /></Card>
-        <Card title="Notices"><NoticeList schoolId={sid} audiences={["all", "staff"]} /></Card>
+        <Card title={tr("Messages")} action={<Link href="/messages" className="text-xs muted">{tr("View all")}</Link>}><RecentMessages tr={tr} userId={ctx.user.id} /></Card>
+        <Card title={tr("Notices")}><NoticeList tr={tr} schoolId={sid} audiences={["all", "staff"]} /></Card>
       </aside>
     </div>
   );

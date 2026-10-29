@@ -52,4 +52,9 @@ export const MIGRATIONS: { version: number; sql: string }[] = [
     // A banner (cover) picture on each user's profile and dashboard (the image is in storage, banners/<id>.img).
     sql: `ALTER TABLE users ADD COLUMN IF NOT EXISTS banner_updated_at TEXT;`,
   },
+  {
+    version: 6,
+    // Each user's interface language (lib/i18n: en, af, zu, xh, nr, nso, st, tn, ss, ve, ts). Null means English.
+    sql: `ALTER TABLE users ADD COLUMN IF NOT EXISTS language TEXT;`,
+  },
 ];

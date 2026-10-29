@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { all, audit, get, run, tx } from "@/lib/db";
 import { EXIT_REASONS } from "@/lib/staff";
 import { parseSaId } from "@/lib/format";
+import { isLang } from "@/lib/i18n";
 import { ADMIN, EVERYONE, STAFF, fail, guarded, num, opt, str, type ActionResult } from "@/lib/action-utils";
 
 const strongEnough = (p: string) => p.length >= 8 && /[A-Z]/.test(p) && /\d/.test(p);
@@ -347,6 +348,17 @@ export async function removeBanner(): Promise<ActionResult> {
     await run("UPDATE users SET banner_updated_at = NULL WHERE id = ?", ctx.user.id);
     await audit(ctx.schoolId, ctx.user.id, "remove_banner", "user", ctx.user.id);
     revalidatePath("/", "layout");
+  });
+}
+
+/** Any signed-in user chooses the language FerriDash is shown in (for them, on every device). */
+export async function setLanguage(_: ActionResult, f: FormData): Promise<ActionResult> {
+  return guarded(EVERYONE, async (ctx) => {
+    const lang = str(f, "language");
+    if (!isLang(lang)) fail("Choose a language.");
+    await run("UPDATE users SET language = ? WHERE id = ?", lang === "en" ? null : lang, ctx.user.id);
+    revalidatePath("/", "layout");
+    return { ok: true };
   });
 }
 
