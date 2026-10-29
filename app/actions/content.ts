@@ -4,6 +4,9 @@ import { all, audit, get, run, tx } from "@/lib/db";
 import { ADMIN, STAFF, fail, guarded, num, opt, str, type ActionResult } from "@/lib/action-utils";
 import { today, addDays } from "@/lib/today";
 import { notify, noticeAudienceUsers } from "@/lib/push";
+import { randomUUID } from "node:crypto";
+import { fileSize, removeFile, signedUploadUrl, storageKey } from "@/lib/storage";
+import { MAX_MESSAGE_FILE_BYTES, MESSAGE_FILE_TYPES, fileExt } from "@/lib/uploads";
 
 // ---------------- Notices ----------------
 export async function saveNotice(_: ActionResult, f: FormData) {
@@ -101,13 +104,44 @@ async function notifyMessage(sender: { id: number; title: string | null; first_n
   notify(others, { title: `New message from ${name}`, body: "Open FerriDash to read and reply.", url: `/messages?c=${convId}` });
 }
 
-export async function sendMessage(convId: number, body: string): Promise<ActionResult> {
+/**
+ * Step 1 of attaching a file: checks its name and size, then says where the browser should upload it. In
+ * production that is storage itself, because files up to 5 MB are too big to pass through the app server.
+ */
+export async function prepareAttachment(convId: number, name: string, size: number): Promise<ActionResult & { key?: string; url?: string }> {
+  let key = "", url = "";
+  const r = await guarded(undefined, async (ctx) => {
+    if (!(await member(convId, ctx.user.id))) fail("You are not part of this conversation.");
+    const ext = fileExt(name);
+    if (!MESSAGE_FILE_TYPES[ext]) fail("Attach a picture (JPG, PNG, WebP or GIF) or a document (PDF, Word, Excel, PowerPoint, text or CSV).");
+    if (!(size > 0)) fail("That file is empty.");
+    if (size > MAX_MESSAGE_FILE_BYTES) fail("Files must be 5 MB or smaller.");
+    key = storageKey.messageFile(convId, randomUUID(), ext);
+    url = (await signedUploadUrl(key)) ?? `/api/message-file/upload?key=${encodeURIComponent(key)}`;
+  });
+  return r.error ? r : { key, url };
+}
+
+const MESSAGE_KEY = /^messages\/(\d+)\/[0-9a-f-]{36}\.([a-z0-9]+)$/;
+
+export async function sendMessage(convId: number, body: string, file?: { key: string; name: string }): Promise<ActionResult> {
   return guarded(undefined, async (ctx) => {
     const text = body.trim();
-    if (!text) fail("Type a message first.");
+    if (!text && !file) fail("Type a message first.");
     if (text.length > 4000) fail("Message is too long.");
     if (!(await member(convId, ctx.user.id))) fail("You are not part of this conversation.");
-    await run("INSERT INTO messages (conversation_id, sender_id, body) VALUES (?,?,?)", convId, ctx.user.id, text);
+    let attachment: [string, string, string, number] | [null, null, null, null] = [null, null, null, null];
+    if (file) {
+      // Only a file uploaded for this chat (step 1), present in storage, and within the limit.
+      const m = MESSAGE_KEY.exec(file.key);
+      if (!m || Number(m[1]) !== convId || !MESSAGE_FILE_TYPES[m[2]]) fail("That attachment is not valid.");
+      const size = (await fileSize(file.key)) ?? fail("The file did not finish uploading. Please try again.");
+      if (size > MAX_MESSAGE_FILE_BYTES) { await removeFile(file.key); fail("Files must be 5 MB or smaller."); }
+      const name = file.name.replace(/^.*[\\/]/, "").replace(/[\u0000-\u001f"]/g, "").slice(-120) || `attachment.${m[2]}`;
+      attachment = [file.key, name, MESSAGE_FILE_TYPES[m[2]], size];
+    }
+    await run("INSERT INTO messages (conversation_id, sender_id, body, attachment_key, attachment_name, attachment_type, attachment_size) VALUES (?,?,?,?,?,?,?)",
+      convId, ctx.user.id, text, ...attachment);
     await run("UPDATE conversation_members SET last_read_at = datetime('now') WHERE conversation_id = ? AND user_id = ?", convId, ctx.user.id);
     await notifyMessage(ctx.user, convId);
   });

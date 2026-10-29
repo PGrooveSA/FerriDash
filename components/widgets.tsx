@@ -67,7 +67,7 @@ export async function Agenda({ schoolId, limit = 4 }: { schoolId: number; limit?
 export async function RecentMessages({ userId, limit = 4 }: { userId: number; limit?: number }) {
   // For direct chats, show the other person rather than the last sender.
   const rows = await all<{ conversation_id: number; body: string; created_at: string; first_name: string; last_name: string; title: string | null; conv_title: string | null; is_group: number; uid: number; av: string | null }>(`
-    SELECT m.conversation_id, m.body, m.created_at, c.title AS conv_title, c.is_group,
+    SELECT m.conversation_id, COALESCE(NULLIF(m.body, ''), '📎 ' || m.attachment_name) body, m.created_at, c.title AS conv_title, c.is_group,
       COALESCE(o.id, u.id) uid, COALESCE(o.avatar_updated_at, u.avatar_updated_at) av,
       COALESCE(o.first_name, u.first_name) first_name, COALESCE(o.last_name, u.last_name) last_name, COALESCE(o.title, u.title) title
     FROM messages m JOIN users u ON u.id = m.sender_id JOIN conversations c ON c.id = m.conversation_id

@@ -25,9 +25,10 @@ export default async function NoticesPage({ searchParams }: { searchParams: Prom
   const args = [ctx.schoolId, ...audiences, q, q, q];
   const total = (await get<{ n: number }>(`SELECT COUNT(*) n FROM notices n LEFT JOIN users u ON u.id = n.author_id WHERE ${where}`, ...args))!.n;
   const rows = await all<N>(`SELECT n.*, u.title title_, u.first_name, u.last_name FROM notices n LEFT JOIN users u ON u.id = n.author_id WHERE ${where} ORDER BY n.created_at DESC LIMIT ? OFFSET ?`, ...args, PER_PAGE, (page - 1) * PER_PAGE);
-  const selectedId = Number(sp.id) || rows[0]?.id;
+  // Nothing is open until the user picks a notice; picking the open one again closes it.
+  const selectedId = Number(sp.id) || undefined;
   const selected = selectedId ? (await get<N>(`SELECT n.*, u.title title_, u.first_name, u.last_name FROM notices n LEFT JOIN users u ON u.id = n.author_id WHERE n.id = ? AND n.school_id = ? AND n.audience IN (${audiences.map(() => "?").join(",")})`, selectedId, ctx.schoolId, ...audiences)) : undefined;
-  if (selected && sp.id) await run("UPDATE notices SET views = views + 1 WHERE id = ?", selected.id);
+  if (selected) await run("UPDATE notices SET views = views + 1 WHERE id = ?", selected.id);
   const staff = ctx.isAdmin || role === "teacher";
   const by = (n: N) => n.first_name ? fullName({ title: n.title_, first_name: n.first_name, last_name: n.last_name! }, true) : "School office";
 
@@ -44,12 +45,12 @@ export default async function NoticesPage({ searchParams }: { searchParams: Prom
         <Filters filters={[]} search={{ name: "q", placeholder: "Search by title or author", value: q }} />
         {staff && <FormDialog title="New notice" triggerLabel="Post notice" fields={fields()} action={saveNotice} />}
       </PageHeader>
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_26rem] gap-6">
+      <div className={`grid grid-cols-1 gap-6 ${selected ? "xl:grid-cols-[1fr_26rem]" : ""}`}>
         <div>
           {rows.length === 0 ? <Card><Empty title="No notices" /></Card> : (
             <div className="space-y-4">
               {rows.map((n) => (
-                <Link key={n.id} href={hrefWith("/notices", sp, { id: n.id })} className={`glass block p-5 transition ${n.id === selected?.id ? "ring-2 ring-gold-300 bg-gold-100/40 dark:bg-gold-500/10" : "hover:-translate-y-0.5"}`}>
+                <Link key={n.id} href={hrefWith("/notices", sp, { id: n.id === selected?.id ? null : n.id })} scroll={false} aria-expanded={n.id === selected?.id} className={`glass block p-5 transition ${n.id === selected?.id ? "ring-2 ring-gold-300 bg-gold-100/40 dark:bg-gold-500/10" : "hover:-translate-y-0.5"}`}>
                   <div className="flex flex-wrap items-start gap-3">
                     <div className="flex-1 min-w-[12rem]">
                       <h2 className="text-lg font-semibold">{n.title}</h2>

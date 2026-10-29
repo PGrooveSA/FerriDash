@@ -3,7 +3,7 @@ import { Users } from "lucide-react";
 import { requireCtx } from "@/lib/auth";
 import { all, get } from "@/lib/db";
 import { fmtDate, fullName, ROLE_LABEL, avatarUrl } from "@/lib/format";
-import { Card, Empty } from "@/components/ui/kit";
+import { Card, Empty, hrefWith } from "@/components/ui/kit";
 import { FormDialog } from "@/components/ui/forms";
 import Avatar from "@/components/ui/Avatar";
 import { startChat, markRead } from "@/app/actions/content";
@@ -18,7 +18,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
   const sp = await searchParams;
   const q = sp.q?.trim().toLowerCase() ?? "";
   const convs = (await all<Conv>(`
-    SELECT c.id, c.title, c.is_group, c.description, m.body, m.created_at, su.first_name sender,
+    SELECT c.id, c.title, c.is_group, c.description, COALESCE(NULLIF(m.body, ''), '📎 ' || m.attachment_name) body, m.created_at, su.first_name sender,
       o.first_name other_first, o.last_name other_last, o.title other_title, o.role other_role, o.id other_id, o.avatar_updated_at other_av,
       (SELECT COUNT(*) FROM messages x WHERE x.conversation_id = c.id AND x.sender_id <> ?1 AND x.created_at > COALESCE(me.last_read_at, '')) unread,
       (SELECT COUNT(*) FROM conversation_members WHERE conversation_id = c.id) members
@@ -28,12 +28,13 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
     LEFT JOIN users o ON c.is_group = 0 AND o.id = (SELECT user_id FROM conversation_members WHERE conversation_id = c.id AND user_id <> ?1 LIMIT 1)
     ORDER BY COALESCE(m.created_at, c.created_at) DESC`, ctx.user.id))
     .filter((c) => !q || (c.title ?? `${c.other_first} ${c.other_last}`).toLowerCase().includes(q));
-  const activeId = convs.some((c) => c.id === Number(sp.c)) ? Number(sp.c) : convs[0]?.id;
+  // No chat is open until the user picks one; picking the open one again closes it.
+  const activeId = convs.some((c) => c.id === Number(sp.c)) ? Number(sp.c) : undefined;
   const active = convs.find((c) => c.id === activeId);
   if (active?.unread) await markRead(active.id);
 
-  const messages = activeId ? (await all<{ id: number; body: string; created_at: string; sender_id: number; first_name: string; last_name: string; title: string | null; role: string; avatar_updated_at: string | null }>(`
-    SELECT m.id, m.body, m.created_at, m.sender_id, u.first_name, u.last_name, u.title, u.role, u.avatar_updated_at FROM messages m JOIN users u ON u.id = m.sender_id
+  const messages = activeId ? (await all<{ id: number; body: string; created_at: string; sender_id: number; first_name: string; last_name: string; title: string | null; role: string; avatar_updated_at: string | null; attachment_name: string | null; attachment_type: string | null; attachment_size: number | null }>(`
+    SELECT m.id, m.body, m.created_at, m.sender_id, u.first_name, u.last_name, u.title, u.role, u.avatar_updated_at, m.attachment_name, m.attachment_type, m.attachment_size FROM messages m JOIN users u ON u.id = m.sender_id
     WHERE m.conversation_id = ? ORDER BY m.created_at, m.id LIMIT 300`, activeId)) : [];
   const members = activeId ? (await all<{ id: number; first_name: string; last_name: string; title: string | null; role: string; avatar_updated_at: string | null }>("SELECT u.id, u.first_name, u.last_name, u.title, u.role, u.avatar_updated_at FROM conversation_members cm JOIN users u ON u.id = cm.user_id WHERE cm.conversation_id = ? ORDER BY u.last_name", activeId)) : [];
 
@@ -45,7 +46,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
   const name = (c: Conv) => c.is_group ? c.title ?? "Group" : c.other_first ? fullName({ title: c.other_title, first_name: c.other_first, last_name: c.other_last! }, true) : "Conversation";
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[22rem_1fr] 2xl:grid-cols-[22rem_1fr_20rem] gap-0 glass overflow-hidden !rounded-[1.75rem] min-h-[70vh]">
+    <div className={`grid grid-cols-1 lg:grid-cols-[22rem_1fr] ${active ? "2xl:grid-cols-[22rem_1fr_20rem]" : ""} gap-0 glass overflow-hidden !rounded-[1.75rem] min-h-[70vh]`}>
       <aside className="border-r border-line flex flex-col max-h-[78vh]">
         <div className="p-4 flex gap-2 border-b border-line">
           <form className="flex-1"><input name="q" defaultValue={q} placeholder="Search" className="input !rounded-full" aria-label="Search conversations" /></form>
@@ -56,7 +57,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
           {convs.length === 0 && <li className="p-6 text-sm muted">No conversations yet.</li>}
           {convs.map((c) => (
             <li key={c.id}>
-              <Link href={`/messages?c=${c.id}`} className={`flex gap-3 px-4 py-3.5 border-b border-line ${c.id === activeId ? "bg-gold-100/50 dark:bg-gold-500/10" : "hover:bg-white/40 dark:hover:bg-white/5"}`}>
+              <Link href={hrefWith("/messages", { q }, { c: c.id === activeId ? null : c.id })} scroll={false} aria-expanded={c.id === activeId} className={`flex gap-3 px-4 py-3.5 border-b border-line ${c.id === activeId ? "bg-gold-100/50 dark:bg-gold-500/10" : "hover:bg-white/40 dark:hover:bg-white/5"}`}>
                 {c.is_group ? <span className="w-11 h-11 rounded-full grid place-items-center bg-gradient-to-br from-brand-400 to-charcoal-400 text-white shrink-0"><Users className="w-5 h-5" /></span> : <Avatar first={c.other_first ?? "?"} last={c.other_last ?? ""} size={44} photo={avatarUrl(c.other_id, c.other_av)} />}
                 <div className="min-w-0 flex-1">
                   <div className="flex justify-between gap-2"><p className="font-semibold truncate">{name(c)}</p><span className="text-[0.7rem] muted shrink-0">{c.created_at ? fmtDate(c.created_at, { day: "numeric", month: "short" }) : ""}</span></div>
@@ -68,7 +69,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
         </ul>
       </aside>
 
-      <section className="flex flex-col max-h-[78vh] bg-gold-100/20 dark:bg-transparent">
+      <section className={`flex-col max-h-[78vh] bg-gold-100/20 dark:bg-transparent ${active ? "flex" : "hidden lg:flex"}`}>
         {active ? (
           <>
             <header className="px-5 py-4 border-b border-line flex items-center gap-3">
@@ -77,10 +78,10 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
             </header>
             <Thread key={active.id} convId={active.id} meId={ctx.user.id} isGroup={!!active.is_group} messages={messages} />
           </>
-        ) : <div className="grid place-items-center flex-1"><Empty title="Select or start a conversation" /></div>}
+        ) : <div className="grid place-items-center flex-1"><Empty title="Select a conversation to read it" hint="Or start a new one with the New button." /></div>}
       </section>
 
-      <aside className="hidden 2xl:block border-l border-line p-5 overflow-y-auto max-h-[78vh]">
+      <aside className={`hidden border-l border-line p-5 overflow-y-auto max-h-[78vh] ${active ? "2xl:block" : ""}`}>
         {active && (
           <>
             <p className="font-semibold mb-4">{active.is_group ? "Group info" : "Contact info"}</p>

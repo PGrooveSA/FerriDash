@@ -17,4 +17,13 @@ export const MIGRATIONS: { version: number; sql: string }[] = [
       CREATE INDEX IF NOT EXISTS idx_push_devices_user ON push_devices(user_id);
       ALTER TABLE push_devices ENABLE ROW LEVEL SECURITY;`,
   },
+  {
+    version: 3,
+    // A document or picture attached to a message (the file itself is in storage, under attachment_key).
+    sql: `
+      ALTER TABLE messages ADD COLUMN IF NOT EXISTS attachment_key TEXT;
+      ALTER TABLE messages ADD COLUMN IF NOT EXISTS attachment_name TEXT;
+      ALTER TABLE messages ADD COLUMN IF NOT EXISTS attachment_type TEXT;
+      ALTER TABLE messages ADD COLUMN IF NOT EXISTS attachment_size INTEGER;`,
+  },
 ];
