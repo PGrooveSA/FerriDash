@@ -11,7 +11,7 @@ const shiftYear = (date: string, by: number) => `${Number(date.slice(0, 4)) + by
  * Closes the current academic year and opens the next one:
  * records every learner's class and outcome for the year, creates next year's classes
  * (copying subjects, teachers and register teachers), moves learners, graduates Grade 12s,
- * copies term dates and fee structures, and advances the school to Term 1 of the new year.
+ * copies term dates, and advances the school to Term 1 of the new year.
  */
 export async function runYearEnd(_: ActionResult, f: FormData): Promise<ActionResult> {
   return guarded(ADMIN, async (ctx) => {
@@ -52,12 +52,9 @@ export async function runYearEnd(_: ActionResult, f: FormData): Promise<ActionRe
               }
             }
 
-            // Term dates and fee structures carry over a year (edit them later in Settings / Fees).
+            // Term dates carry over a year (edit them later in Settings).
             for (const t of await all<{ number: number; start_date: string; end_date: string }>("SELECT number, start_date, end_date FROM terms WHERE school_id = ? AND year = ?", ctx.schoolId, year))
               await run("INSERT INTO terms (school_id, year, number, start_date, end_date) VALUES (?,?,?,?,?) ON CONFLICT (school_id, year, number) DO NOTHING", ctx.schoolId, next, t.number, shiftYear(t.start_date, 1), shiftYear(t.end_date, 1));
-            await run(`INSERT INTO fee_structures (school_id, year, grade, tuition, activities, other)
-           SELECT school_id, ?, grade, tuition, activities, other FROM fee_structures WHERE school_id = ? AND year = ?
-           ON CONFLICT (school_id, year, grade) DO NOTHING`, next, ctx.schoolId, year);
             await run("UPDATE schools SET current_year = ?, current_term = 1 WHERE id = ?", next, ctx.schoolId);
             await audit(ctx.schoolId, ctx.user.id, "year_end", "school", ctx.schoolId,
                       `${year} -> ${next}: ${counts.promote} promoted, ${counts.repeat} repeating, ${counts.graduate} graduated, ${counts.leave} left`);

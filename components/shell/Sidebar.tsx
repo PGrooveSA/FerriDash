@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useT } from "@/components/I18nProvider";
 import {
   LayoutDashboard, Building2, GraduationCap, Users, UsersRound, BookOpen, CalendarCheck, Award, FileBarChart,
-  Wallet, Megaphone, CalendarDays, Library, MessageSquare, UserCircle, Settings, Upload, LogOut, ChevronDown, X, Menu, ClipboardList,
+  Wallet, Megaphone, CalendarDays, Clock, MessageSquare, UserCircle, Settings, Upload, LogOut, ChevronDown, X, Menu, ClipboardList,
 } from "lucide-react";
 import { logout } from "@/app/actions/auth";
 import SchoolCrest from "@/components/SchoolCrest";
@@ -52,17 +52,15 @@ const MENU: Item[] = [
     ],
   },
   {
-    href: "/finance", label: "Finance", icon: Wallet, roles: [...ADMIN, "parent"],
+    href: "/finance", label: "Finance", icon: Wallet, roles: ADMIN,
     children: [
-      { href: "/finance/fees", label: "Fees Collection", roles: ADMIN },
       { href: "/finance/expenses", label: "School Expenses", roles: ADMIN },
-      { href: "/finance/statement", label: "Fee Statement", roles: ["parent"] },
     ],
   },
   { href: "/assignments", label: "Assignments", icon: ClipboardList, roles: ALL },
   { href: "/notices", label: "Notices", icon: Megaphone, roles: ALL },
+  { href: "/timetable", label: "Timetable", icon: Clock, roles: ALL },
   { href: "/calendar", label: "Calendar", icon: CalendarDays, roles: ALL },
-  { href: "/library", label: "Library", icon: Library, roles: ALL },
   { href: "/messages", label: "Messages", icon: MessageSquare, roles: ALL },
 ];
 

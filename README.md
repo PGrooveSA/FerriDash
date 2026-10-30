@@ -1,8 +1,8 @@
 # FerriDash – School Management for South Africa
 
 A multi-school management system for South African public and independent schools, Grade R to Grade 12.
-It covers learners, educators, parents, attendance, **CAPS results**, **report generation**, fees in **ZAR**,
-notices, calendar, library and messaging, with a modern glass interface in light and dark mode.
+It covers learners, educators, parents, attendance, **CAPS results**, **report generation**, **class timetables**,
+assignments, school expenses in **ZAR**, notices, calendar and messaging, with a modern glass interface in light and dark mode.
 
 Copyright © Infinite Q Graphics
 
@@ -61,9 +61,9 @@ second Supabase project and use its connection string instead. `DB_DEBUG=1` logs
 |---|---|
 | **Platform admin** | Manages schools only: a dashboard to add, edit, suspend and reactivate schools, add school admins and reset their passwords. No access to anything inside a school (learners, results, finance, messages) |
 | **School admin** | Everything in their school: staff, learners, parents, classes, allocation, moderation and publishing, finance, settings |
-| **Educator** | Registers for their classes, mark capture for subjects they teach, reports for their classes, notices, calendar, library loans |
-| **Learner** | Own dashboard, published results and report cards, attendance, homework, library, messages to staff |
-| **Parent** | Their own children only: published results, report cards, attendance, fee statement, messages to staff |
+| **Educator** | Registers for their classes, mark capture for subjects they teach, reports for their classes, assignments, timetables, notices, calendar |
+| **Learner** | Own dashboard, published results and report cards, attendance, assignments, timetable, messages to staff |
+| **Parent** | Their own children only: published results, report cards, attendance, assignments, timetable, messages to staff |
 
 Learners and parents never see unpublished marks.
 
@@ -99,32 +99,21 @@ Learners and parents never see unpublished marks.
 School admins use **Reports → Year-end Promotion** when the year's final results are in:
 
 1. Each learner gets a default action from their CAPS year result: **Promote**, **Repeat grade**, **Graduate** (Grade 12s who achieved the NSC) or **Leaves school**. Change any of them, for example for progression or condonation decisions.
-2. Type the year to confirm. FerriDash then records every learner's class and outcome for the year, creates next year's classes (8A → 9A; same subjects, teachers and register teachers), moves learners, marks graduates, copies term dates and fee structures, and moves the school to Term 1 of the new year.
+2. Type the year to confirm. FerriDash then records every learner's class and outcome for the year, creates next year's classes (8A → 9A; same subjects, teachers and register teachers), moves learners, marks graduates, copies term dates, and moves the school to Term 1 of the new year.
 3. Past report cards stay available: choose the year under **Report cards**. Graduates and their parents can still open them.
 
 Back up the `data` folder before running it; it cannot be undone.
 
-## Online fee payments (Ozow)
-
-Fee-paying schools can let parents pay school fees from their banking app with [Ozow](https://ozow.com):
-
-1. The school signs up with Ozow and creates a One API client (dash.ozow.com → One API → Clients).
-2. A school admin enters the **site code**, **client ID** and **client secret** under **Settings → Online payments (Ozow)**, starts in **Test** mode (Ozow staging, no real money), clicks **Test connection**, then switches to **Live**. The secret is stored encrypted with `SESSION_SECRET`; if that changes, enter the secret again.
-3. Parents see **Pay now** on their dashboard and fee statement, choose an amount up to the balance, and pay on Ozow's secure page.
-4. FerriDash confirms each payment by asking Ozow (outbound internet only), then records it on the statement, oldest invoice first, exactly once. Open payments are re-checked when the statement or Fees page is opened; **Check status** does it on demand. Admins see online payments on **Finance → Fees Collection**.
-
-The server needs internet access for this. Ozow only sends parents straight back to FerriDash if the optional **public address** (an `https://` address reachable from the internet) is set; without it, payments are confirmed when the parent returns to the statement. No-fee schools don't see any of this.
-
 ## School logo and profile photos
 
-- **School logo**: school admins upload or remove it under **Settings** (no other role can). After sign-in it appears on every role's dashboard, in the sidebar, and on report cards and fee statements. The sign-in page stays generic because all schools share it; its animated dawn-sky background (midnight blue to a tangerine sunrise) shows rising education symbols, an orbiting atom, a learning path and twinkling stars for the future.
+- **School logo**: school admins upload or remove it under **Settings** (no other role can). After sign-in it appears on every role's dashboard, in the sidebar, and on report cards. The sign-in page stays generic because all schools share it; its animated dawn-sky background (midnight blue to a tangerine sunrise) shows rising education symbols, an orbiting atom, a learning path and twinkling stars for the future.
 - **Profile photos**: every user can upload one under **Profile**.
 - Images are resized in the browser and stored in Supabase Storage (`data/uploads` when no Supabase keys are set). Logos are public; profile photos are only visible to signed-in users of the same school.
 
 ## South African details
 
 ZAR currency (`en-ZA` formatting), SA ID number validation (Luhn check, with date of birth and gender read from the ID),
-EMIS numbers, quintiles, the nine provinces, no-fee schools, fee exemptions, PERSAL and SACE numbers, the 11 official spoken
+EMIS numbers, quintiles, the nine provinces, no-fee schools, PERSAL and SACE numbers, the 11 official spoken
 languages, four-term calendar, and a POPIA privacy notice.
 
 ## Architecture

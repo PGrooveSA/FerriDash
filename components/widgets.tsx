@@ -9,6 +9,7 @@ import type { Ctx } from "@/lib/auth";
 import { visibleAssignments } from "@/lib/assignments";
 import { messageText } from "@/lib/richtext";
 import { makeT, type T } from "@/lib/i18n";
+import { scheduleOn, slotName, upcomingExtras, type Slot } from "@/lib/timetable";
 
 const EN = makeT({});
 
@@ -162,5 +163,36 @@ export async function NoticeList({ schoolId, audiences, limit = 4, tr = EN }: { 
         </li>
       ))}
     </ul>
+  );
+}
+
+/** Today's lessons for these classes (learners and parents), with extra classes coming up in the next two weeks. */
+export async function ClassesToday({ classIds, slots, tr = EN, showClass = false, extras = true }: { classIds: number[]; slots?: Slot[]; tr?: T; showClass?: boolean; extras?: boolean }) {
+  const t = today();
+  const list = slots ?? (await scheduleOn(classIds, t));
+  const later = extras ? await upcomingExtras(classIds) : [];
+  const now = new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Johannesburg", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date());
+  const row = (s: Slot, date?: string) => {
+    const live = !date && s.start_time <= now && now < s.end_time, done = !date && s.end_time <= now;
+    return (
+      <li key={`${s.id}-${date ?? ""}`} className={`flex gap-3 rounded-2xl px-3 py-2.5 border ${live ? "bg-emerald-100/70 border-emerald-300 dark:bg-emerald-500/15 dark:border-emerald-400/30" : "border-line"} ${done ? "opacity-60" : ""}`}>
+        <span className="text-xs font-semibold w-[5.5rem] shrink-0 pt-0.5">{date ? <span className="block muted font-normal">{fmtDate(date, { weekday: "short", day: "numeric", month: "short" })}</span> : null}{s.start_time}–{s.end_time}</span>
+        <span className="min-w-0">
+          <span className="block font-semibold text-sm">{slotName(s)}{s.date && !date ? <span className="ml-2 align-middle text-[0.65rem] font-bold uppercase rounded-full px-1.5 py-0.5 bg-gold-300 text-slate-900">{tr("Extra")}</span> : null}{live && <span className="ml-2 align-middle text-[0.65rem] font-bold uppercase rounded-full px-1.5 py-0.5 bg-emerald-500 text-white">{tr("Now")}</span>}</span>
+          <span className="block text-xs muted">{[showClass ? tr("Class {name}", { name: s.class_name }) : null, s.teacher, s.room].filter(Boolean).join(" · ")}</span>
+        </span>
+      </li>
+    );
+  };
+  return (
+    <>
+      {list.length ? <ul className="space-y-2">{list.map((s) => row(s))}</ul> : <p className="text-sm muted">{tr("No classes today.")}</p>}
+      {later.length > 0 && (
+        <>
+          <p className="text-xs font-semibold uppercase tracking-wide muted mt-4 mb-2">{tr("Extra classes coming up")}</p>
+          <ul className="space-y-2">{later.slice(0, 4).map((s) => row(s, s.date!))}</ul>
+        </>
+      )}
+    </>
   );
 }

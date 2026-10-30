@@ -21,9 +21,6 @@ export default async function AdminDashboard({ ctx }: { ctx: Ctx }) {
            (SELECT COUNT(*) FROM learners WHERE school_id = ?1 AND status='Active' AND gender='Female') girls,
            (SELECT COUNT(*) FROM teachers WHERE school_id = ?1 AND status = 'Active') teachers,
            (SELECT COUNT(*) FROM users WHERE school_id = ?1 AND role='parent') parents`, sid))!;
-  const fees = (await get<{ billed: number; paid: number }>(`SELECT
-      (SELECT COALESCE(SUM(tuition+activities+other),0) FROM invoices WHERE school_id = ?1 AND year = ?2) billed,
-      (SELECT COALESCE(SUM(p.amount),0) FROM payments p JOIN invoices i ON i.id = p.invoice_id WHERE p.school_id = ?1 AND i.year = ?2) paid`, sid, year))!;
 
   // Attendance for the last 5 recorded school days
   const att = (await all<{ date: string; present: number; absent: number }>(`
@@ -31,12 +28,11 @@ export default async function AdminDashboard({ ctx }: { ctx: Ctx }) {
     FROM attendance WHERE school_id = ? AND date <= ? GROUP BY date ORDER BY date DESC LIMIT 5`, sid, today())).reverse()
     .map((r) => ({ ...r, day: new Date(r.date + "T00:00:00").toLocaleDateString("en-ZA", { weekday: "short", day: "numeric" }) }));
 
-  // Money in vs out per month
-  const income = await all<{ m: string; v: number }>("SELECT substr(paid_on,6,2) m, SUM(amount) v FROM payments WHERE school_id = ? AND paid_on LIKE ? GROUP BY m", sid, `${year}-%`);
+  // School expenses per month
   const expense = await all<{ m: string; v: number }>("SELECT substr(paid_on,6,2) m, SUM(amount) v FROM expenses WHERE school_id = ? AND paid_on LIKE ? GROUP BY m", sid, `${year}-%`);
   const money = MONTHS.map((name, i) => {
     const key = String(i + 1).padStart(2, "0");
-    return { name, income: income.find((r) => r.m === key)?.v ?? 0, expense: expense.find((r) => r.m === key)?.v ?? 0 };
+    return { name, expense: expense.find((r) => r.m === key)?.v ?? 0 };
   });
 
   // Academic performance per class for the latest completed term
@@ -66,9 +62,7 @@ export default async function AdminDashboard({ ctx }: { ctx: Ctx }) {
             <StatCard label={tr("Learners")} value={c.learners.toLocaleString("en-ZA")} icon={Users} tone="sky" hint={`${ctx.school.school_type} · Quintile ${ctx.school.quintile}`} />
             <StatCard label={tr("Educators")} value={c.teachers} icon={GraduationCap} tone="gold" hint={`${tr("Ratio")} 1:${c.teachers ? Math.round(c.learners / c.teachers) : 0}`} />
             <StatCard label={tr("Parents / Guardians")} value={c.parents} icon={UsersRound} tone="green" />
-            {ctx.school.fee_paying
-              ? <StatCard label={tr("Fees collected")} value={zar(fees.paid, true)} icon={Wallet} tone="orange" hint={tr("{pct}% of {total}", { pct: fees.billed ? Math.round((fees.paid / fees.billed) * 100) : 0, total: zar(fees.billed, true) })} />
-              : <StatCard label={tr("No-fee school")} value="R 0" icon={Wallet} tone="green" hint={tr("Funded via norms & standards")} />}
+            <StatCard label={tr("Expenses this year")} value={zar(money.reduce((a, m) => a + m.expense, 0), true)} icon={Wallet} tone="orange" />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-[20rem_1fr] gap-6">
@@ -85,8 +79,8 @@ export default async function AdminDashboard({ ctx }: { ctx: Ctx }) {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_20rem] gap-6">
-            <Card title={ctx.school.fee_paying ? tr("Income vs expenses") : tr("Expenses")}>
-              <AreaTrend money data={money} xKey="name" series={ctx.school.fee_paying ? [{ key: "income", name: tr("Fee income"), color: "#34d399" }, { key: "expense", name: tr("Expenses"), color: "#fcca1c" }] : [{ key: "expense", name: tr("Expenses"), color: "#fcca1c" }]} />
+            <Card title={tr("Expenses")} action={<Link href="/finance/expenses" className="text-xs muted hover:text-[var(--ink)]">{tr("View all")}</Link>}>
+              <AreaTrend money data={money} xKey="name" series={[{ key: "expense", name: tr("Expenses"), color: "#fcca1c" }]} />
             </Card>
             <div className="grid gap-6">
               <Link href="/results/moderation" className="glass p-5 block hover:scale-[1.01] transition-transform">

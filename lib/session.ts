@@ -10,7 +10,7 @@ export const REMEMBER_DAYS = 30;
 export type SessionPayload = { uid: number; role: string };
 
 /**
- * The server's own secret: signs session cookies and (lib/ozow.ts) encrypts stored payment keys.
+ * The server's own secret: signs session cookies.
  * SESSION_SECRET, or failing that one derived from the Supabase service role key (also server-only).
  * The built-in fallback is for local development only; production refuses to run on it.
  */

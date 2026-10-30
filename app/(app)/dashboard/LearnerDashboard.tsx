@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarCheck, Award, ClipboardList, Library } from "lucide-react";
+import { CalendarCheck, Award, ClipboardList, Clock } from "lucide-react";
 import type { Ctx } from "@/lib/auth";
 import { all, get } from "@/lib/db";
 import { fmtDate, gradeLabel, avatarUrl, bannerUrl } from "@/lib/format";
@@ -10,7 +10,8 @@ import { Card, StatCard, Empty } from "@/components/ui/kit";
 import { bannerStyle } from "@/components/ui/banner";
 import { HBars, Trend } from "@/components/charts";
 import { visibleAssignments } from "@/lib/assignments";
-import { MiniCalendar, Agenda, AssignmentsDue, NoticeList } from "@/components/widgets";
+import { MiniCalendar, Agenda, AssignmentsDue, NoticeList, ClassesToday } from "@/components/widgets";
+import { scheduleOn } from "@/lib/timetable";
 import Avatar from "@/components/ui/Avatar";
 import { SchoolMark } from "@/components/SchoolCrest";
 import { tFor, makeT, type T } from "@/lib/i18n";
@@ -33,8 +34,7 @@ export async function learnerSnapshot(ctx: Ctx, learnerId: number) {
   const latest = [...terms].reverse().find((t) => t.row?.average != null);
   const yd = await termDates(ctx.schoolId, year, "year");
   const att = await attendanceSummary(l.id, yd.start, today());
-  const balance = (await get<{ b: number }>(`SELECT COALESCE(SUM(i.tuition+i.activities+i.other),0) - COALESCE((SELECT SUM(p.amount) FROM payments p JOIN invoices i2 ON i2.id = p.invoice_id WHERE i2.learner_id = ?1),0) b FROM invoices i WHERE i.learner_id = ?1`, l.id))!.b;
-  return { learner: l, terms, latest, att, balance };
+  return { learner: l, terms, latest, att };
 }
 
 /** "Grade 10 · Class 10A", or a note while the learner has no class yet. */
@@ -49,7 +49,7 @@ export default async function LearnerDashboard({ ctx }: { ctx: Ctx }) {
   const { learner: l, latest, att } = snap;
   const t = today();
   const assignments = await visibleAssignments(ctx, { from: t });
-  const loans = (await get<{ n: number }>("SELECT COUNT(*) n FROM book_loans WHERE learner_id = ? AND returned_on IS NULL", l.id))!.n;
+  const todayClasses = l.class_id ? await scheduleOn([l.class_id], t) : [];
 
   const bars = latest ? latest.cr!.subjects.map((s) => {
     const v = latest.row!.pct[s.csId];
@@ -82,8 +82,11 @@ export default async function LearnerDashboard({ ctx }: { ctx: Ctx }) {
           <StatCard label={tr("Attendance")} value={att.rate != null ? `${att.rate}%` : "-"} icon={CalendarCheck} tone="sky" hint={tr("{n} days absent this year", { n: att.absent ?? 0 })} />
           <StatCard label={latest ? tr("Term {n} average", { n: latest.term }) : tr("Average")} value={latest?.row?.average != null ? `${latest.row.average}%` : "-"} icon={Award} tone="green" hint={latest?.row?.position ? tr("Position {n} of {total}", { n: latest.row.position, total: latest.cr!.learners.length }) : undefined} />
           <StatCard label={tr("Assignments due")} value={assignments.length} icon={ClipboardList} tone="gold" />
-          <StatCard label={tr("Library books out")} value={loans} icon={Library} tone="orange" />
+          <StatCard label={tr("Classes today")} value={todayClasses.length} icon={Clock} tone="orange" />
         </div>
+        <Card title={tr("Today's classes")} action={<Link href="/timetable" className="text-xs muted">{tr("Full timetable")}</Link>}>
+          <ClassesToday tr={tr} classIds={l.class_id ? [l.class_id] : []} slots={todayClasses} />
+        </Card>
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_20rem] gap-6">
           <Card title={latest ? `${tr("Marks by subject")} · ${tr("Term {n}", { n: latest.term })}` : tr("Marks by subject")}>
             {bars.length ? <HBars data={bars} /> : <Empty title={tr("No published results yet")} />}

@@ -11,7 +11,8 @@ import { bannerStyle } from "@/components/ui/banner";
 import { tFor } from "@/lib/i18n";
 import { Bars } from "@/components/charts";
 import { SchoolMark } from "@/components/SchoolCrest";
-import { MiniCalendar, Agenda, RecentMessages, NoticeList } from "@/components/widgets";
+import { MiniCalendar, Agenda, RecentMessages, NoticeList, ClassesToday } from "@/components/widgets";
+import { teacherScheduleOn } from "@/lib/timetable";
 
 export default async function TeacherDashboard({ ctx }: { ctx: Ctx }) {
   const tr = tFor(ctx.user);
@@ -42,6 +43,7 @@ export default async function TeacherDashboard({ ctx }: { ctx: Ctx }) {
 
   const assignments = (await visibleAssignments(ctx, { from: t })).slice(0, 5);
 
+  const myLessons = ctx.teacherId ? await teacherScheduleOn(ctx.teacherId, t) : [];
   const banner = bannerStyle(bannerUrl(ctx.user.id, ctx.user.banner_updated_at));
   return (
     <div className="grid grid-cols-1 xl:grid-cols-[1fr_22rem] gap-6">
@@ -88,6 +90,7 @@ export default async function TeacherDashboard({ ctx }: { ctx: Ctx }) {
         </Card>
       </div>
       <aside className="space-y-6">
+        <Card title={tr("My lessons today")} action={<Link href="/timetable" className="text-xs muted">{tr("Timetable")}</Link>}><ClassesToday tr={tr} classIds={[]} slots={myLessons} showClass extras={false} /></Card>
         <Card><MiniCalendar tr={tr} schoolId={sid} /><h3 className="font-semibold mt-6 mb-3">{tr("Agenda")}</h3><Agenda tr={tr} schoolId={sid} /></Card>
         <Card title={tr("Assignments set")} action={<Link href="/assignments" className="text-xs muted">{tr("View all")}</Link>}>
           {assignments.length ? <ul className="space-y-3">{assignments.map((a) => <li key={a.id} className="text-sm"><Link href={`/assignments/${a.id}`} className="font-medium hover:underline">{a.title}</Link><p className="text-xs muted">{a.subject} · {tr("Class {name}", { name: a.class_name })} · {tr("Due {date}", { date: fmtDate(a.due_date) })}</p></li>)}</ul> : <p className="text-sm muted">{tr("No upcoming assignments.")} <Link href="/assignments" className="underline">{tr("Set one")}</Link></p>}

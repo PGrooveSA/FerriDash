@@ -68,44 +68,6 @@ export async function deleteEvent(id: number) {
   });
 }
 
-// ---------------- Library ----------------
-export async function saveBook(_: ActionResult, f: FormData) {
-  return guarded(ADMIN, async (ctx) => {
-    const id = num(f, "id");
-    const vals = [str(f, "code"), str(f, "title"), opt(f, "author"), opt(f, "subject"), opt(f, "grades"), num(f, "publish_year"), num(f, "copies") ?? 1];
-    if (id) await run("UPDATE books SET code=?, title=?, author=?, subject=?, grades=?, publish_year=?, copies=? WHERE id = ? AND school_id = ?", ...vals, id, ctx.schoolId);
-    else await run("INSERT INTO books (code, title, author, subject, grades, publish_year, copies, school_id) VALUES (?,?,?,?,?,?,?,?)", ...vals, ctx.schoolId);
-    revalidatePath("/library");
-  });
-}
-
-export async function deleteBook(id: number) {
-  return guarded(ADMIN, async (ctx) => {
-    await run("DELETE FROM books WHERE id = ? AND school_id = ?", id, ctx.schoolId);
-    revalidatePath("/library");
-  });
-}
-
-export async function issueBook(_: ActionResult, f: FormData) {
-  return guarded(STAFF, async (ctx) => {
-    const bookId = num(f, "book_id");
-    const book = (await get<{ copies: number; out: number }>("SELECT copies, (SELECT COUNT(*) FROM book_loans WHERE book_id = b.id AND returned_on IS NULL) out FROM books b WHERE id = ? AND school_id = ?", bookId, ctx.schoolId)) ?? fail("Book not found.");
-    if (book.out >= book.copies) fail("All copies are checked out.");
-    const learner = (await get<{ id: number }>("SELECT id FROM learners WHERE school_id = ? AND admission_number = ? AND status = 'Active'", ctx.schoolId, str(f, "admission_number"))) ?? fail("No active learner with that admission number.");
-    const days = num(f, "days") ?? 14;
-    await run("INSERT INTO book_loans (school_id, book_id, learner_id, borrowed_on, due_on) VALUES (?,?,?,?,?)", ctx.schoolId, bookId, learner.id, today(), addDays(today(), days));
-    await audit(ctx.schoolId, ctx.user.id, "issue", "book", bookId);
-    revalidatePath("/library");
-  });
-}
-
-export async function returnBook(loanId: number) {
-  return guarded(STAFF, async (ctx) => {
-    await run("UPDATE book_loans SET returned_on = ? WHERE id = ? AND school_id = ?", today(), loanId, ctx.schoolId);
-    revalidatePath("/library");
-  });
-}
-
 // ---------------- Messages ----------------
 async function member(convId: number, userId: number) {
   return !!(await get("SELECT 1 FROM conversation_members WHERE conversation_id = ? AND user_id = ?", convId, userId));

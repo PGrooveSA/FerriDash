@@ -24,7 +24,7 @@ export default async function Topbar({ ctx }: { ctx: Ctx }) {
       ) : (
         <form action="/search" className="relative flex-1 min-w-[12rem] max-w-md">
           <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 muted" />
-          <input name="q" placeholder={t("Search learners, teachers, books...")} className="input !rounded-full !pl-10 glass-strong" aria-label={t("Search")} />
+          <input name="q" placeholder={t("Search learners, teachers, notices...")} className="input !rounded-full !pl-10 glass-strong" aria-label={t("Search")} />
         </form>
       )}
       <div className="ml-auto flex items-center gap-2">

@@ -5,7 +5,7 @@ Native apps for parents, learners, educators and school admins. The apps are a n
 
 1. On launch the app opens FerriDash's sign-in page. Without internet it shows "No internet connection"
    with **Try again** (it also retries by itself when the connection comes back).
-2. Everything else (dashboards, results, report cards, fee payments with Ozow) is the live website,
+2. Everything else (dashboards, results, report cards, assignments, timetables and messages) is the live website,
    so the apps never need updating when FerriDash gets new features.
 3. If the live address ever changes (for example to your own domain), change `LIVE` in `www/index.html`,
    run `npx cap sync`, and publish an app update.
@@ -79,7 +79,8 @@ FerriDash sends phone notifications for:
 - new notices (to the notice's audience)
 - new messages (the text itself is not shown on the lock screen)
 - published results (learners and their parents)
-- fee payments received, including Ozow payments (parents)
+- new assignments and extra classes (learners and their parents)
+- mentions and study groups (the people concerned)
 - a learner first marked absent on a day (parents)
 
 Tapping a notification opens the matching page.
