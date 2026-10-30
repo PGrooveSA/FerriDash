@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Download, FileText, MoreVertical, Paperclip, Pencil, Send, Trash2, X } from "lucide-react";
-import { deleteMessage, editMessage, prepareAttachment, sendMessage } from "@/app/actions/content";
+import { deleteMessages, editMessage, prepareAttachment, sendMessage } from "@/app/actions/content";
 import Avatar from "@/components/ui/Avatar";
 import PersonLink from "@/components/ProfileCard";
 import { useT } from "@/components/I18nProvider";
@@ -30,15 +30,36 @@ export default function Thread({ convId, meId, isGroup, messages, mentionables }
   const t = useT();
   const end = useRef<HTMLDivElement>(null);
   const picker = useRef<HTMLInputElement>(null);
-  const [menu, setMenu] = useState<number | null>(null);
+  const [picked, setPicked] = useState<number[]>([]);
   const [editing, setEditing] = useState<M | null>(null);
   // Re-render every 15 s so Edit disappears once a message is older than 5 minutes.
   const [, tick] = useState(0);
   useEffect(() => { const i = setInterval(() => tick((n) => n + 1), 15_000); return () => clearInterval(i); }, []);
   const canEdit = (m: M) => m.sender_id === meId && !!m.html && Date.now() - sentAt(m) < EDIT_WINDOW_MS;
 
+  // Selecting your own messages: press and hold one (or use its ⋯ button), then tap others to add them.
+  const chosen = messages.filter((m) => picked.includes(m.id));
+  const selecting = chosen.length > 0;
+  const toggle = (id: number) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
+  const press = useRef<{ timer: number; x: number; y: number } | null>(null);
+  const held = useRef(false);
+  const pressStart = (m: M, e: React.PointerEvent) => {
+    held.current = false;
+    if (m.sender_id !== meId || e.button !== 0) return;
+    press.current = { x: e.clientX, y: e.clientY, timer: window.setTimeout(() => { held.current = true; press.current = null; toggle(m.id); navigator.vibrate?.(30); }, 500) };
+  };
+  const pressEnd = () => { if (press.current) clearTimeout(press.current.timer); press.current = null; };
+  const pressMove = (e: React.PointerEvent) => { if (press.current && Math.hypot(e.clientX - press.current.x, e.clientY - press.current.y) > 10) pressEnd(); };
+  // While selecting, a tap picks a message instead of opening its link, picture or profile.
+  const tap = (m: M, e: React.MouseEvent) => {
+    if (!held.current && !selecting) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (held.current) held.current = false; else if (m.sender_id === meId) toggle(m.id);
+  };
+
   const startEdit = (m: M) => {
-    setMenu(null);
+    setPicked([]);
     setFile(null);
     setError(null);
     setEditing(m);
@@ -48,12 +69,12 @@ export default function Thread({ convId, meId, isGroup, messages, mentionables }
     editor.current?.setHtml((wrap.firstElementChild as HTMLElement | null)?.innerHTML ?? m.html);
   };
   const cancelEdit = () => { setEditing(null); editor.current?.clear(); };
-  const remove = (m: M) => {
-    setMenu(null);
-    if (!confirm(t("Delete this message for everyone?"))) return;
+  const remove = () => {
+    const ids = chosen.map((m) => m.id);
+    if (!confirm(ids.length === 1 ? t("Delete this message for everyone?") : t("Delete {n} messages for everyone?", { n: ids.length }))) return;
     start(async () => {
-      const r = await deleteMessage(m.id);
-      if (r.error) setError(r.error); else { if (editing?.id === m.id) cancelEdit(); router.refresh(); }
+      const r = await deleteMessages(ids);
+      if (r.error) setError(r.error); else { setPicked([]); if (editing && ids.includes(editing.id)) cancelEdit(); router.refresh(); }
     });
   };
 
@@ -110,7 +131,9 @@ export default function Thread({ convId, meId, isGroup, messages, mentionables }
           const mine = m.sender_id === meId;
           const href = `/api/message-file/${m.id}`;
           return (
-            <div key={m.id} className={`flex gap-3 items-end ${mine ? "flex-row-reverse" : ""}`}>
+            <div key={m.id} onPointerDown={(e) => pressStart(m, e)} onPointerUp={pressEnd} onPointerCancel={pressEnd} onPointerLeave={pressEnd} onPointerMove={pressMove}
+              onClickCapture={(e) => tap(m, e)} onContextMenu={(e) => { if (mine) e.preventDefault(); }}
+              className={`flex gap-3 items-end -mx-2 px-2 py-1 rounded-2xl transition-colors ${mine ? "flex-row-reverse pointer-coarse:select-none [-webkit-touch-callout:none]" : ""} ${picked.includes(m.id) ? "bg-brand-500/15" : ""} ${selecting && mine ? "cursor-pointer" : ""}`}>
               <PersonLink userId={m.sender_id}><Avatar first={m.first_name} last={m.last_name} size={32} photo={avatarUrl(m.sender_id, m.avatar_updated_at)} /></PersonLink>
               <div className={`max-w-[75%] rounded-3xl px-4 py-3 shadow-sm ${mine ? "bg-gradient-to-br from-brand-500 to-charcoal-500 text-white rounded-br-md" : "glass-solid !rounded-3xl rounded-bl-md"}`}>
                 {isGroup && !mine && <PersonLink userId={m.sender_id} className={`block text-xs font-semibold mb-1 hover:underline ${ROLE_TONE[m.role] ?? ""}`}>{m.title ? `${m.title} ` : ""}{m.first_name} {m.last_name}</PersonLink>}
@@ -129,17 +152,11 @@ export default function Thread({ convId, meId, isGroup, messages, mentionables }
                 {m.html && <div className={`rt text-sm break-words ${mine ? "rt-mine" : ""}`} dangerouslySetInnerHTML={{ __html: m.html }} />}
                 <p className={`text-[0.65rem] mt-1 text-right ${mine ? "text-white/75" : "muted"}`}>{m.edited_at && <span className="italic">{t("edited")} · </span>}{new Date(sentAt(m)).toLocaleString("en-ZA", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
               </div>
-              {mine && (
-                <div className="relative self-center">
-                  <button type="button" onClick={() => setMenu(menu === m.id ? null : m.id)} className="w-7 h-7 grid place-items-center rounded-full muted hover:bg-black/5 dark:hover:bg-white/10" aria-label={t("Message options")} aria-expanded={menu === m.id}><MoreVertical className="w-4 h-4" /></button>
-                  {menu === m.id && (
-                    <div className="absolute right-0 bottom-full mb-1 z-20 glass-solid !rounded-2xl p-1 shadow-xl min-w-[9rem]">
-                      {canEdit(m) && <button type="button" onClick={() => startEdit(m)} className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm hover:bg-black/5 dark:hover:bg-white/10"><Pencil className="w-3.5 h-3.5" />{t("Edit")}</button>}
-                      <button type="button" onClick={() => remove(m)} className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-rose-600 hover:bg-rose-500/10"><Trash2 className="w-3.5 h-3.5" />{t("Delete")}</button>
-                    </div>
-                  )}
-                </div>
-              )}
+              {mine && (selecting ? (
+                <span className={`self-center w-6 h-6 shrink-0 grid place-items-center rounded-full border-2 ${picked.includes(m.id) ? "bg-brand-500 border-brand-500 text-white" : "border-line"}`} aria-hidden><Check className="w-3.5 h-3.5" /></span>
+              ) : (
+                <button type="button" onClick={() => toggle(m.id)} className="self-center w-7 h-7 shrink-0 grid place-items-center rounded-full muted hover:bg-black/5 dark:hover:bg-white/10" aria-label={t("Message options")}><MoreVertical className="w-4 h-4" /></button>
+              ))}
             </div>
           );
         })}
@@ -158,7 +175,15 @@ export default function Thread({ convId, meId, isGroup, messages, mentionables }
             <button type="button" onClick={() => setFile(null)} aria-label={t("Remove attachment")} className="shrink-0"><X className="w-3.5 h-3.5" /></button></span>
         </div>
       )}
-      <form onSubmit={(e) => { e.preventDefault(); send(); }} className="p-4 border-t border-line flex gap-2 items-end">
+      {selecting && (
+        <div className="p-3 border-t border-line flex items-center gap-2">
+          <button type="button" onClick={() => setPicked([])} className="icon-btn !w-11 !h-11 shrink-0" aria-label={t("Cancel")}><X className="w-4 h-4" /></button>
+          <span className="text-sm font-medium">{t("{n} selected", { n: chosen.length })}</span>
+          {chosen.length === 1 && canEdit(chosen[0]) && <button type="button" onClick={() => startEdit(chosen[0])} className="ml-auto btn btn-ghost !min-h-11"><Pencil className="w-4 h-4" />{t("Edit")}</button>}
+          <button type="button" onClick={remove} disabled={pending} className={`${chosen.length === 1 && canEdit(chosen[0]) ? "" : "ml-auto"} btn !min-h-11 !bg-rose-600 !text-white disabled:opacity-50`}><Trash2 className="w-4 h-4" />{t("Delete")}</button>
+        </div>
+      )}
+      <form onSubmit={(e) => { e.preventDefault(); send(); }} className={`p-4 border-t border-line flex gap-2 items-end ${selecting ? "hidden" : ""}`}>
         <input ref={picker} type="file" accept={ACCEPT} className="hidden" onChange={(e) => choose(e.target.files?.[0])} />
         <button type="button" onClick={() => picker.current?.click()} disabled={pending || !!editing} className="icon-btn !w-11 !h-11 shrink-0" aria-label={t("Attach a document or picture (up to 5 MB)")} title={t("Attach a document or picture (up to 5 MB)")}><Paperclip className="w-4 h-4" /></button>
         <RichEditor ref={editor} placeholder={file ? t("Add a message (optional)") : t("Type your message · @ to mention")} mentionables={mentionables} onEnter={send} disabled={pending} />

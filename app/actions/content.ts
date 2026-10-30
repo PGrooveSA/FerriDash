@@ -209,13 +209,17 @@ export async function editMessage(id: number, body: string): Promise<ActionResul
   });
 }
 
-/** Deletes the user's own message for everyone in the chat, with its attachment. */
-export async function deleteMessage(id: number): Promise<ActionResult> {
+/** Deletes the user's own messages for everyone in the chat, with their attachments. */
+export async function deleteMessages(ids: number[]): Promise<ActionResult> {
   return guarded(undefined, async (ctx) => {
-    const m = await ownMessage(ctx.user.id, id);
-    await run("DELETE FROM messages WHERE id = ?", id);
-    if (m.attachment_key) await removeFile(m.attachment_key);
-    await audit(ctx.schoolId, ctx.user.id, "delete", "message", id, `conversation ${m.conversation_id}`);
+    if (!Array.isArray(ids) || !ids.length || ids.length > 200) fail("Choose the messages to delete.");
+    // Check every one first, so nothing is deleted if any of them isn't yours.
+    const found = await Promise.all(ids.map((id) => ownMessage(ctx.user.id, Number(id))));
+    for (const [i, m] of found.entries()) {
+      await run("DELETE FROM messages WHERE id = ?", Number(ids[i]));
+      if (m.attachment_key) await removeFile(m.attachment_key);
+      await audit(ctx.schoolId, ctx.user.id, "delete", "message", Number(ids[i]), `conversation ${m.conversation_id}`);
+    }
   });
 }
 
