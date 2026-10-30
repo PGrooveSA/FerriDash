@@ -5,6 +5,7 @@ import type { Ctx } from "@/lib/auth";
 import { ROLE_LABEL, fullName, avatarUrl } from "@/lib/format";
 import ThemeToggle from "./ThemeToggle";
 import Indicators from "./Indicators";
+import LanguageMenu from "./LanguageMenu";
 import { unreadNoticeCount } from "@/lib/notices";
 import { unreadMessageCount } from "@/lib/messages";
 import { unreadAssignmentCount } from "@/lib/assignments";
@@ -30,6 +31,7 @@ export default async function Topbar({ ctx }: { ctx: Ctx }) {
       <div className="ml-auto flex items-center gap-2">
         <ThemeToggle />
         {unread && <Suspense><Indicators initial={unread} /></Suspense>}
+        <LanguageMenu current={ctx.user.language ?? "en"} />
         <Link href="/profile" className="flex items-center gap-3 pl-2">
           <div className="text-right hidden sm:block">
             <p className="text-sm font-semibold leading-tight">{fullName(ctx.user)}</p>
