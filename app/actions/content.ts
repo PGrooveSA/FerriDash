@@ -8,6 +8,7 @@ import { randomUUID } from "node:crypto";
 import { fileSize, removeFile, signedUploadUrl, storageKey } from "@/lib/storage";
 import { MAX_MESSAGE_FILE_BYTES, MESSAGE_FILE_TYPES, fileExt } from "@/lib/uploads";
 import { cleanMessageHtml, dropMentions, mentionIds, messageText } from "@/lib/richtext";
+import { STAFF_ROLES, canStartGroup, groupCandidates } from "@/lib/study-groups";
 
 // ---------------- Notices ----------------
 export async function saveNotice(_: ActionResult, f: FormData) {
@@ -187,6 +188,46 @@ export async function sendMessage(convId: number, body: string, file?: { key: st
       await run("UPDATE conversation_members SET last_read_at = datetime('now') WHERE conversation_id = ? AND user_id = ?", convId, ctx.user.id);
     });
     await notifyMessage(ctx.user, convId, mentioned.ids);
+  });
+}
+
+/** Starts a study group (lib/study-groups.ts says who may start one and whom they may add). */
+export async function createGroup(_: ActionResult, f: FormData): Promise<ActionResult> {
+  const res = await guarded(undefined, async (ctx) => {
+    if (!canStartGroup(ctx.user.role)) fail("Only learners and school staff can start a study group.");
+    const title = str(f, "title").slice(0, 80);
+    if (!title) fail("Give the group a name.");
+    const topic = opt(f, "description")?.slice(0, 300) ?? null;
+    const allowed = new Map((await groupCandidates(ctx)).map((c) => [c.id, c]));
+    const picked = [...new Set(f.getAll("members").map(Number))].filter((id) => allowed.has(id));
+    if (!picked.length) fail("Add at least one person to the group.");
+    if (picked.length > 60) fail("A study group can have up to 60 people.");
+    if (ctx.user.role === "learner" && !picked.some((id) => STAFF_ROLES.includes(allowed.get(id)!.role)))
+      fail("Add at least one teacher to your study group.");
+    const id = await tx(async () => {
+      const c = (await run("INSERT INTO conversations (school_id, is_group, title, description, created_by) VALUES (?, 1, ?, ?, ?)", ctx.schoolId, title, topic, ctx.user.id)).id;
+      for (const uid of [ctx.user.id, ...picked]) await run("INSERT INTO conversation_members (conversation_id, user_id) VALUES (?, ?) ON CONFLICT DO NOTHING", c, uid);
+      return c;
+    });
+    await audit(ctx.schoolId, ctx.user.id, "create", "study_group", id, `${title} (${picked.length + 1} members)`);
+    const by = [ctx.user.title, ctx.user.first_name, ctx.user.last_name].filter(Boolean).join(" ");
+    notify(picked, { title: `${by} added you to ${title}`, body: topic ?? "Open the study group to join the discussion.", url: `/messages?c=${id}` });
+    return { ok: true, message: String(id) };
+  });
+  revalidatePath("/messages");
+  return res;
+}
+
+/** Leaves a group chat; a group nobody is left in is deleted with its messages. */
+export async function leaveGroup(convId: number): Promise<ActionResult> {
+  return guarded(undefined, async (ctx) => {
+    const c = (await get<{ is_group: number }>("SELECT c.is_group FROM conversations c JOIN conversation_members m ON m.conversation_id = c.id WHERE c.id = ? AND m.user_id = ?", convId, ctx.user.id)) ?? fail("You are not part of this group.");
+    if (!c.is_group) fail("You can only leave group chats.");
+    await tx(async () => {
+      await run("DELETE FROM conversation_members WHERE conversation_id = ? AND user_id = ?", convId, ctx.user.id);
+      if (!(await get("SELECT 1 FROM conversation_members WHERE conversation_id = ?", convId))) await run("DELETE FROM conversations WHERE id = ?", convId);
+    });
+    revalidatePath("/messages");
   });
 }
 

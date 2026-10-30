@@ -135,4 +135,6 @@ export default {
   "Heritage Day": "Siku ra Ndzhaka", "Day of Reconciliation": "Siku ra Mbuyelelano", "Christmas Day": "Khisimusi", "Day of Goodwill": "Siku ra Musa",
   // Presence
   "Online": "U le ka inthanete", "Last seen today at {time}": "U voniwe ro hetelela namuntlha hi {time}", "Last seen yesterday at {time}": "U voniwe ro hetelela tolo hi {time}", "Last seen {date} at {time}": "U voniwe ro hetelela hi {date} hi {time}", "{n} online": "{n} va le ka inthanete",
+  // Study groups
+  "New group": "Ntlawa lowuntshwa", "Start a study group": "Sungula ntlawa wo dyondza", "Group name": "Vito ra ntlawa", "e.g. Photosynthesis assignment help": "xik. Mpfuno hi ntirho wa photosynthesis", "Topic": "Nhlokomhaka", "What will you discuss? (optional)": "Mi ta burisana hi yini? (loko u lava)", "People": "Vanhu", "Select people": "Hlawula vanhu", "You can add classmates in your grade and your teachers. Every study group needs at least one teacher.": "U nga engetela vadyondzi va giredi ra wena na vadyondzisi va wena. Ntlawa wun'wana na wun'wana wo dyondza wu lava mudyondzisi un'we hi ku tsongo.", "Start group": "Sungula ntlawa", "Leave": "Huma", "Leave this group? You will stop getting its messages.": "Huma eka ntlawa lowu? A wu nge he kumi marungula ya wona.", "Staff": "Vatirhi", "Type to filter": "Tsala ku hlunga", "Select…": "Hlawula…",
 } satisfies Dict;

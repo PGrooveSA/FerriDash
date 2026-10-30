@@ -135,4 +135,6 @@ export default {
   "Heritage Day": "Letsatsi la Lefa", "Day of Reconciliation": "Letsatsi la Poelano", "Christmas Day": "Keresemese", "Day of Goodwill": "Letsatsi la Mosa",
   // Presence
   "Online": "O inthaneteng", "Last seen today at {time}": "O bonwe la ho qetela kajeno ka {time}", "Last seen yesterday at {time}": "O bonwe la ho qetela maobane ka {time}", "Last seen {date} at {time}": "O bonwe la ho qetela ka {date} ka {time}", "{n} online": "{n} ba inthaneteng",
+  // Study groups
+  "New group": "Sehlopha se setjha", "Start a study group": "Qala sehlopha sa ho ithuta", "Group name": "Lebitso la sehlopha", "e.g. Photosynthesis assignment help": "mohl. Thuso ka mosebetsi wa photosynthesis", "Topic": "Sehlooho", "What will you discuss? (optional)": "Le tla buisana ka eng? (ha o rata)", "People": "Batho", "Select people": "Kgetha batho", "You can add classmates in your grade and your teachers. Every study group needs at least one teacher.": "O ka kenya baithuti ba kereiti ya hao le matitjhere a hao. Sehlopha se seng le se seng sa ho ithuta se hloka bonyane titjhere a le mong.", "Start group": "Qala sehlopha", "Leave": "Tloha", "Leave this group? You will stop getting its messages.": "Tloha sehlopheng sena? O ke ke wa hlola o fumana melaetsa ya sona.", "Staff": "Basebetsi", "Type to filter": "Ngola ho sefa", "Select…": "Kgetha…",
 } satisfies Dict;

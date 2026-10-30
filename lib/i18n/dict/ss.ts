@@ -135,4 +135,6 @@ export default {
   "Heritage Day": "Lilanga Lemagugu", "Day of Reconciliation": "Lilanga Lekubuyisana", "Christmas Day": "Khisimusi", "Day of Goodwill": "Lilanga Lebumnene",
   // Presence
   "Online": "Ukhona ku-inthanethi", "Last seen today at {time}": "Ugcine kubonwa lamuhla nga-{time}", "Last seen yesterday at {time}": "Ugcine kubonwa itolo nga-{time}", "Last seen {date} at {time}": "Ugcine kubonwa nga-{date} nga-{time}", "{n} online": "{n} bakhona ku-inthanethi",
+  // Study groups
+  "New group": "Licembu lelisha", "Start a study group": "Cala licembu lekufundza", "Group name": "Libito lelicembu", "e.g. Photosynthesis assignment help": "sib. Lusito ngemsebenti we-photosynthesis", "Topic": "Sihloko", "What will you discuss? (optional)": "Nitawucoca ngani? (nawutsandza)", "People": "Bantfu", "Select people": "Khetsa bantfu", "You can add classmates in your grade and your teachers. Every study group needs at least one teacher.": "Ungengeta lofundza nabo ebangeni lakho nabothishela bakho. Licembu ngalinye lekufundza lidzinga lokungenani thishela munye.", "Start group": "Cala licembu", "Leave": "Phuma", "Leave this group? You will stop getting its messages.": "Phuma kulelicembu? Angeke usayitfola imilayeto yalo.", "Staff": "Basebenti", "Type to filter": "Bhala kute uhlunge", "Select…": "Khetsa…",
 } satisfies Dict;

@@ -141,4 +141,6 @@ export default {
   "Heritage Day": "Erfenisdag", "Day of Reconciliation": "Versoeningsdag", "Christmas Day": "Kersdag", "Day of Goodwill": "Welwillendheidsdag",
   // Presence
   "Online": "Aanlyn", "Last seen today at {time}": "Laas gesien vandag om {time}", "Last seen yesterday at {time}": "Laas gesien gister om {time}", "Last seen {date} at {time}": "Laas gesien {date} om {time}", "{n} online": "{n} aanlyn",
+  // Study groups
+  "New group": "Nuwe groep", "Start a study group": "Begin 'n studiegroep", "Group name": "Groepnaam", "e.g. Photosynthesis assignment help": "bv. Hulp met die fotosintese-taak", "Topic": "Onderwerp", "What will you discuss? (optional)": "Waaroor gaan julle gesels? (opsioneel)", "People": "Mense", "Select people": "Kies mense", "You can add classmates in your grade and your teachers. Every study group needs at least one teacher.": "Jy kan klasmaats in jou graad en jou opvoeders byvoeg. Elke studiegroep het minstens een opvoeder nodig.", "Start group": "Begin groep", "Leave": "Verlaat", "Leave this group? You will stop getting its messages.": "Verlaat hierdie groep? Jy sal nie meer sy boodskappe kry nie.", "Staff": "Personeel", "Type to filter": "Tik om te filter", "Select…": "Kies…",
 } satisfies Dict;

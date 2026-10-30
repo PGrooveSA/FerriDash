@@ -4,10 +4,11 @@ import { requireCtx } from "@/lib/auth";
 import { all, get } from "@/lib/db";
 import { fmtDate, fullName, ROLE_LABEL, avatarUrl } from "@/lib/format";
 import { Card, Empty, hrefWith } from "@/components/ui/kit";
-import { FormDialog } from "@/components/ui/forms";
+import { ConfirmButton, FormDialog } from "@/components/ui/forms";
+import { canStartGroup, groupCandidates } from "@/lib/study-groups";
 import Avatar from "@/components/ui/Avatar";
 import PersonLink from "@/components/ProfileCard";
-import { startChat, markRead } from "@/app/actions/content";
+import { startChat, markRead, createGroup, leaveGroup } from "@/app/actions/content";
 import Thread from "./Thread";
 import AutoRefresh from "./AutoRefresh";
 import { messageHtml, messageText } from "@/lib/richtext";
@@ -53,6 +54,8 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
   // Who can be @mentioned in the open chat: the people above, plus everyone already in it.
   const mentionables = [...new Map([...members.filter((m) => m.id !== ctx.user.id).map((m) => ({ id: m.id, name: fullName(m, true), role: m.role })), ...people]
     .map((p) => [p.id, p])).values()];
+  // Study groups: who this user may add (none for parents, who can't start one).
+  const candidates = canStartGroup(ctx.user.role) ? await groupCandidates(ctx) : [];
   const onlineCount = members.filter((m) => m.id !== ctx.user.id && isOnline(m.last_seen_at)).length;
   const name = (c: Conv) => c.is_group ? c.title ?? tr("Group") : c.other_first ? fullName({ title: c.other_title, first_name: c.other_first, last_name: c.other_last! }, true) : tr("Conversation");
 
@@ -63,6 +66,14 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
       <aside className="border-r border-line flex flex-col max-h-[78vh]">
         <div className="p-4 flex gap-2 border-b border-line">
           <form className="flex-1"><input name="q" defaultValue={q} placeholder={tr("Search")} className="input !rounded-full" aria-label={tr("Search conversations")} /></form>
+          {candidates.length > 0 && <FormDialog trigger="button" title="Start a study group" triggerLabel="New group" action={createGroup} submitLabel="Start group" size="lg"
+            fields={[
+              { name: "title", label: "Group name", required: true, placeholder: "e.g. Photosynthesis assignment help" },
+              { name: "description", label: "Topic", placeholder: "What will you discuss? (optional)" },
+              { name: "members", label: "People", type: "checkboxes", placeholder: "Select people",
+                options: candidates.map((c) => ({ value: c.id, label: c.name, group: c.group.startsWith("Class ") ? tr("Class {name}", { name: c.group.slice(6) }) : tr(c.group), hint: tr(ROLE_LABEL[c.role] ?? "") })),
+                help: ctx.user.role === "learner" ? "You can add classmates in your grade and your teachers. Every study group needs at least one teacher." : undefined },
+            ]} />}
           <FormDialog title="New message" triggerLabel="New" action={startChat} submitLabel="Send"
             fields={[{ name: "user_id", label: "To", type: "select", required: true, options: people.map((p) => ({ value: p.id, label: `${p.name} · ${tr(ROLE_LABEL[p.role])}` })) }, { name: "body", label: "Message", type: "textarea", required: true }]} />
         </div>
@@ -87,7 +98,10 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
           <>
             <header className="px-5 py-4 border-b border-line flex items-center gap-3">
               {active.is_group ? <><span className="w-11 h-11 rounded-full grid place-items-center bg-gradient-to-br from-brand-400 to-charcoal-400 text-white"><Users className="w-5 h-5" /></span>
-                <div><p className="font-semibold">{name(active)}</p><p className="text-xs muted">{tr("{n} members", { n: active.members })}{onlineCount ? <> · <span className="text-emerald-600 dark:text-emerald-400 font-medium">{tr("{n} online", { n: onlineCount })}</span></> : null}</p></div></> : (
+                <div className="flex-1 min-w-0"><p className="font-semibold truncate">{name(active)}</p>
+                  {active.description && <p className="text-xs truncate">{active.description}</p>}
+                  <p className="text-xs muted">{tr("{n} members", { n: active.members })}{onlineCount ? <> · <span className="text-emerald-600 dark:text-emerald-400 font-medium">{tr("{n} online", { n: onlineCount })}</span></> : null}</p></div>
+                <ConfirmButton action={leaveGroup.bind(null, active.id)} label={tr("Leave")} confirmText={tr("Leave this group? You will stop getting its messages.")} /></> : (
                 <PersonLink userId={active.other_id} className="flex items-center gap-3 !rounded-2xl pr-2 hover:bg-black/5 dark:hover:bg-white/5">
                   <Avatar first={active.other_first ?? "?"} last={active.other_last ?? ""} size={44} photo={avatarUrl(active.other_id, active.other_av)} online={isOnline(active.other_seen)} />
                   <div><p className="font-semibold">{name(active)}</p>

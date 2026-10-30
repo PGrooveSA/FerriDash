@@ -62,4 +62,9 @@ export const MIGRATIONS: { version: number; sql: string }[] = [
     // When each user last had FerriDash open (lib/presence.ts): online dots and "last seen" in Messages.
     sql: `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen_at TEXT;`,
   },
+  {
+    version: 8,
+    // Who started a group chat (study groups in Messages).
+    sql: `ALTER TABLE conversations ADD COLUMN IF NOT EXISTS created_by INTEGER REFERENCES users(id) ON DELETE SET NULL;`,
+  },
 ];

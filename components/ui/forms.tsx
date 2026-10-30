@@ -183,6 +183,7 @@ export function CsvButton({ filename, rows, label = "Export CSV" }: { filename: 
  * Every ticked value is submitted under the field name.
  */
 function CheckboxGroup({ field }: { field: Field }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState("");
   const [picked, setPicked] = useState<Set<string>>(() => new Set((field.defaultValues ?? []).map(String)));
@@ -207,7 +208,7 @@ function CheckboxGroup({ field }: { field: Field }) {
   if (!opts.length) return <p className="text-sm muted rounded-2xl border border-dashed border-line px-3 py-2">{field.emptyText ?? "Nothing to choose yet."}</p>;
 
   const chosen = opts.filter((o) => picked.has(String(o.value)));
-  const summary = chosen.length === 0 ? (field.placeholder ?? "Select…")
+  const summary = chosen.length === 0 ? t(field.placeholder ?? "Select…")
     : chosen.length <= 3 ? chosen.map((o) => (o.group && grouped ? `${o.group.replace(/^Class /, "").split(" ·")[0]} ${o.label}` : o.label)).join(", ")
     : `${chosen.length} selected`;
 
@@ -227,7 +228,7 @@ function CheckboxGroup({ field }: { field: Field }) {
           className="absolute z-30 left-0 right-0 mt-1 rounded-2xl border border-line bg-[var(--glass-solid)] backdrop-blur-xl shadow-xl">
           {opts.length > 6 && (
             <div className="p-2 border-b border-line">
-              <input autoFocus value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Type to filter" className="input !py-1.5 !text-sm" aria-label={`Filter ${field.label}`} />
+              <input autoFocus value={filter} onChange={(e) => setFilter(e.target.value)} placeholder={t("Type to filter")} className="input !py-1.5 !text-sm" aria-label={`Filter ${field.label}`} />
             </div>
           )}
           <div className="max-h-60 overflow-y-auto p-2 space-y-2">
