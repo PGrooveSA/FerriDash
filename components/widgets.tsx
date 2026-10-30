@@ -10,6 +10,14 @@ import { visibleAssignments } from "@/lib/assignments";
 import { messageText } from "@/lib/richtext";
 import { makeT, type T } from "@/lib/i18n";
 import { scheduleOn, slotName, upcomingExtras, type Slot } from "@/lib/timetable";
+import { Card } from "./ui/kit";
+
+/** How a dashboard summary is framed: a heading inside a card, its own card, or bare. */
+type Frame = { heading?: string; card?: { title: string; action?: React.ReactNode } };
+function Framed({ heading, card, children }: Frame & { children: React.ReactNode }) {
+  if (card) return <Card title={card.title} action={card.action}>{children}</Card>;
+  return <>{heading && <h3 className="font-semibold mt-6 mb-3">{heading}</h3>}{children}</>;
+}
 
 const EN = makeT({});
 
@@ -70,13 +78,14 @@ export async function MiniCalendar({ schoolId, ctx, tr = EN }: { schoolId: numbe
 }
 
 /** Upcoming assignments for a learner or parent (their classes), soonest first; new ones since they last looked are marked. */
-export async function AssignmentsDue({ ctx, limit = 4, tr = EN }: { ctx: Ctx; limit?: number; tr?: T }) {
+/** Nothing at all when no work is due, so the dashboard doesn't show an empty section. */
+export async function AssignmentsDue({ ctx, limit = 4, tr = EN, ...frame }: { ctx: Ctx; limit?: number; tr?: T } & Frame) {
   const t = today();
   const all_ = await visibleAssignments(ctx, { from: t });
   const seen = (await get<{ s: string | null }>("SELECT assignments_seen_at s FROM users WHERE id = ?", ctx.user.id))?.s ?? "";
-  if (!all_.length) return <p className="text-sm muted">{tr("No assignments due. New ones from teachers appear here.")}</p>;
+  if (!all_.length) return null;
   return (
-    <>
+    <Framed {...frame}>
       <ul className="space-y-2.5">
         {all_.slice(0, limit).map((a) => {
           const days = Math.round((Date.parse(a.due_date) - Date.parse(t)) / 86_400_000);
@@ -94,15 +103,16 @@ export async function AssignmentsDue({ ctx, limit = 4, tr = EN }: { ctx: Ctx; li
         })}
       </ul>
       {all_.length > limit && <Link href="/assignments" className="block text-xs muted mt-2 hover:text-[var(--ink)]">{tr("{n} more due · see all assignments", { n: all_.length - limit })}</Link>}
-    </>
+    </Framed>
   );
 }
 
-export async function Agenda({ schoolId, limit = 4, tr = EN }: { schoolId: number; limit?: number; tr?: T }) {
+export async function Agenda({ schoolId, limit = 4, tr = EN, ...frame }: { schoolId: number; limit?: number; tr?: T } & Frame) {
   const events = await all<{ id: number; title: string; date: string; start_time: string | null; category: string; audience: string | null }>(
       "SELECT * FROM events WHERE school_id = ? AND date >= ? ORDER BY date, start_time LIMIT ?", schoolId, today(), limit);
-  if (!events.length) return <p className="text-sm muted">{tr("No upcoming events.")}</p>;
+  if (!events.length) return null;
   return (
+    <Framed {...frame}>
     <ul className="space-y-2.5">
       {events.map((e, i) => (
         <li key={e.id} className={`rounded-2xl px-4 py-3 border ${cardTone(i)}`}>
@@ -111,10 +121,11 @@ export async function Agenda({ schoolId, limit = 4, tr = EN }: { schoolId: numbe
         </li>
       ))}
     </ul>
+    </Framed>
   );
 }
 
-export async function RecentMessages({ userId, limit = 4, tr = EN }: { userId: number; limit?: number; tr?: T }) {
+export async function RecentMessages({ userId, limit = 4, tr = EN, ...frame }: { userId: number; limit?: number; tr?: T } & Frame) {
   // For direct chats, show the other person rather than the last sender.
   const rows = await all<{ conversation_id: number; body: string; created_at: string; first_name: string; last_name: string; title: string | null; conv_title: string | null; is_group: number; uid: number; av: string | null }>(`
     SELECT m.conversation_id, COALESCE(NULLIF(m.body, ''), '📎 ' || m.attachment_name) body, m.created_at, c.title AS conv_title, c.is_group,
@@ -124,8 +135,9 @@ export async function RecentMessages({ userId, limit = 4, tr = EN }: { userId: n
     LEFT JOIN users o ON c.is_group = 0 AND o.id = (SELECT user_id FROM conversation_members cm WHERE cm.conversation_id = c.id AND cm.user_id <> ?1 LIMIT 1)
     WHERE m.id IN (SELECT MAX(id) FROM messages WHERE conversation_id IN (SELECT conversation_id FROM conversation_members WHERE user_id = ?1) GROUP BY conversation_id)
     ORDER BY m.created_at DESC LIMIT ?2`, userId, limit);
-  if (!rows.length) return <p className="text-sm muted">{tr("No messages yet.")}</p>;
+  if (!rows.length) return null;
   return (
+    <Framed {...frame}>
     <ul className="space-y-4">
       {rows.map((r) => (
         <li key={r.conversation_id}>
@@ -142,14 +154,16 @@ export async function RecentMessages({ userId, limit = 4, tr = EN }: { userId: n
         </li>
       ))}
     </ul>
+    </Framed>
   );
 }
 
-export async function NoticeList({ schoolId, audiences, limit = 4, tr = EN }: { schoolId: number; audiences: string[]; limit?: number; tr?: T }) {
+export async function NoticeList({ schoolId, audiences, limit = 4, tr = EN, ...frame }: { schoolId: number; audiences: string[]; limit?: number; tr?: T } & Frame) {
   const rows = await all<{ id: number; title: string; body: string; created_at: string; views: number; tags: string | null }>(
       `SELECT id, title, body, created_at, views, tags FROM notices WHERE school_id = ? AND audience IN (${audiences.map(() => "?").join(",")}) ORDER BY created_at DESC LIMIT ?`, schoolId, ...audiences, limit);
-  if (!rows.length) return <p className="text-sm muted">{tr("No notices yet.")}</p>;
+  if (!rows.length) return null;
   return (
+    <Framed {...frame}>
     <ul className="divide-line">
       {rows.map((n) => (
         <li key={n.id} className="py-3 first:pt-0">
@@ -163,11 +177,12 @@ export async function NoticeList({ schoolId, audiences, limit = 4, tr = EN }: { 
         </li>
       ))}
     </ul>
+    </Framed>
   );
 }
 
 /** Today's lessons for these classes (learners and parents), with extra classes coming up in the next two weeks. */
-export async function ClassesToday({ classIds, slots, tr = EN, showClass = false, extras = true }: { classIds: number[]; slots?: Slot[]; tr?: T; showClass?: boolean; extras?: boolean }) {
+export async function ClassesToday({ classIds, slots, tr = EN, showClass = false, extras = true, ...frame }: { classIds: number[]; slots?: Slot[]; tr?: T; showClass?: boolean; extras?: boolean } & Frame) {
   const t = today();
   const list = slots ?? (await scheduleOn(classIds, t));
   const later = extras ? await upcomingExtras(classIds) : [];
@@ -184,8 +199,9 @@ export async function ClassesToday({ classIds, slots, tr = EN, showClass = false
       </li>
     );
   };
+  if (!list.length && !later.length) return null;
   return (
-    <>
+    <Framed {...frame}>
       {list.length ? <ul className="space-y-2">{list.map((s) => row(s))}</ul> : <p className="text-sm muted">{tr("No classes today.")}</p>}
       {later.length > 0 && (
         <>
@@ -193,6 +209,6 @@ export async function ClassesToday({ classIds, slots, tr = EN, showClass = false
           <ul className="space-y-2">{later.slice(0, 4).map((s) => row(s, s.date!))}</ul>
         </>
       )}
-    </>
+    </Framed>
   );
 }

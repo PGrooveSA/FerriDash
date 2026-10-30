@@ -25,11 +25,8 @@ export default async function ParentDashboard({ ctx }: { ctx: Ctx }) {
           <SchoolMark school={ctx.school} />
         </div>
         {/* Every child's lessons today, in one list (class shown when there is more than one child). */}
-        {kids.some((k) => k.learner.class_id) && (
-          <Card title={tr("Today's classes")} action={<Link href="/timetable" className="text-xs muted">{tr("Full timetable")}</Link>}>
-            <ClassesToday tr={tr} classIds={[...new Set(kids.map((k) => k.learner.class_id).filter((c): c is number => !!c))]} showClass={kids.length > 1} />
-          </Card>
-        )}
+        <ClassesToday tr={tr} classIds={[...new Set(kids.map((k) => k.learner.class_id).filter((c): c is number => !!c))]} showClass={kids.length > 1}
+          card={{ title: tr("Today's classes"), action: <Link href="/timetable" className="text-xs muted">{tr("Full timetable")}</Link> }} />
         {kids.length === 0 && <Card><Empty title={tr("No learners linked")} hint={tr("Ask the school office to link your child to your account.")} /></Card>}
         {kids.map(({ learner: l, latest, att }) => (
           <Card key={l.id}>
@@ -61,9 +58,9 @@ export default async function ParentDashboard({ ctx }: { ctx: Ctx }) {
         ))}
       </div>
       <aside className="space-y-6">
-        <Card><MiniCalendar tr={tr} schoolId={ctx.schoolId} ctx={ctx} /><h3 className="font-semibold mt-6 mb-3">{tr("Assignments due")}</h3><AssignmentsDue tr={tr} ctx={ctx} /><h3 className="font-semibold mt-6 mb-3">{tr("Agenda")}</h3><Agenda tr={tr} schoolId={ctx.schoolId} /></Card>
-        <Card title={tr("Notices")}><NoticeList tr={tr} schoolId={ctx.schoolId} audiences={["all", "parents"]} /></Card>
-        <Card title={tr("Messages")}><RecentMessages tr={tr} userId={ctx.user.id} /></Card>
+        <Card><MiniCalendar tr={tr} schoolId={ctx.schoolId} ctx={ctx} /><AssignmentsDue tr={tr} ctx={ctx} heading={tr("Assignments due")} /><Agenda tr={tr} schoolId={ctx.schoolId} heading={tr("Agenda")} /></Card>
+        <NoticeList tr={tr} schoolId={ctx.schoolId} audiences={["all", "parents"]} card={{ title: tr("Notices") }} />
+        <RecentMessages tr={tr} userId={ctx.user.id} card={{ title: tr("Messages") }} />
       </aside>
     </div>
   );

@@ -103,9 +103,9 @@ export default async function AdminDashboard({ ctx }: { ctx: Ctx }) {
         </div>
 
         <aside className="space-y-6">
-          <Card><MiniCalendar tr={tr} schoolId={sid} /><h3 className="font-semibold mt-6 mb-3">{tr("Agenda")}</h3><Agenda tr={tr} schoolId={sid} /></Card>
-          <Card title={tr("Messages")} action={<Link href="/messages" className="text-xs muted">{tr("View all")}</Link>}><RecentMessages tr={tr} userId={ctx.user.id} /></Card>
-          <Card title={tr("Notice board")} action={<Link href="/notices" className="text-xs muted">{tr("View all")}</Link>}><NoticeList tr={tr} schoolId={sid} audiences={["all", "staff", "learners", "parents"]} /></Card>
+          <Card><MiniCalendar tr={tr} schoolId={sid} /><Agenda tr={tr} schoolId={sid} heading={tr("Agenda")} /></Card>
+          <RecentMessages tr={tr} userId={ctx.user.id} card={{ title: tr("Messages"), action: <Link href="/messages" className="text-xs muted">{tr("View all")}</Link> }} />
+          <NoticeList tr={tr} schoolId={sid} audiences={["all", "staff", "learners", "parents"]} card={{ title: tr("Notice board"), action: <Link href="/notices" className="text-xs muted">{tr("View all")}</Link> }} />
         </aside>
       </div>
     </div>

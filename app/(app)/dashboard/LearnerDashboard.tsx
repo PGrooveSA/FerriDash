@@ -86,25 +86,24 @@ export default async function LearnerDashboard({ ctx }: { ctx: Ctx }) {
           <StatCard label={tr("Assignments due")} value={assignments.length} icon={ClipboardList} tone="gold" />
           <StatCard label={tr("Classes today")} value={todayClasses.length} icon={Clock} tone="orange" />
         </div>
-        <Card title={tr("Today's classes")} action={<Link href="/timetable" className="text-xs muted">{tr("Full timetable")}</Link>}>
-          <ClassesToday tr={tr} classIds={l.class_id ? [l.class_id] : []} slots={todayClasses} />
-        </Card>
+        <ClassesToday tr={tr} classIds={l.class_id ? [l.class_id] : []} slots={todayClasses}
+          card={{ title: tr("Today's classes"), action: <Link href="/timetable" className="text-xs muted">{tr("Full timetable")}</Link> }} />
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_20rem] gap-6">
           <Card title={latest ? `${tr("Marks by subject")} · ${tr("Term {n}", { n: latest.term })}` : tr("Marks by subject")}>
             {bars.length ? <HBars data={bars} /> : <Empty title={tr("No published results yet")} />}
           </Card>
           <Card title={tr("Progress")}>{trend.length ? <Trend data={trend} xKey="term" series={[{ key: "average", name: tr("Average %"), color: "#38bdf8" }]} /> : <Empty title={tr("Nothing here yet")} />}</Card>
         </div>
-        <Card title={tr("Assignments")} action={<Link href="/assignments" className="text-xs muted">{tr("View all")}</Link>}>
-          {assignments.length ? (
+        {assignments.length > 0 && (
+          <Card title={tr("Assignments")} action={<Link href="/assignments" className="text-xs muted">{tr("View all")}</Link>}>
             <div className="overflow-x-auto"><table className="table"><thead><tr><th>{tr("Task")}</th><th>{tr("Subject")}</th><th>{tr("Due")}</th></tr></thead>
               <tbody>{assignments.slice(0, 6).map((a) => <tr key={a.id}><td className="font-medium"><Link href={`/assignments/${a.id}`} className="hover:underline">{a.title}</Link></td><td>{a.subject}</td><td>{fmtDate(a.due_date)}</td></tr>)}</tbody></table></div>
-          ) : <Empty title={tr("No assignments due")} />}
-        </Card>
+          </Card>
+        )}
       </div>
       <aside className="space-y-6">
-        <Card><MiniCalendar tr={tr} schoolId={ctx.schoolId} ctx={ctx} /><h3 className="font-semibold mt-6 mb-3">{tr("Assignments due")}</h3><AssignmentsDue tr={tr} ctx={ctx} /><h3 className="font-semibold mt-6 mb-3">{tr("Agenda")}</h3><Agenda tr={tr} schoolId={ctx.schoolId} /></Card>
-        <Card title={tr("Notices")}><NoticeList tr={tr} schoolId={ctx.schoolId} audiences={["all", "learners"]} /></Card>
+        <Card><MiniCalendar tr={tr} schoolId={ctx.schoolId} ctx={ctx} /><AssignmentsDue tr={tr} ctx={ctx} heading={tr("Assignments due")} /><Agenda tr={tr} schoolId={ctx.schoolId} heading={tr("Agenda")} /></Card>
+        <NoticeList tr={tr} schoolId={ctx.schoolId} audiences={["all", "learners"]} card={{ title: tr("Notices") }} />
       </aside>
     </div>
   );

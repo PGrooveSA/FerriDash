@@ -90,13 +90,15 @@ export default async function TeacherDashboard({ ctx }: { ctx: Ctx }) {
         </Card>
       </div>
       <aside className="space-y-6">
-        <Card title={tr("My lessons today")} action={<Link href="/timetable" className="text-xs muted">{tr("Timetable")}</Link>}><ClassesToday tr={tr} classIds={[]} slots={myLessons} showClass extras={false} /></Card>
-        <Card><MiniCalendar tr={tr} schoolId={sid} /><h3 className="font-semibold mt-6 mb-3">{tr("Agenda")}</h3><Agenda tr={tr} schoolId={sid} /></Card>
-        <Card title={tr("Assignments set")} action={<Link href="/assignments" className="text-xs muted">{tr("View all")}</Link>}>
-          {assignments.length ? <ul className="space-y-3">{assignments.map((a) => <li key={a.id} className="text-sm"><Link href={`/assignments/${a.id}`} className="font-medium hover:underline">{a.title}</Link><p className="text-xs muted">{a.subject} · {tr("Class {name}", { name: a.class_name })} · {tr("Due {date}", { date: fmtDate(a.due_date) })}</p></li>)}</ul> : <p className="text-sm muted">{tr("No upcoming assignments.")} <Link href="/assignments" className="underline">{tr("Set one")}</Link></p>}
-        </Card>
-        <Card title={tr("Messages")} action={<Link href="/messages" className="text-xs muted">{tr("View all")}</Link>}><RecentMessages tr={tr} userId={ctx.user.id} /></Card>
-        <Card title={tr("Notices")}><NoticeList tr={tr} schoolId={sid} audiences={["all", "staff"]} /></Card>
+        <ClassesToday tr={tr} classIds={[]} slots={myLessons} showClass extras={false} card={{ title: tr("My lessons today"), action: <Link href="/timetable" className="text-xs muted">{tr("Timetable")}</Link> }} />
+        <Card><MiniCalendar tr={tr} schoolId={sid} /><Agenda tr={tr} schoolId={sid} heading={tr("Agenda")} /></Card>
+        {assignments.length > 0 && (
+          <Card title={tr("Assignments set")} action={<Link href="/assignments" className="text-xs muted">{tr("View all")}</Link>}>
+            <ul className="space-y-3">{assignments.map((a) => <li key={a.id} className="text-sm"><Link href={`/assignments/${a.id}`} className="font-medium hover:underline">{a.title}</Link><p className="text-xs muted">{a.subject} · {tr("Class {name}", { name: a.class_name })} · {tr("Due {date}", { date: fmtDate(a.due_date) })}</p></li>)}</ul>
+          </Card>
+        )}
+        <RecentMessages tr={tr} userId={ctx.user.id} card={{ title: tr("Messages"), action: <Link href="/messages" className="text-xs muted">{tr("View all")}</Link> }} />
+        <NoticeList tr={tr} schoolId={sid} audiences={["all", "staff"]} card={{ title: tr("Notices") }} />
       </aside>
     </div>
   );
