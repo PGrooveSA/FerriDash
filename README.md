@@ -124,8 +124,8 @@ The server needs internet access for this. Ozow only sends parents straight back
 ## South African details
 
 ZAR currency (`en-ZA` formatting), SA ID number validation (Luhn check, with date of birth and gender read from the ID),
-EMIS numbers, quintiles, the nine provinces, no-fee schools, fee exemptions, PERSAL and SACE numbers, the 11 official
-languages plus SA Sign Language, four-term calendar, and a POPIA privacy notice.
+EMIS numbers, quintiles, the nine provinces, no-fee schools, fee exemptions, PERSAL and SACE numbers, the 11 official spoken
+languages, four-term calendar, and a POPIA privacy notice.
 
 ## Architecture
 

@@ -64,7 +64,7 @@ One row per subject per class. Repeat the class, grade, room and register teache
 | gender | | `Female`, `Male`, `Other` |
 | date_of_birth | | Date |
 | class | | A class for the current year, e.g. from `2-classes-and-subjects.csv` |
-| home_language | | `English`, `Afrikaans`, `isiZulu`, `isiXhosa`, `Sepedi`, `Setswana`, `Sesotho`, `Xitsonga`, `siSwati`, `Tshivenda`, `isiNdebele`, `SA Sign Language` |
+| home_language | | `English`, `Afrikaans`, `isiZulu`, `isiXhosa`, `Sepedi`, `Setswana`, `Sesotho`, `Xitsonga`, `siSwati`, `Tshivenda`, `isiNdebele` |
 | address | | |
 | enrolled_on | | Date first enrolled |
 | learner_login_email | | Only if the learner should have their own login. Ignored if they already have one. |

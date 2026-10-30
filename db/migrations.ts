@@ -57,4 +57,9 @@ export const MIGRATIONS: { version: number; sql: string }[] = [
     // Each user's interface language (lib/i18n: en, af, zu, xh, nr, nso, st, tn, ss, ve, ts). Null means English.
     sql: `ALTER TABLE users ADD COLUMN IF NOT EXISTS language TEXT;`,
   },
+  {
+    version: 7,
+    // When each user last had FerriDash open (lib/presence.ts): online dots and "last seen" in Messages.
+    sql: `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen_at TEXT;`,
+  },
 ];

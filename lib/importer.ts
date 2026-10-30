@@ -39,7 +39,7 @@ const TITLES = ["Mr", "Ms", "Mrs", "Dr", "Prof"];
 const GENDERS = ["Female", "Male", "Other"];
 const POST_LEVELS = ["PL1", "PL2 (HOD)", "PL3 (Deputy)", "PL4 (Principal)"];
 const CATEGORIES = ["HL", "FAL", "SAL", "MATH", "MLIT", "LO", "OTHER"];
-const LANGS = ["English", "Afrikaans", "isiZulu", "isiXhosa", "Sepedi", "Setswana", "Sesotho", "Xitsonga", "siSwati", "Tshivenda", "isiNdebele", "SA Sign Language"];
+const LANGS = ["English", "Afrikaans", "isiZulu", "isiXhosa", "Sepedi", "Setswana", "Sesotho", "Xitsonga", "siSwati", "Tshivenda", "isiNdebele"];
 const RELATIONSHIPS = ["Mother", "Father", "Guardian", "Grandparent", "Foster parent", "Parent"];
 
 const tempPassword = () => "Sk-" + randomBytes(8).toString("base64url") + "9A";

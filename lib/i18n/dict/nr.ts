@@ -133,4 +133,6 @@ export default {
   "New Year's Day": "Ilanga loMnyaka oMutjha", "Human Rights Day": "Ilanga lamaLungelo wobuNtu", "Good Friday": "ULesihlanu oLihle", "Family Day": "Ilanga lomNdeni",
   "Freedom Day": "Ilanga lekuKhululeka", "Workers' Day": "Ilanga labaSebenzi", "Youth Day": "Ilanga labaTjha", "National Women's Day": "Ilanga laboMma lesiTjhaba",
   "Heritage Day": "Ilanga lamaGugu", "Day of Reconciliation": "Ilanga lokuBuyisana", "Christmas Day": "UKhisimusi", "Day of Goodwill": "Ilanga lomusa",
+  // Presence
+  "Online": "Ukhona ku-inthanethi", "Last seen today at {time}": "Ugcine ukubonwa namhlanje ngo-{time}", "Last seen yesterday at {time}": "Ugcine ukubonwa izolo ngo-{time}", "Last seen {date} at {time}": "Ugcine ukubonwa ngo-{date} ngo-{time}", "{n} online": "{n} bakhona ku-inthanethi",
 } satisfies Dict;

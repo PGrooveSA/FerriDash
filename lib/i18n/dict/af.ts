@@ -139,4 +139,6 @@ export default {
   "New Year's Day": "Nuwejaarsdag", "Human Rights Day": "Menseregtedag", "Good Friday": "Goeie Vrydag", "Family Day": "Gesinsdag",
   "Freedom Day": "Vryheidsdag", "Workers' Day": "Werkersdag", "Youth Day": "Jeugdag", "National Women's Day": "Nasionale Vrouedag",
   "Heritage Day": "Erfenisdag", "Day of Reconciliation": "Versoeningsdag", "Christmas Day": "Kersdag", "Day of Goodwill": "Welwillendheidsdag",
+  // Presence
+  "Online": "Aanlyn", "Last seen today at {time}": "Laas gesien vandag om {time}", "Last seen yesterday at {time}": "Laas gesien gister om {time}", "Last seen {date} at {time}": "Laas gesien {date} om {time}", "{n} online": "{n} aanlyn",
 } satisfies Dict;

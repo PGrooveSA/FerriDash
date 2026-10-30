@@ -9,7 +9,7 @@ import { saveLearner, deleteLearner } from "@/app/actions/people";
 
 export const metadata = { title: "Learners" };
 const PER_PAGE = 12;
-const LANGS = ["English", "Afrikaans", "isiZulu", "isiXhosa", "Sepedi", "Setswana", "Sesotho", "Xitsonga", "siSwati", "Tshivenda", "isiNdebele", "SA Sign Language"];
+const LANGS = ["English", "Afrikaans", "isiZulu", "isiXhosa", "Sepedi", "Setswana", "Sesotho", "Xitsonga", "siSwati", "Tshivenda", "isiNdebele"];
 
 type L = { id: number; first_name: string; last_name: string; admission_number: string; id_number: string | null; gender: string | null; date_of_birth: string | null; class_id: number | null; className: string | null; grade: number | null; home_language: string | null; address: string | null; status: string; parents: string | null; has_login: number; user_id: number | null; av: string | null };
 

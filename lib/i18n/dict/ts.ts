@@ -133,4 +133,6 @@ export default {
   "New Year's Day": "Siku ra Lembe Lerintshwa", "Human Rights Day": "Siku ra Timfanelo ta Vanhu", "Good Friday": "Ravuntlhanu ro Saseka", "Family Day": "Siku ra Ndyangu",
   "Freedom Day": "Siku ra Ntshuxeko", "Workers' Day": "Siku ra Vatirhi", "Youth Day": "Siku ra Vantshwa", "National Women's Day": "Siku ra Vavasati ra Rixaka",
   "Heritage Day": "Siku ra Ndzhaka", "Day of Reconciliation": "Siku ra Mbuyelelano", "Christmas Day": "Khisimusi", "Day of Goodwill": "Siku ra Musa",
+  // Presence
+  "Online": "U le ka inthanete", "Last seen today at {time}": "U voniwe ro hetelela namuntlha hi {time}", "Last seen yesterday at {time}": "U voniwe ro hetelela tolo hi {time}", "Last seen {date} at {time}": "U voniwe ro hetelela hi {date} hi {time}", "{n} online": "{n} va le ka inthanete",
 } satisfies Dict;

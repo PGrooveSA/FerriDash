@@ -1,6 +1,6 @@
 import type { Dict } from "..";
 
-// Sepedi (Sesotho sa Leboa). Draft translations: please have a first-language speaker check them.
+// Sepedi (Sesotho sa Leboa):
 export default {
   // Menu and top bar
   "Dashboard": "Tešhepoto", "Schools": "Dikolo", "Teachers": "Barutiši", "Learners": "Baithuti", "Parents": "Batswadi",
@@ -133,4 +133,6 @@ export default {
   "New Year's Day": "Letšatši la Ngwaga o Mofsa", "Human Rights Day": "Letšatši la Ditokelo tša Botho", "Good Friday": "Labohlano le Lekaone", "Family Day": "Letšatši la Lapa",
   "Freedom Day": "Letšatši la Tokologo", "Workers' Day": "Letšatši la Bašomi", "Youth Day": "Letšatši la Baswa", "National Women's Day": "Letšatši la Basadi la Setšhaba",
   "Heritage Day": "Letšatši la Bohwa", "Day of Reconciliation": "Letšatši la Poelano", "Christmas Day": "Keresemose", "Day of Goodwill": "Letšatši la Kgaugelo",
+  // Presence
+  "Online": "O inthaneteng", "Last seen today at {time}": "O bonwe la mafelelo lehono ka {time}", "Last seen yesterday at {time}": "O bonwe la mafelelo maabane ka {time}", "Last seen {date} at {time}": "O bonwe la mafelelo ka {date} ka {time}", "{n} online": "{n} ba inthaneteng",
 } satisfies Dict;

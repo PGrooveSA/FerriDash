@@ -133,4 +133,6 @@ export default {
   "New Year's Day": "Ḓuvha ḽa Ṅwaha Muswa", "Human Rights Day": "Ḓuvha ḽa Pfanelo dza Vhuthu", "Good Friday": "Ḽavhuṱanu ḽavhuḓi", "Family Day": "Ḓuvha ḽa Muṱa",
   "Freedom Day": "Ḓuvha ḽa Mbofholowo", "Workers' Day": "Ḓuvha ḽa Vhashumi", "Youth Day": "Ḓuvha ḽa Vhaswa", "National Women's Day": "Ḓuvha ḽa Vhafumakadzi ḽa Lushaka",
   "Heritage Day": "Ḓuvha ḽa Vhufa", "Day of Reconciliation": "Ḓuvha ḽa Vhuṱanganyi", "Christmas Day": "Khisimusi", "Day of Goodwill": "Ḓuvha ḽa Vhuthu",
+  // Presence
+  "Online": "U kha inthanete", "Last seen today at {time}": "O vhonwa u fhedzisela ṋamusi nga {time}", "Last seen yesterday at {time}": "O vhonwa u fhedzisela mulovha nga {time}", "Last seen {date} at {time}": "O vhonwa u fhedzisela nga {date} nga {time}", "{n} online": "{n} vha kha inthanete",
 } satisfies Dict;

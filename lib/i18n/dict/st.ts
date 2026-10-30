@@ -133,4 +133,6 @@ export default {
   "New Year's Day": "Letsatsi la Selemo se Setjha", "Human Rights Day": "Letsatsi la Ditokelo tsa Botho", "Good Friday": "Labohlano le Lokileng", "Family Day": "Letsatsi la Lelapa",
   "Freedom Day": "Letsatsi la Tokoloho", "Workers' Day": "Letsatsi la Basebetsi", "Youth Day": "Letsatsi la Batjha", "National Women's Day": "Letsatsi la Basadi la Naha",
   "Heritage Day": "Letsatsi la Lefa", "Day of Reconciliation": "Letsatsi la Poelano", "Christmas Day": "Keresemese", "Day of Goodwill": "Letsatsi la Mosa",
+  // Presence
+  "Online": "O inthaneteng", "Last seen today at {time}": "O bonwe la ho qetela kajeno ka {time}", "Last seen yesterday at {time}": "O bonwe la ho qetela maobane ka {time}", "Last seen {date} at {time}": "O bonwe la ho qetela ka {date} ka {time}", "{n} online": "{n} ba inthaneteng",
 } satisfies Dict;
