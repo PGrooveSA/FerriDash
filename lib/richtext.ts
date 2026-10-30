@@ -47,7 +47,7 @@ export function messageHtml(body: string): string {
 export function messageText(body: string | null): string {
   if (!body) return "";
   if (!body.startsWith(RT_OPEN)) return body;
-  return sanitizeHtml(body.replace(/<(br|\/p|\/div|\/li|\/tr)[^>]*>/gi, " ").replace(/<\/t[dh]>/gi, " "), { allowedTags: [], allowedAttributes: {} })
+  return sanitizeHtml(body.replace(/<\/?(br|p|div|li|ol|ul|tr|td|th|table)[^>]*>/gi, " "), { allowedTags: [], allowedAttributes: {} })
     .replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'")
     .replace(/\s+/g, " ").trim();
 }

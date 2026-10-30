@@ -34,7 +34,9 @@ export async function learnerSnapshot(ctx: Ctx, learnerId: number) {
   const latest = [...terms].reverse().find((t) => t.row?.average != null);
   const yd = await termDates(ctx.schoolId, year, "year");
   const att = await attendanceSummary(l.id, yd.start, today());
-  return { learner: l, terms, latest, att };
+  // Class size for "Position 3 of 28" (the results above are filtered to this one learner).
+  const classSize = classId ? (await get<{ n: number }>("SELECT COUNT(*)::int n FROM learners WHERE class_id = ? AND status = 'Active'", classId))!.n : 0;
+  return { learner: l, terms, latest, att, classSize };
 }
 
 /** "Grade 10 · Class 10A", or a note while the learner has no class yet. */
@@ -80,7 +82,7 @@ export default async function LearnerDashboard({ ctx }: { ctx: Ctx }) {
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard label={tr("Attendance")} value={att.rate != null ? `${att.rate}%` : "-"} icon={CalendarCheck} tone="sky" hint={tr("{n} days absent this year", { n: att.absent ?? 0 })} />
-          <StatCard label={latest ? tr("Term {n} average", { n: latest.term }) : tr("Average")} value={latest?.row?.average != null ? `${latest.row.average}%` : "-"} icon={Award} tone="green" hint={latest?.row?.position ? tr("Position {n} of {total}", { n: latest.row.position, total: latest.cr!.learners.length }) : undefined} />
+          <StatCard label={latest ? tr("Term {n} average", { n: latest.term }) : tr("Average")} value={latest?.row?.average != null ? `${latest.row.average}%` : "-"} icon={Award} tone="green" hint={latest?.row?.position ? tr("Position {n} of {total}", { n: latest.row.position, total: snap.classSize }) : undefined} />
           <StatCard label={tr("Assignments due")} value={assignments.length} icon={ClipboardList} tone="gold" />
           <StatCard label={tr("Classes today")} value={todayClasses.length} icon={Clock} tone="orange" />
         </div>
