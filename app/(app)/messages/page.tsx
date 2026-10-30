@@ -8,7 +8,7 @@ import { ConfirmButton, FormDialog } from "@/components/ui/forms";
 import { canStartGroup, groupCandidates } from "@/lib/study-groups";
 import Avatar from "@/components/ui/Avatar";
 import PersonLink from "@/components/ProfileCard";
-import { startChat, markRead, createGroup, leaveGroup } from "@/app/actions/content";
+import { startChat, markRead, createGroup, leaveGroup, deleteGroup } from "@/app/actions/content";
 import Thread from "./Thread";
 import AutoRefresh from "./AutoRefresh";
 import { messageHtml, messageText } from "@/lib/richtext";
@@ -17,7 +17,7 @@ import { isOnline, presenceLabel } from "@/lib/presence";
 
 export const metadata = { title: "Messages" };
 
-type Conv = { id: number; title: string | null; is_group: number; description: string | null; body: string | null; created_at: string | null; sender: string | null; other_first: string | null; other_last: string | null; other_title: string | null; other_role: string | null; other_id: number | null; other_av: string | null; other_seen: string | null; unread: number; members: number };
+type Conv = { id: number; title: string | null; is_group: number; description: string | null; created_by: number | null; body: string | null; created_at: string | null; sender: string | null; other_first: string | null; other_last: string | null; other_title: string | null; other_role: string | null; other_id: number | null; other_av: string | null; other_seen: string | null; unread: number; members: number };
 
 export default async function MessagesPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const ctx = await requireCtx();
@@ -25,7 +25,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
   const sp = await searchParams;
   const q = sp.q?.trim().toLowerCase() ?? "";
   const convs = (await all<Conv>(`
-    SELECT c.id, c.title, c.is_group, c.description, COALESCE(NULLIF(m.body, ''), '📎 ' || m.attachment_name) body, m.created_at, su.first_name sender,
+    SELECT c.id, c.title, c.is_group, c.description, c.created_by, COALESCE(NULLIF(m.body, ''), '📎 ' || m.attachment_name) body, m.created_at, su.first_name sender,
       o.first_name other_first, o.last_name other_last, o.title other_title, o.role other_role, o.id other_id, o.avatar_updated_at other_av, o.last_seen_at other_seen,
       (SELECT COUNT(*) FROM messages x WHERE x.conversation_id = c.id AND x.sender_id <> ?1 AND x.created_at > COALESCE(me.last_read_at, '')) unread,
       (SELECT COUNT(*) FROM conversation_members WHERE conversation_id = c.id) members
@@ -41,8 +41,8 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
   const active = convs.find((c) => c.id === activeId);
   if (active?.unread) await markRead(active.id);
 
-  const messages = activeId ? (await all<{ id: number; body: string; created_at: string; sender_id: number; first_name: string; last_name: string; title: string | null; role: string; avatar_updated_at: string | null; attachment_name: string | null; attachment_type: string | null; attachment_size: number | null }>(`
-    SELECT m.id, m.body, m.created_at, m.sender_id, u.first_name, u.last_name, u.title, u.role, u.avatar_updated_at, m.attachment_name, m.attachment_type, m.attachment_size FROM messages m JOIN users u ON u.id = m.sender_id
+  const messages = activeId ? (await all<{ id: number; body: string; created_at: string; sender_id: number; first_name: string; last_name: string; title: string | null; role: string; avatar_updated_at: string | null; attachment_name: string | null; attachment_type: string | null; attachment_size: number | null; edited_at: string | null }>(`
+    SELECT m.id, m.body, m.created_at, m.edited_at, m.sender_id, u.first_name, u.last_name, u.title, u.role, u.avatar_updated_at, m.attachment_name, m.attachment_type, m.attachment_size FROM messages m JOIN users u ON u.id = m.sender_id
     WHERE m.conversation_id = ? ORDER BY m.created_at, m.id LIMIT 300`, activeId)).map(({ body, ...m }) => ({ ...m, html: messageHtml(body) })) : [];
   const members = activeId ? (await all<{ id: number; first_name: string; last_name: string; title: string | null; role: string; avatar_updated_at: string | null; last_seen_at: string | null }>("SELECT u.id, u.first_name, u.last_name, u.title, u.role, u.avatar_updated_at, u.last_seen_at FROM conversation_members cm JOIN users u ON u.id = cm.user_id WHERE cm.conversation_id = ? ORDER BY u.last_name", activeId)) : [];
 
@@ -101,7 +101,8 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
                 <div className="flex-1 min-w-0"><p className="font-semibold truncate">{name(active)}</p>
                   {active.description && <p className="text-xs truncate">{active.description}</p>}
                   <p className="text-xs muted">{tr("{n} members", { n: active.members })}{onlineCount ? <> · <span className="text-emerald-600 dark:text-emerald-400 font-medium">{tr("{n} online", { n: onlineCount })}</span></> : null}</p></div>
-                <ConfirmButton action={leaveGroup.bind(null, active.id)} label={tr("Leave")} confirmText={tr("Leave this group? You will stop getting its messages.")} /></> : (
+                <ConfirmButton action={leaveGroup.bind(null, active.id)} label={tr("Leave")} confirmText={tr("Leave this group? You will stop getting its messages.")} />
+                {(ctx.isAdmin || active.created_by === ctx.user.id) && <ConfirmButton action={deleteGroup.bind(null, active.id)} label={tr("Delete group")} confirmText={tr("Delete this group for everyone? All its messages and files are removed. This can't be undone.")} />}</> : (
                 <PersonLink userId={active.other_id} className="flex items-center gap-3 !rounded-2xl pr-2 hover:bg-black/5 dark:hover:bg-white/5">
                   <Avatar first={active.other_first ?? "?"} last={active.other_last ?? ""} size={44} photo={avatarUrl(active.other_id, active.other_av)} online={isOnline(active.other_seen)} />
                   <div><p className="font-semibold">{name(active)}</p>

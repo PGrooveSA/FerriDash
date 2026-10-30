@@ -218,15 +218,73 @@ export async function createGroup(_: ActionResult, f: FormData): Promise<ActionR
   return res;
 }
 
+/** A message's own text can be edited this long after it was sent; after that it is final. */
+const EDIT_WINDOW_MS = 5 * 60_000;
+const utc = (ms: number) => new Date(ms).toISOString().slice(0, 19).replace("T", " ");
+
+/** The user's own message in a chat they are in. */
+async function ownMessage(userId: number, id: number) {
+  return (await get<{ conversation_id: number; created_at: string; attachment_key: string | null; body: string }>(`SELECT m.conversation_id, m.created_at, m.attachment_key, m.body FROM messages m
+    JOIN conversation_members cm ON cm.conversation_id = m.conversation_id AND cm.user_id = ?1 WHERE m.id = ?2 AND m.sender_id = ?1`, userId, id)) ?? fail("You can only change your own messages.");
+}
+
+/** Changes the text of the user's own message, within 5 minutes of sending it. */
+export async function editMessage(id: number, body: string): Promise<ActionResult> {
+  return guarded(undefined, async (ctx) => {
+    const m = await ownMessage(ctx.user.id, id);
+    if (m.created_at < utc(Date.now() - EDIT_WINDOW_MS)) fail("Messages can only be edited for 5 minutes after sending.");
+    let html = cleanMessageHtml(body);
+    const text = messageText(html);
+    if (!text && !m.attachment_key) fail("Type a message first.");
+    if (text.length > 4000 || html.length > 60_000) fail("Message is too long.");
+    // An edit can't pull anyone new into the chat: only mentions of people already in it are kept.
+    const ids = mentionIds(html);
+    if (ids.length) {
+      const members = (await all<{ user_id: number }>("SELECT user_id FROM conversation_members WHERE conversation_id = ?", m.conversation_id)).map((r) => r.user_id);
+      html = dropMentions(html, ids.filter((uid) => !members.includes(uid)));
+    }
+    await run("UPDATE messages SET body = ?, edited_at = datetime('now') WHERE id = ?", text ? html : "", id);
+  });
+}
+
+/** Deletes the user's own message for everyone in the chat, with its attachment. */
+export async function deleteMessage(id: number): Promise<ActionResult> {
+  return guarded(undefined, async (ctx) => {
+    const m = await ownMessage(ctx.user.id, id);
+    await run("DELETE FROM messages WHERE id = ?", id);
+    if (m.attachment_key) await removeFile(m.attachment_key);
+    await audit(ctx.schoolId, ctx.user.id, "delete", "message", id, `conversation ${m.conversation_id}`);
+  });
+}
+
+/** Removes the stored attachments of every message in a chat (before the chat itself is deleted). */
+async function removeConversationFiles(convId: number) {
+  for (const f of await all<{ attachment_key: string }>("SELECT attachment_key FROM messages WHERE conversation_id = ? AND attachment_key IS NOT NULL", convId)) await removeFile(f.attachment_key);
+}
+
+/** Deletes a group chat for everyone, with all its messages and files. Only the person who started it, or a school admin. */
+export async function deleteGroup(convId: number): Promise<ActionResult> {
+  return guarded(undefined, async (ctx) => {
+    const c = (await get<{ is_group: number; created_by: number | null; title: string | null }>("SELECT is_group, created_by, title FROM conversations WHERE id = ? AND school_id = ?", convId, ctx.schoolId)) ?? fail("Group not found.");
+    if (!c.is_group) fail("Only group chats can be deleted.");
+    if (!ctx.isAdmin && c.created_by !== ctx.user.id) fail("Only the person who started this group, or a school admin, can delete it.");
+    await removeConversationFiles(convId);
+    await run("DELETE FROM conversations WHERE id = ?", convId);
+    await audit(ctx.schoolId, ctx.user.id, "delete", "study_group", convId, c.title ?? undefined);
+    revalidatePath("/messages");
+  });
+}
+
 /** Leaves a group chat; a group nobody is left in is deleted with its messages. */
 export async function leaveGroup(convId: number): Promise<ActionResult> {
   return guarded(undefined, async (ctx) => {
     const c = (await get<{ is_group: number }>("SELECT c.is_group FROM conversations c JOIN conversation_members m ON m.conversation_id = c.id WHERE c.id = ? AND m.user_id = ?", convId, ctx.user.id)) ?? fail("You are not part of this group.");
     if (!c.is_group) fail("You can only leave group chats.");
-    await tx(async () => {
-      await run("DELETE FROM conversation_members WHERE conversation_id = ? AND user_id = ?", convId, ctx.user.id);
-      if (!(await get("SELECT 1 FROM conversation_members WHERE conversation_id = ?", convId))) await run("DELETE FROM conversations WHERE id = ?", convId);
-    });
+    await run("DELETE FROM conversation_members WHERE conversation_id = ? AND user_id = ?", convId, ctx.user.id);
+    if (!(await get("SELECT 1 FROM conversation_members WHERE conversation_id = ?", convId))) {
+      await removeConversationFiles(convId);
+      await run("DELETE FROM conversations WHERE id = ?", convId);
+    }
     revalidatePath("/messages");
   });
 }

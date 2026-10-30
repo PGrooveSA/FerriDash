@@ -4,7 +4,7 @@ import { useT } from "@/components/I18nProvider";
 import { AlignCenter, AlignLeft, AlignRight, Bold, Italic, List, ListOrdered, Palette, Smile, Strikethrough, Table, Type, Underline } from "lucide-react";
 
 export type Mentionable = { id: number; name: string; role: string };
-export type RichEditorHandle = { html(): string; isEmpty(): boolean; clear(): void; focus(): void };
+export type RichEditorHandle = { html(): string; isEmpty(): boolean; clear(): void; focus(): void; setHtml(html: string): void };
 
 const EMOJI = "😀 😁 😂 🤣 😊 😍 😘 😎 🤩 🥳 😇 🙂 😉 🤔 😮 😢 😭 😡 😴 🤗 🙏 👍 👎 👏 🙌 👋 💪 ✌️ 👌 ✅ ❌ ⭐ 🔥 🎉 🎓 📚 ✏️ 📝 📅 ⏰ 🏫 ⚽ 🏆 ❤️ 💙 💚 💛 🧡".split(" ");
 const COLORS = ["#0f172a", "#64748b", "#dc2626", "#ea580c", "#ca8a04", "#16a34a", "#0284c7", "#4f46e5", "#9333ea", "#db2777"];
@@ -32,6 +32,21 @@ const RichEditor = forwardRef<RichEditorHandle, { placeholder: string; mentionab
       isEmpty: () => isBlank(box.current),
       clear: () => { if (box.current) box.current.innerHTML = ""; setEmpty(true); setMention(null); },
       focus: () => box.current?.focus(),
+      // Loads a message for editing (the HTML was cleaned on the server) and puts the cursor at the end.
+      setHtml: (html: string) => {
+        const el = box.current;
+        if (!el) return;
+        el.innerHTML = html;
+        el.querySelectorAll("[data-mention]").forEach((m) => m.setAttribute("contenteditable", "false"));
+        setEmpty(isBlank(el));
+        el.focus();
+        const r = document.createRange();
+        r.selectNodeContents(el);
+        r.collapse(false);
+        const sel = window.getSelection();
+        sel?.removeAllRanges();
+        sel?.addRange(r);
+      },
     }));
 
     const isBlank = (el: HTMLElement | null) => !el || (!el.textContent?.trim() && !el.querySelector("table, [data-mention]"));

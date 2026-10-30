@@ -67,4 +67,9 @@ export const MIGRATIONS: { version: number; sql: string }[] = [
     // Who started a group chat (study groups in Messages).
     sql: `ALTER TABLE conversations ADD COLUMN IF NOT EXISTS created_by INTEGER REFERENCES users(id) ON DELETE SET NULL;`,
   },
+  {
+    version: 9,
+    // When a message's text was last edited (senders may edit for 5 minutes; the chat shows "edited").
+    sql: `ALTER TABLE messages ADD COLUMN IF NOT EXISTS edited_at TEXT;`,
+  },
 ];
