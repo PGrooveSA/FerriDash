@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { ownLearnerIds } from "@/lib/auth";
 import { all, audit, get, run, tx } from "@/lib/db";
 import { ADMIN, emailField, fail, guarded, isDate, limit, num, opt, str, type ActionResult } from "@/lib/action-utils";
-import { gradeLabel, parseSaId } from "@/lib/format";
+import { ROLE_LABEL, gradeLabel, parseSaId } from "@/lib/format";
 import { notify } from "@/lib/push";
 import { clientIp, overLimit } from "@/lib/rate-limit";
 import { securityEvent } from "@/lib/security-log";
@@ -109,20 +109,29 @@ export async function enrolApplicant(_: ActionResult, f: FormData) {
     if (classId && !(await get("SELECT id FROM classes WHERE id = ? AND school_id = ?", classId, ctx.schoolId))) fail("Choose a valid class.");
     const pw = str(f, "parent_password");
     if (pw && !strongEnough(pw)) fail("The parent's password needs 8+ characters, a capital letter and a number.");
-    const email = a.parent_email.toLowerCase();
+    // The admin may correct the parent's email here (e.g. it is already used by another account).
+    const email = (str(f, "parent_email") ? emailField(f, "parent_email") : a.parent_email).toLowerCase();
+    const existing = await get<{ id: number; role: string; school_id: number | null; name: string; active: number }>(
+      "SELECT id, role, school_id, COALESCE(title || ' ', '') || first_name || ' ' || last_name name, active FROM users WHERE lower(email) = ?", email);
+    if (existing && (existing.role !== "parent" || existing.school_id !== ctx.schoolId)) {
+      // Who has it: named when they are at this school; someone at another school stays private (POPIA).
+      const who = existing.school_id === ctx.schoolId
+        ? `${ROLE_LABEL[existing.role]?.toLowerCase() ?? existing.role} ${existing.name} at your school${existing.active ? "" : " (inactive account)"}`
+        : existing.role === "super_admin" ? "a FerriDash platform account" : "an account at another school on FerriDash";
+      fail(`${email} is already used by ${who}, so it can't be this parent's login. Enter another email address for the parent above (or the email of their existing parent account at your school).`);
+    }
     let created = false;
     await tx(async () => {
       const learnerId = (await run("INSERT INTO learners (first_name, last_name, admission_number, id_number, gender, date_of_birth, class_id, home_language, address, status, school_id, enrolled_on) VALUES (?,?,?,?,?,?,?,?,?,'Active',?,date('now'))",
         a.first_name, a.last_name, admission, a.id_number, a.gender, a.date_of_birth, classId, a.home_language, a.address, ctx.schoolId)).id;
-      let parent = await get<{ id: number; role: string; school_id: number }>("SELECT id, role, school_id FROM users WHERE lower(email) = ?", email);
-      if (parent && (parent.role !== "parent" || parent.school_id !== ctx.schoolId)) fail("The parent's email belongs to another account. Change it on the application, or link the parent under Parents afterwards.");
+      let parent = existing ? { id: existing.id } : undefined;
       if (!parent) {
         parent = { id: (await run("INSERT INTO users (school_id, role, title, first_name, last_name, email, phone, password_hash) VALUES (?,?,?,?,?,?,?,?)",
-          ctx.schoolId, "parent", a.parent_title, a.parent_first_name, a.parent_last_name, email, a.parent_phone, bcrypt.hashSync(pw || tempPassword(), 10))).id, role: "parent", school_id: ctx.schoolId };
+          ctx.schoolId, "parent", a.parent_title, a.parent_first_name, a.parent_last_name, email, a.parent_phone, bcrypt.hashSync(pw || tempPassword(), 10))).id };
         created = true;
       }
       await run("INSERT INTO guardian_links (parent_user_id, learner_id, relationship) VALUES (?,?,?) ON CONFLICT (parent_user_id, learner_id) DO NOTHING", parent.id, learnerId, a.relationship || "Parent");
-      await run("UPDATE applications SET status = 'Enrolled', learner_id = ?, updated_at = datetime('now') WHERE id = ?", learnerId, a.id);
+      await run("UPDATE applications SET status = 'Enrolled', learner_id = ?, parent_email = ?, updated_at = datetime('now') WHERE id = ?", learnerId, email, a.id);
       await audit(ctx.schoolId, ctx.user.id, "enrol", "learner", learnerId, `from application ${id}`);
     });
     revalidatePath("/admissions");

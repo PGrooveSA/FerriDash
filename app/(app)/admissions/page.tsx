@@ -99,7 +99,8 @@ export default async function AdmissionsPage({ searchParams }: { searchParams: P
                           <FormDialog trigger="button" triggerLabel="Enrol" title={`Enrol ${a.first_name} ${a.last_name}`} hidden={{ id: a.id }} action={enrolApplicant} submitLabel="Enrol learner" fields={[
                             { name: "admission_number", label: "Admission number", required: true, defaultValue: admission, half: true },
                             { name: "class_id", label: "Class", type: "select", options: classes.filter((c) => c.grade === a.grade).map((c) => ({ value: c.id, label: `${c.name} (${c.year})` })), half: true, help: "Optional: place them later under Learners." },
-                            { name: "parent_password", label: `Password for ${a.parent_email}`, type: "password", help: "Only used when this parent doesn't have an account yet. 8+ characters with a capital letter and a number; leave empty to set it later." },
+                            { name: "parent_email", label: "Parent's email (their FerriDash login)", type: "email", required: true, defaultValue: a.parent_email, help: "Change it if this address is already used by another account. An existing parent account at your school is linked instead of creating a new one." },
+                            { name: "parent_password", label: "Parent's password", type: "password", help: "Only used when this parent doesn't have an account yet. 8+ characters with a capital letter and a number; leave empty to set it later." },
                           ]} />
                         </>}
                         <DeleteButton action={deleteApplication.bind(null, a.id)} label={`the application for ${a.first_name} ${a.last_name}`} />
