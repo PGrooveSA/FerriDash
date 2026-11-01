@@ -4,35 +4,46 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { audit, get, run } from "@/lib/db";
 import { EVERYONE, requireCtx } from "@/lib/auth";
-import { REMEMBER_DAYS, SCHOOL_COOKIE, SESSION_COOKIE, SESSION_HOURS, signSession, verifySession } from "@/lib/session";
-import { clearFailures, clientIp, isBlocked, recordFailure, type Limit } from "@/lib/rate-limit";
+import { LOGIN_NONCE_COOKIE, REMEMBER_DAYS, SCHOOL_COOKIE, SESSION_COOKIE, SESSION_HOURS, checkLoginState, signSession, verifySession } from "@/lib/session";
+import { afterLoginPath } from "@/lib/redirects";
+import { blockedKeys, clearFailures, clientIp, isBlocked, recordFailure, type Limit } from "@/lib/rate-limit";
 import { DEVICE_COOKIE, linkDevice, parseDevice, unlinkDevice } from "@/lib/devices";
 
 // A hash of a password nobody has: checked when the email is unknown, so a wrong email takes as long as a
 // wrong password (the response time doesn't reveal which emails have accounts).
 const NO_USER_HASH = "$2b$10$qgVe6dh4HKhccNd.8HPOwO7aXhPYOmv5NnnSSkQyD1oknb5ZKo5V.";
 
-// Brute-force limits. Per email from one address: 5 tries, then 5 minutes. Per address: 30 tries in 15 minutes
-// (someone trying many accounts). Per email from anywhere: 50 tries in an hour (an attack spread over many
-// addresses); this one is high so nobody can easily lock someone else out of their account.
-const loginLimits = (email: string, ip: string): Limit[] => [
-  { key: `ip-email:${ip}:${email}`, max: 5, windowSec: 15 * 60, blockSec: 5 * 60 },
-  { key: `ip:${ip}`, max: 30, windowSec: 15 * 60, blockSec: 15 * 60 },
-  { key: `email:${email}`, max: 50, windowSec: 60 * 60, blockSec: 30 * 60 },
-];
+// Brute-force limits. An account is locked for 15 minutes after 5 wrong passwords within an hour, wherever they
+// come from (the counter is per email, so an unknown email locks the same way and reveals nothing). An address
+// trying many accounts is blocked after 30 failures in 15 minutes. A school admin unlocks an account early by
+// setting a new password for it.
+const emailLimit = (email: string): Limit => ({ key: `email:${email}`, max: 5, windowSec: 60 * 60, blockSec: 15 * 60 });
+const ipLimit = (ip: string): Limit => ({ key: `ip:${ip}`, max: 30, windowSec: 15 * 60, blockSec: 15 * 60 });
+const LOCKED = "Too many wrong passwords: this account is locked for 15 minutes. Your school office can unlock it by setting a new password.";
 const TOO_MANY = "Too many attempts. Try again in a few minutes.";
 
-export async function login(_: unknown, form: FormData): Promise<{ error?: string }> {
+export async function login(_: unknown, form: FormData): Promise<{ error?: string; expired?: boolean }> {
+  const store = await cookies();
+  // The form must carry the signed state issued with this browser's sign-in page (lib/session.ts).
+  if (!(await checkLoginState(String(form.get("state") || ""), store.get(LOGIN_NONCE_COOKIE)?.value)))
+    return { error: "This sign-in page has expired or was changed.", expired: true };
+
   const email = String(form.get("email") || "").trim().toLowerCase().slice(0, 254);
   const password = String(form.get("password") || "").slice(0, 200);
-  const limits = loginLimits(email, await clientIp());
-  if (await isBlocked(limits.map((l) => l.key))) return { error: TOO_MANY };
+  const limits = [emailLimit(email), ipLimit(await clientIp())];
+  const blocked = await blockedKeys(limits.map((l) => l.key));
+  if (blocked.length) return { error: blocked.includes(limits[0].key) ? LOCKED : TOO_MANY };
 
   const user = await get<{ id: number; role: string; password_hash: string; school_id: number | null; session_version: number }>(
       "SELECT u.id, u.role, u.password_hash, u.school_id, u.session_version FROM users u LEFT JOIN schools s ON s.id = u.school_id WHERE lower(u.email) = ? AND u.active = 1 AND (s.id IS NULL OR s.active = 1)", email);
   const ok = await bcrypt.compare(password, user?.password_hash ?? NO_USER_HASH);
   if (!user || !ok) {
-    await recordFailure(limits);
+    const nowBlocked = await recordFailure(limits);
+    if (nowBlocked.includes(limits[0].key)) {
+      // The school can see in its audit log that someone was locked out.
+      if (user) await audit(user.school_id, user.id, "locked", "user", user.id, "5 wrong passwords");
+      return { error: LOCKED };
+    }
     return { error: "Incorrect email or password." };
   }
   await clearFailures([limits[0].key]);
@@ -43,7 +54,6 @@ export async function login(_: unknown, form: FormData): Promise<{ error?: strin
   // (and the session expires after 12 hours either way).
   const remember = form.get("remember") === "1";
   const hours = remember ? REMEMBER_DAYS * 24 : SESSION_HOURS;
-  const store = await cookies();
   store.set(SESSION_COOKIE, await signSession({ uid: user.id, role: user.role, sv: user.session_version }, hours), {
     httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production" && process.env.INSECURE_COOKIES !== "1", path: "/",
     ...(remember ? { maxAge: hours * 3600 } : {}),
@@ -51,7 +61,10 @@ export async function login(_: unknown, form: FormData): Promise<{ error?: strin
   // Signing in inside the app: this phone now gets this user's push notifications.
   const device = parseDevice(store.get(DEVICE_COOKIE)?.value);
   if (device) await linkDevice(user.id, device);
-  redirect("/dashboard");
+  // The sign-in state is used once.
+  store.delete(LOGIN_NONCE_COOKIE);
+  // Only a pre-approved page for the user's role; never an address from the request.
+  redirect(afterLoginPath(user.role));
 }
 
 export async function logout() {

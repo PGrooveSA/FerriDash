@@ -11,25 +11,36 @@ export async function clientIp(): Promise<string> {
   return h.get("x-real-ip") || h.get("x-forwarded-for")?.split(",")[0].trim() || "unknown";
 }
 
-/** True when any of these counters is currently blocked. */
-export async function isBlocked(keys: string[]): Promise<boolean> {
-  if (!keys.length) return false;
-  const rows = await all(`SELECT 1 FROM login_attempts WHERE key IN (${keys.map(() => "?").join(",")}) AND blocked_until > now() LIMIT 1`, ...keys);
-  return rows.length > 0;
+/** The counters among these that are currently blocked. */
+export async function blockedKeys(keys: string[]): Promise<string[]> {
+  if (!keys.length) return [];
+  return (await all<{ key: string }>(`SELECT key FROM login_attempts WHERE key IN (${keys.map(() => "?").join(",")}) AND blocked_until > now()`, ...keys)).map((r) => r.key);
 }
 
-/** Counts one failure against each limit; a counter that reaches its maximum within its window is blocked for a while. */
-export async function recordFailure(limits: Limit[]) {
+/** True when any of these counters is currently blocked. */
+export async function isBlocked(keys: string[]): Promise<boolean> {
+  return (await blockedKeys(keys)).length > 0;
+}
+
+/** Counts one failure against each limit; a counter that reaches its maximum within its window is blocked for a while. Returns the keys blocked just now. */
+export async function recordFailure(limits: Limit[]): Promise<string[]> {
+  const blocked: string[] = [];
   for (const l of limits) {
     await run(`INSERT INTO login_attempts (key, n, window_start) VALUES (?, 1, now())
       ON CONFLICT (key) DO UPDATE SET
         n = CASE WHEN login_attempts.window_start < now() - make_interval(secs => ?) THEN 1 ELSE login_attempts.n + 1 END,
         window_start = CASE WHEN login_attempts.window_start < now() - make_interval(secs => ?) THEN now() ELSE login_attempts.window_start END`,
       l.key, l.windowSec, l.windowSec);
-    await run("UPDATE login_attempts SET blocked_until = now() + make_interval(secs => ?), n = 0, window_start = now() WHERE key = ? AND n >= ?", l.blockSec, l.key, l.max);
+    if ((await run("UPDATE login_attempts SET blocked_until = now() + make_interval(secs => ?), n = 0, window_start = now() WHERE key = ? AND n >= ?", l.blockSec, l.key, l.max)).changes) blocked.push(l.key);
   }
   // Now and then, forget counters nobody has touched for a day.
   if (Math.random() < 0.02) await run("DELETE FROM login_attempts WHERE window_start < now() - interval '1 day' AND (blocked_until IS NULL OR blocked_until < now())");
+  return blocked;
+}
+
+/** Unlocks an account's sign-in (a school admin set a new password for it). */
+export async function unlockEmail(email: string) {
+  await clearFailures([`email:${email.trim().toLowerCase()}`]);
 }
 
 /** Clears counters after a successful sign-in. */

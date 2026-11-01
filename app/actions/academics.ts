@@ -2,6 +2,7 @@
 import bcrypt from "bcryptjs";
 import { MAX_LOGO_BYTES, imageType } from "@/lib/uploads";
 import { putFile, removeFile, storageKey } from "@/lib/storage";
+import { unlockEmail } from "@/lib/rate-limit";
 import { revalidatePath } from "next/cache";
 import { audit, get, run, tx } from "@/lib/db";
 import { ADMIN, PLATFORM, fail, guarded, num, opt, str, type ActionResult } from "@/lib/action-utils";
@@ -157,9 +158,10 @@ const strongEnough = (p: string) => p.length >= 8 && /[A-Z]/.test(p) && /\d/.tes
 export async function resetSchoolAdminPassword(_: ActionResult, f: FormData) {
   return guarded(PLATFORM, async (ctx) => {
     const userId = num(f, "user_id"), pw = str(f, "password");
-    const u = (await get<{ school_id: number }>("SELECT school_id FROM users WHERE id = ? AND role = 'school_admin'", userId)) ?? fail("Choose one of the school's admins.");
+    const u = (await get<{ school_id: number; email: string }>("SELECT school_id, email FROM users WHERE id = ? AND role = 'school_admin'", userId)) ?? fail("Choose one of the school's admins.");
     if (!strongEnough(pw)) fail("The password needs 8+ characters, a capital letter and a number.");
     await run("UPDATE users SET password_hash = ?, active = 1, session_version = session_version + 1 WHERE id = ?", bcrypt.hashSync(pw, 10), userId);
+    await unlockEmail(u.email);
     await audit(u.school_id, ctx.user.id, "reset_password", "user", userId, "by platform admin");
     return { ok: true, message: "Password updated. Share it with the school admin privately." };
   });

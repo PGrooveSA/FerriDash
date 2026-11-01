@@ -3,12 +3,13 @@ import { useActionState, useState } from "react";
 import { login } from "../actions/auth";
 import { LogIn, Mail, Lock, Eye, EyeOff, Info } from "lucide-react";
 
-export default function LoginForm() {
+export default function LoginForm({ state: loginState }: { state: string }) {
   const [state, action, pending] = useActionState(login, {});
   const [show, setShow] = useState(false);
   const [forgot, setForgot] = useState(false);
   return (
     <form action={action} className="mt-7 space-y-4">
+      <input type="hidden" name="state" value={loginState} />
       <div>
         <label className="label" htmlFor="email">Email</label>
         <div className="relative">
@@ -39,7 +40,7 @@ export default function LoginForm() {
           For your security, passwords are reset by your school. Ask the school office or your school admin to set a new one for you.
         </p>
       )}
-      {state?.error && <p role="alert" className="text-sm text-rose-600">{state.error}</p>}
+      {state?.error && <p role="alert" className="text-sm text-rose-600">{state.error}{state.expired && <> <a href="/login" className="underline font-medium">Reload the page</a></>}</p>}
       <button className="btn btn-primary w-full !py-3" disabled={pending}>
         <LogIn className="w-4 h-4" /> {pending ? "Signing in..." : "Sign in"}
       </button>

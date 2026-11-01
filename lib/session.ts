@@ -37,3 +37,28 @@ export async function verifySession(token: string | undefined): Promise<(Require
     return null;
   }
 }
+
+// ---------------- Sign-in state ----------------
+// Opening the sign-in page gives the browser a random value in a cookie (middleware.ts). The page's form carries
+// a signed state token naming that same value; the sign-in action accepts the form only when the two match, the
+// signature is FerriDash's own and the token hasn't expired. Another site can't read the cookie or forge the
+// token, so it can't submit a sign-in on someone's behalf, and a tampered or replayed form is refused.
+export const LOGIN_NONCE_COOKIE = "sh_login";
+const LOGIN_STATE_MINUTES = 120;
+
+export const newLoginNonce = () => crypto.randomUUID();
+
+export async function signLoginState(nonce: string) {
+  return new SignJWT({ n: nonce, p: "login" }).setProtectedHeader({ alg: "HS256" }).setIssuedAt().setExpirationTime(`${LOGIN_STATE_MINUTES}m`).sign(key());
+}
+
+/** True when the state token is ours, unexpired, for sign-in, and names the nonce in the browser's cookie. */
+export async function checkLoginState(state: string | undefined | null, nonce: string | undefined): Promise<boolean> {
+  if (!state || !nonce) return false;
+  try {
+    const { payload } = await jwtVerify(state, key(), { algorithms: ["HS256"] });
+    return payload.p === "login" && typeof payload.n === "string" && payload.n === nonce;
+  } catch {
+    return false;
+  }
+}

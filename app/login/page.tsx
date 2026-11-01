@@ -1,4 +1,6 @@
+import { cookies } from "next/headers";
 import LoginForm from "./LoginForm";
+import { LOGIN_NONCE_COOKIE, signLoginState } from "@/lib/session";
 import LoginBackdrop from "@/components/LoginBackdrop";
 import BrandLogo from "@/components/BrandLogo";
 
@@ -9,6 +11,9 @@ export const metadata = { title: "Sign in" };
 // (generated with Higgsfield, public/brand/login-art-*.webp) on the right.
 export default async function LoginPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const ended = (await searchParams).ended === "1";
+  // Signed state for this browser's sign-in nonce (set by middleware.ts), checked by the sign-in action.
+  const nonce = (await cookies()).get(LOGIN_NONCE_COOKIE)?.value;
+  const state = nonce ? await signLoginState(nonce) : "";
   return (
     <>
       <LoginBackdrop />
@@ -19,7 +24,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
               <div className="flex justify-center"><BrandLogo className="w-52" /></div>
               <h1 className="text-2xl font-semibold tracking-tight text-center mt-7">Sign in</h1>
               {ended && <p className="text-sm text-center mt-4 rounded-xl px-3 py-2 bg-brand-500/10">You have been signed out. If you can&apos;t sign in, contact your school office.</p>}
-              <LoginForm />
+              <LoginForm state={state} />
               <p className="text-sm text-center muted mt-6">New to FerriDash? <span className="text-[var(--ink)] font-medium">Your school office creates your login.</span></p>
               <p className="text-xs text-center muted mt-3">Your information is processed in line with POPIA.</p>
             </div>
