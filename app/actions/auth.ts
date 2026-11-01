@@ -6,6 +6,7 @@ import { audit, get, run } from "@/lib/db";
 import { EVERYONE, requireCtx } from "@/lib/auth";
 import { LOGIN_NONCE_COOKIE, REMEMBER_DAYS, SCHOOL_COOKIE, SESSION_COOKIE, SESSION_HOURS, checkLoginState, signSession, verifySession } from "@/lib/session";
 import { afterLoginPath } from "@/lib/redirects";
+import { securityEvent } from "@/lib/security-log";
 import { blockedKeys, clearFailures, clientIp, isBlocked, recordFailure, type Limit } from "@/lib/rate-limit";
 import { DEVICE_COOKIE, linkDevice, parseDevice, unlinkDevice } from "@/lib/devices";
 
@@ -26,19 +27,26 @@ export async function login(_: unknown, form: FormData): Promise<{ error?: strin
   const store = await cookies();
   // The form must carry the signed state issued with this browser's sign-in page (lib/session.ts).
   if (!(await checkLoginState(String(form.get("state") || ""), store.get(LOGIN_NONCE_COOKIE)?.value)))
+  {
+    await securityEvent("login_state_refused");
     return { error: "This sign-in page has expired or was changed.", expired: true };
+  }
 
   const email = String(form.get("email") || "").trim().toLowerCase().slice(0, 254);
   const password = String(form.get("password") || "").slice(0, 200);
   const limits = [emailLimit(email), ipLimit(await clientIp())];
   const blocked = await blockedKeys(limits.map((l) => l.key));
-  if (blocked.length) return { error: blocked.includes(limits[0].key) ? LOCKED : TOO_MANY };
+  if (blocked.length) {
+    await securityEvent("login_blocked", { email, by: blocked.includes(limits[0].key) ? "account" : "address" });
+    return { error: blocked.includes(limits[0].key) ? LOCKED : TOO_MANY };
+  }
 
   const user = await get<{ id: number; role: string; password_hash: string; school_id: number | null; session_version: number }>(
       "SELECT u.id, u.role, u.password_hash, u.school_id, u.session_version FROM users u LEFT JOIN schools s ON s.id = u.school_id WHERE lower(u.email) = ? AND u.active = 1 AND (s.id IS NULL OR s.active = 1)", email);
   const ok = await bcrypt.compare(password, user?.password_hash ?? NO_USER_HASH);
   if (!user || !ok) {
     const nowBlocked = await recordFailure(limits);
+    await securityEvent(nowBlocked.includes(limits[0].key) ? "login_locked" : "login_failed", { email, known: user ? 1 : 0 });
     if (nowBlocked.includes(limits[0].key)) {
       // The school can see in its audit log that someone was locked out.
       if (user) await audit(user.school_id, user.id, "locked", "user", user.id, "5 wrong passwords");

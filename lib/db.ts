@@ -7,6 +7,7 @@ import postgres from "postgres";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { headers } from "next/headers";
 import { MIGRATIONS } from "../db/migrations";
 
 type Sql = postgres.Sql;
@@ -151,7 +152,10 @@ export async function tx<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 export async function audit(schoolId: number | null, userId: number | null, action: string, entity: string, entityId?: number | null, detail?: string) {
-  await run("INSERT INTO audit_log (school_id, user_id, action, entity, entity_id, detail) VALUES (?,?,?,?,?,?)", schoolId, userId, action, entity, entityId ?? null, detail ?? null);
+  // The address the request came from, when there is one (who did what from where).
+  let ip: string | null = null;
+  try { const h = await headers(); ip = h.get("x-real-ip") || h.get("x-forwarded-for")?.split(",")[0].trim() || null; } catch { /* not in a request */ }
+  await run("INSERT INTO audit_log (school_id, user_id, action, entity, entity_id, detail, ip) VALUES (?,?,?,?,?,?,?)", schoolId, userId, action, entity, entityId ?? null, detail ?? null, ip);
 }
 
 /** For scripts and tests: close the connection pool. */

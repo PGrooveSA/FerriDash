@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { all, audit, get, run, tx } from "@/lib/db";
-import { ADMIN, STAFF, fail, guarded, num, str, type ActionResult } from "@/lib/action-utils";
+import { ADMIN, STAFF, fail, guarded, isDate, num, str, type ActionResult } from "@/lib/action-utils";
 import type { Ctx } from "@/lib/auth";
 import { familyOf, notify } from "@/lib/push";
 
@@ -32,7 +32,11 @@ export async function saveAssessment(_: ActionResult, f: FormData) {
     await assertEditable(ctx, csId, ctx.school.current_year, term);
     const max = num(f, "max_mark"), weight = num(f, "weight") ?? 1;
     if (!max || max <= 0) fail("Total marks must be more than 0.");
-    if (weight <= 0) fail("Weight must be more than 0.");
+    if (weight <= 0 || weight > 100) fail("Weight must be more than 0 (and at most 100).");
+    if (max > 10000) fail("Total marks must be 10 000 or less.");
+    if (![1, 2, 3, 4].includes(term)) fail("Choose a term.");
+    if (!str(f, "name")) fail("Give the assessment a name.");
+    if (str(f, "date") && !isDate(str(f, "date"))) fail("Choose a valid date.");
     const vals = [str(f, "name"), str(f, "kind") || "SBA", max, weight, str(f, "date") || null];
     if (id) await run("UPDATE assessments SET name=?, kind=?, max_mark=?, weight=?, date=? WHERE id = ? AND class_subject_id = ?", ...vals, id, csId);
     else await run("INSERT INTO assessments (name, kind, max_mark, weight, date, school_id, class_subject_id, year, term) VALUES (?,?,?,?,?,?,?,?,?)", ...vals, ctx.schoolId, csId, ctx.school.current_year, term);
@@ -55,7 +59,8 @@ export async function deleteAssessment(id: number) {
 /** Saves a batch of cells. value: number, "ab" (absent) or "" (clear). */
 export async function saveMarks(cells: { assessmentId: number; learnerId: number; value: string }[]): Promise<ActionResult> {
   return guarded(STAFF, async (ctx) => {
-    if (!cells.length) return;
+    if (!Array.isArray(cells) || !cells.length) return;
+    if (cells.length > 5000) fail("Too many marks in one save. Save a smaller block.");
     const meta = new Map<number, { max_mark: number; class_subject_id: number; year: number; term: number }>();
     for (const c of cells) {
       if (!meta.has(c.assessmentId)) {
@@ -92,6 +97,7 @@ const TRANSITIONS: Record<string, { from: string[]; admin: boolean }> = {
 
 export async function setResultStatus(csId: number, term: number, status: "draft" | "submitted" | "approved" | "published") {
   return guarded(STAFF, async (ctx) => {
+    if (![1, 2, 3, 4].includes(term)) fail("Choose a term.");
     await ownCs(ctx, csId);
     const rule = TRANSITIONS[status] ?? fail("Unknown status.");
     if (rule.admin && !ctx.isAdmin) fail("Only school management can do this.");

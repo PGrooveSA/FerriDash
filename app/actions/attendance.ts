@@ -13,6 +13,7 @@ async function canMark(ctx: Ctx, classId: number) {
 export async function setAttendance(learnerId: number, date: string, status: "P" | "A" | "L" | "E" | null) {
   return guarded(STAFF, async (ctx) => {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) fail("Invalid date.");
+    if (status != null && !["P", "A", "L", "E"].includes(status)) fail("Invalid attendance status.");
     const l = (await get<{ class_id: number; first_name: string }>("SELECT class_id, first_name FROM learners WHERE id = ? AND school_id = ?", learnerId, ctx.schoolId)) ?? fail("Learner not found.");
     if (!(await canMark(ctx, l.class_id))) fail("You can only take the register for your own classes.");
     const before = (await get<{ status: string }>("SELECT status FROM attendance WHERE learner_id = ? AND date = ?", learnerId, date))?.status;
@@ -26,6 +27,7 @@ export async function setAttendance(learnerId: number, date: string, status: "P"
 /** Marks everyone without a status on that day as present. */
 export async function markAllPresent(classId: number, date: string) {
   return guarded(STAFF, async (ctx) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) fail("Invalid date.");
     if (!(await canMark(ctx, classId))) fail("You can only take the register for your own classes.");
     await tx(() => run(`INSERT INTO attendance (school_id, learner_id, date, status, recorded_by)
       SELECT ?, id, ?, 'P', ? FROM learners WHERE class_id = ? AND status = 'Active'

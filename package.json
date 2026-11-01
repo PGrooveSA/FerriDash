@@ -35,5 +35,8 @@
     "@types/sanitize-html": "2.16.2",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "postcss": "8.5.32"
   }
 }

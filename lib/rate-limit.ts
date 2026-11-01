@@ -47,3 +47,13 @@ export async function unlockEmail(email: string) {
 export async function clearFailures(keys: string[]) {
   if (keys.length) await run(`DELETE FROM login_attempts WHERE key IN (${keys.map(() => "?").join(",")})`, ...keys);
 }
+
+/**
+ * General rate limit for actions (sending messages, uploads, password resets...). Counts this use; true when
+ * the limit is already used up, so the caller refuses. Each use is one counter row update in the database.
+ */
+export async function overLimit(l: Limit): Promise<boolean> {
+  if (await isBlocked([l.key])) return true;
+  await recordFailure([l]);
+  return false;
+}

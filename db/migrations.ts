@@ -122,4 +122,22 @@ export const MIGRATIONS: { version: number; sql: string }[] = [
       CREATE INDEX IF NOT EXISTS idx_classes_class_teacher ON classes(class_teacher_id);
       CREATE INDEX IF NOT EXISTS idx_audit_school ON audit_log(school_id, created_at);`,
   },
+  {
+    version: 12,
+    // Defence in depth: Supabase's public API roles (anon, authenticated) get no rights on FerriDash's tables at
+    // all (Row Level Security already blocks them; FerriDash itself connects as the database owner). The audit
+    // log also records the address each action came from.
+    sql: `
+      DO $$ BEGIN
+        IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') AND EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+          REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon, authenticated;
+          REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM anon, authenticated;
+          REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA public FROM anon, authenticated;
+          ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM anon, authenticated;
+          ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON SEQUENCES FROM anon, authenticated;
+          ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE EXECUTE ON FUNCTIONS FROM anon, authenticated;
+        END IF;
+      END $$;
+      ALTER TABLE audit_log ADD COLUMN IF NOT EXISTS ip TEXT;`,
+  },
 ];

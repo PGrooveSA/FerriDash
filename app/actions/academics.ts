@@ -5,7 +5,7 @@ import { putFile, removeFile, storageKey } from "@/lib/storage";
 import { unlockEmail } from "@/lib/rate-limit";
 import { revalidatePath } from "next/cache";
 import { audit, get, run, tx } from "@/lib/db";
-import { ADMIN, PLATFORM, fail, guarded, num, opt, str, type ActionResult } from "@/lib/action-utils";
+import { ADMIN, PLATFORM, emailField, fail, guarded, limit, num, opt, str, type ActionResult } from "@/lib/action-utils";
 
 // ---------------- Classes ----------------
 export async function saveClass(_: ActionResult, f: FormData) {
@@ -96,6 +96,7 @@ export async function saveSchoolSettings(_: ActionResult, f: FormData) {
 // ---------------- School logo (admins only) ----------------
 export async function uploadLogo(f: FormData): Promise<ActionResult> {
   return guarded(ADMIN, async (ctx) => {
+    await limit(ctx, "upload", 20, 3600);
     const file = f.get("logo");
     if (!(file instanceof File) || file.size === 0) fail("Choose a logo to upload.");
     if (file.size > MAX_LOGO_BYTES) fail("That logo is too large. Please use an image under 2 MB.");
@@ -170,10 +171,9 @@ export async function resetSchoolAdminPassword(_: ActionResult, f: FormData) {
 /** Platform admin adds another school admin to a school (e.g. a new principal or office manager). */
 export async function addSchoolAdmin(_: ActionResult, f: FormData) {
   return guarded(PLATFORM, async (ctx) => {
-    const schoolId = num(f, "school_id"), email = str(f, "email").toLowerCase(), pw = str(f, "password");
+    const schoolId = num(f, "school_id"), email = emailField(f, "email"), pw = str(f, "password");
     if (!(await get("SELECT id FROM schools WHERE id = ?", schoolId))) fail("School not found.");
     if (!str(f, "first_name") || !str(f, "last_name")) fail("Enter the admin's name.");
-    if (!email.includes("@")) fail("Enter a valid email address.");
     if (await get("SELECT id FROM users WHERE lower(email) = ?", email)) fail("That email already belongs to another account.");
     if (!strongEnough(pw)) fail("The password needs 8+ characters, a capital letter and a number.");
     const id = (await run("INSERT INTO users (school_id, role, first_name, last_name, email, phone, password_hash) VALUES (?,?,?,?,?,?,?)",

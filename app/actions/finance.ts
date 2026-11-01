@@ -1,14 +1,15 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { audit, run } from "@/lib/db";
-import { ADMIN, fail, guarded, num, opt, str, type ActionResult } from "@/lib/action-utils";
+import { ADMIN, fail, guarded, isDate, num, opt, str, type ActionResult } from "@/lib/action-utils";
 import { MAX_EXPENSE_DOC_BYTES, isPdf } from "@/lib/uploads";
 import { putFile, removeFile, storageKey } from "@/lib/storage";
 
 export async function saveExpense(_: ActionResult, f: FormData) {
   return guarded(ADMIN, async (ctx) => {
     const id = num(f, "id"), amount = num(f, "amount");
-    if (!amount || amount <= 0) fail("Enter an amount greater than R0.");
+    if (!amount || amount <= 0 || amount > 1e9) fail("Enter an amount greater than R0.");
+    if (!isDate(str(f, "paid_on"))) fail("Choose the date it was paid.");
     // Optional supporting document: PDF only (checked by content, not just the name), up to 4 MB.
     const file = f.get("document");
     let pdf: Uint8Array | null = null, pdfName: string | null = null;

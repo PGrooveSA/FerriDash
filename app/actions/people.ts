@@ -9,7 +9,7 @@ import { all, audit, get, run, tx } from "@/lib/db";
 import { EXIT_REASONS } from "@/lib/staff";
 import { parseSaId } from "@/lib/format";
 import { isLang } from "@/lib/i18n";
-import { ADMIN, EVERYONE, STAFF, fail, guarded, num, opt, str, type ActionResult } from "@/lib/action-utils";
+import { ADMIN, EVERYONE, STAFF, emailField, fail, guarded, isDate, limit, num, opt, str, type ActionResult } from "@/lib/action-utils";
 
 const strongEnough = (p: string) => p.length >= 8 && /[A-Z]/.test(p) && /\d/.test(p);
 const tempPassword = () => "Sk-" + randomBytes(6).toString("base64url") + "9A";
@@ -42,8 +42,7 @@ function subjectCategory(name: string): string {
 export async function saveTeacher(_: ActionResult, f: FormData) {
   return guarded(ADMIN, async (ctx) => {
     const id = num(f, "id");
-    const email = str(f, "email").toLowerCase();
-    if (!email.includes("@")) fail("Enter a valid email address.");
+    const email = emailField(f, "email");
     checkId(opt(f, "id_number"));
     // Classes & subjects ticked on the form (must belong to this school), and the optional register class.
     const allocations = [...new Set(f.getAll("allocations").map(Number).filter(Boolean))];
@@ -192,6 +191,7 @@ export async function saveLearner(_: ActionResult, f: FormData) {
     const fields = [str(f, "first_name"), str(f, "last_name"), str(f, "admission_number"), idNumber, opt(f, "gender") ?? decoded?.gender ?? null,
       opt(f, "date_of_birth") ?? decoded?.dob ?? null, classId, opt(f, "home_language"), opt(f, "address"), str(f, "status") || "Active"];
     if (!fields[0] || !fields[1] || !fields[2]) fail("Name, surname and admission number are required.");
+    if (fields[5] && !isDate(String(fields[5]))) fail("Enter a valid date of birth.");
 
     await tx(async () => {
             let learnerId = id;
@@ -201,14 +201,14 @@ export async function saveLearner(_: ActionResult, f: FormData) {
               await run("UPDATE users SET first_name=?, last_name=? WHERE id = (SELECT user_id FROM learners WHERE id = ?)", fields[0], fields[1], id);
             } else {
               learnerId = (await run("INSERT INTO learners (first_name, last_name, admission_number, id_number, gender, date_of_birth, class_id, home_language, address, status, school_id, enrolled_on) VALUES (?,?,?,?,?,?,?,?,?,?,?,date('now'))", ...fields, ctx.schoolId)).id;
-              const loginEmail = str(f, "login_email").toLowerCase();
+              const loginEmail = emailField(f, "login_email", false);
               if (loginEmail) {
                 const u = await run("INSERT INTO users (school_id, role, first_name, last_name, email, password_hash) VALUES (?,?,?,?,?,?)", ctx.schoolId, "learner", fields[0], fields[1], loginEmail, bcrypt.hashSync(str(f, "login_password") || tempPassword(), 10));
                 await run("UPDATE learners SET user_id = ? WHERE id = ?", u.id, learnerId);
               }
             }
             // Optional parent / guardian link
-            const pEmail = str(f, "parent_email").toLowerCase();
+            const pEmail = emailField(f, "parent_email", false);
             if (pEmail) {
               let parent = await get<{ id: number; role: string; school_id: number }>("SELECT id, role, school_id FROM users WHERE lower(email) = ?", pEmail);
               if (parent && (parent.role !== "parent" || parent.school_id !== ctx.schoolId)) fail("That email belongs to another account.");
@@ -240,7 +240,8 @@ export async function deleteLearner(id: number) {
 export async function saveParent(_: ActionResult, f: FormData) {
   return guarded(ADMIN, async (ctx) => {
     const id = num(f, "id");
-    const email = str(f, "email").toLowerCase();
+    const email = emailField(f, "email");
+    if (!str(f, "first_name") || !str(f, "last_name")) fail("Enter the parent's name.");
     if (id) {
       if (!(await get("SELECT id FROM users WHERE id = ? AND school_id = ? AND role = 'parent'", id, ctx.schoolId))) fail("Parent not found.");
       await run("UPDATE users SET title=?, first_name=?, last_name=?, email=?, phone=? WHERE id = ?", opt(f, "title"), str(f, "first_name"), str(f, "last_name"), email, opt(f, "phone"), id);
@@ -287,6 +288,7 @@ export async function deleteUser(id: number) {
 export async function resetPassword(_: ActionResult, f: FormData) {
   return guarded(ADMIN, async (ctx) => {
     const id = num(f, "user_id"), pw = str(f, "password");
+    await limit(ctx, "reset-password", 30, 3600);
     if (!strongEnough(pw)) fail("Password needs 8+ characters, a capital letter and a number.");
     const scope = (await get<{ email: string }>("SELECT email FROM users WHERE id = ? AND school_id = ?", id, ctx.schoolId)) ?? fail("User not found.");
     // The new session version signs the user out everywhere (whoever knew the old password is out too).
@@ -308,6 +310,7 @@ async function removeUserFiles(userId: number | null | undefined) {
 /** Any signed-in user may set their own profile photo (resized in the browser first). */
 export async function uploadAvatar(f: FormData): Promise<ActionResult> {
   return guarded(EVERYONE, async (ctx) => {
+    await limit(ctx, "upload", 20, 3600);
     const file = f.get("photo");
     if (!(file instanceof File) || file.size === 0) fail("Choose a photo to upload.");
     if (file.size > MAX_AVATAR_BYTES) fail("That photo is too large. Please use an image under 2 MB.");
@@ -332,6 +335,7 @@ export async function removeAvatar(): Promise<ActionResult> {
 /** Any signed-in user may set a banner picture for their profile and dashboard (resized in the browser first). */
 export async function uploadBanner(f: FormData): Promise<ActionResult> {
   return guarded(EVERYONE, async (ctx) => {
+    await limit(ctx, "upload", 20, 3600);
     const file = f.get("banner");
     if (!(file instanceof File) || file.size === 0) fail("Choose a picture to upload.");
     if (file.size > MAX_BANNER_BYTES) fail("That picture is too large. Please use an image under 3 MB.");
@@ -367,7 +371,10 @@ export async function setLanguage(_: ActionResult, f: FormData): Promise<ActionR
 // ---------------- Profile ----------------
 export async function updateProfile(_: ActionResult, f: FormData) {
   return guarded(EVERYONE, async (ctx) => {
-    await run("UPDATE users SET title=?, phone=? WHERE id = ?", opt(f, "title"), opt(f, "phone"), ctx.user.id);
+    const phone = opt(f, "phone");
+    if (phone && !/^[+\d][\d ()-]{6,20}$/.test(phone)) fail("Enter a valid phone number.");
+    if ((opt(f, "title")?.length ?? 0) > 20) fail("The title is too long.");
+    await run("UPDATE users SET title=?, phone=? WHERE id = ?", opt(f, "title"), phone, ctx.user.id);
     revalidatePath("/profile");
   });
 }

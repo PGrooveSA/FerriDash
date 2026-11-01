@@ -37,3 +37,29 @@ export const imageHeaders = (type: string, visibility: "public" | "private") => 
   "X-Content-Type-Options": "nosniff",
   "Content-Security-Policy": "default-src 'none'",
 });
+
+/**
+ * True when a message attachment's bytes really are the kind its extension claims: pictures and PDFs by their
+ * signature, Office files as ZIP (docx/xlsx/pptx) or OLE (doc/xls/ppt) containers, text and CSV as text with no
+ * binary bytes. A renamed program or web page is refused.
+ */
+export function attachmentMatches(ext: string, buf: Uint8Array): boolean {
+  const head = (n: number) => String.fromCharCode(...buf.slice(0, n));
+  const starts = (...bytes: number[]) => bytes.every((b, i) => buf[i] === b);
+  switch (ext) {
+    case "jpg": case "jpeg": return imageType(buf) === "image/jpeg";
+    case "png": return imageType(buf) === "image/png";
+    case "webp": return imageType(buf) === "image/webp";
+    case "gif": return head(6) === "GIF87a" || head(6) === "GIF89a";
+    case "pdf": return isPdf(buf);
+    case "docx": case "xlsx": case "pptx": return starts(0x50, 0x4b, 0x03, 0x04);
+    case "doc": case "xls": case "ppt": return starts(0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1);
+    case "txt": case "csv": {
+      const sample = buf.slice(0, 64 * 1024);
+      if (sample.includes(0)) return false;
+      const text = new TextDecoder("utf-8", { fatal: false }).decode(sample).trimStart().slice(0, 200).toLowerCase();
+      return !/^(<!doctype|<html|<script|<svg|<\?xml)/.test(text);
+    }
+    default: return false;
+  }
+}

@@ -1,12 +1,13 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { all, audit, get, run, tx } from "@/lib/db";
-import { ADMIN, STAFF, fail, guarded, num, opt, str, type ActionResult } from "@/lib/action-utils";
+import { ADMIN, STAFF, fail, guarded, isDate, limit, num, opt, str, type ActionResult } from "@/lib/action-utils";
+import { securityEvent } from "@/lib/security-log";
 import { today, addDays } from "@/lib/today";
 import { notify, noticeAudienceUsers } from "@/lib/push";
 import { randomUUID } from "node:crypto";
-import { fileSize, removeFile, signedUploadUrl, storageKey } from "@/lib/storage";
-import { MAX_MESSAGE_FILE_BYTES, MESSAGE_FILE_TYPES, fileExt } from "@/lib/uploads";
+import { fileSize, getFile, removeFile, signedUploadUrl, storageKey } from "@/lib/storage";
+import { MAX_MESSAGE_FILE_BYTES, MESSAGE_FILE_TYPES, attachmentMatches, fileExt } from "@/lib/uploads";
 import { cleanMessageHtml, dropMentions, mentionIds, messageText } from "@/lib/richtext";
 import { STAFF_ROLES, canStartGroup, groupCandidates } from "@/lib/study-groups";
 
@@ -16,6 +17,9 @@ export async function saveNotice(_: ActionResult, f: FormData) {
     const id = num(f, "id");
     const vals = [str(f, "title"), str(f, "body"), str(f, "audience") || "all", opt(f, "tags")];
     if (!vals[0] || !vals[1]) fail("Title and message are required.");
+    if (vals[0]!.length > 200) fail("The title is too long (200 characters at most).");
+    if (!["all", "staff", "learners", "parents"].includes(vals[2]!)) fail("Choose who can see the notice.");
+    if (!id) await limit(ctx, "notice", 30, 3600);
     if (id) {
       const n = (await get<{ author_id: number }>("SELECT author_id FROM notices WHERE id = ? AND school_id = ?", id, ctx.schoolId)) ?? fail("Notice not found.");
       if (!ctx.isAdmin && n.author_id !== ctx.user.id) fail("You can only edit your own notices.");
@@ -55,6 +59,9 @@ export async function saveEvent(_: ActionResult, f: FormData) {
     const id = num(f, "id");
     const vals = [str(f, "title"), str(f, "date"), opt(f, "start_time"), opt(f, "end_time"), str(f, "category") || "school", opt(f, "audience"), opt(f, "description")];
     if (!vals[0] || !vals[1]) fail("Title and date are required.");
+    if (!isDate(vals[1])) fail("Choose a valid date.");
+    if (!["school", "academic", "sport", "meeting", "holiday"].includes(vals[4]!)) fail("Choose a category.");
+    for (const t of [vals[2], vals[3]]) if (t && !/^([01]\d|2[0-3]):[0-5]\d$/.test(t)) fail("Enter times as HH:MM.");
     if (id) await run("UPDATE events SET title=?, date=?, start_time=?, end_time=?, category=?, audience=?, description=? WHERE id = ? AND school_id = ?", ...vals, id, ctx.schoolId);
     else await run("INSERT INTO events (title, date, start_time, end_time, category, audience, description, school_id) VALUES (?,?,?,?,?,?,?,?)", ...vals, ctx.schoolId);
     revalidatePath("/calendar");
@@ -105,6 +112,7 @@ export async function prepareAttachment(convId: number, name: string, size: numb
   let key = "", url = "";
   const r = await guarded(undefined, async (ctx) => {
     if (!(await member(convId, ctx.user.id))) fail("You are not part of this conversation.");
+    await limit(ctx, "attach", 15, 600);
     const ext = fileExt(name);
     if (!MESSAGE_FILE_TYPES[ext]) fail("Attach a picture (JPG, PNG, WebP or GIF) or a document (PDF, Word, Excel, PowerPoint, text or CSV).");
     if (!(size > 0)) fail("That file is empty.");
@@ -125,6 +133,7 @@ export async function sendMessage(convId: number, body: string, file?: { key: st
     if (!text && !file) fail("Type a message first.");
     if (text.length > 4000 || html.length > 60_000) fail("Message is too long.");
     if (!(await member(convId, ctx.user.id))) fail("You are not part of this conversation.");
+    await limit(ctx, "message", 40, 60);
     let attachment: [string, string, string, number] | [null, null, null, null] = [null, null, null, null];
     if (file) {
       // Only a file uploaded for this chat (step 1), present in storage, and within the limit.
@@ -132,6 +141,13 @@ export async function sendMessage(convId: number, body: string, file?: { key: st
       if (!m || Number(m[1]) !== convId || !MESSAGE_FILE_TYPES[m[2]]) fail("That attachment is not valid.");
       const size = (await fileSize(file.key)) ?? fail("The file did not finish uploading. Please try again.");
       if (size > MAX_MESSAGE_FILE_BYTES) { await removeFile(file.key); fail("Files must be 5 MB or smaller."); }
+      // The browser uploaded it straight to storage: check the bytes really are what the extension says.
+      const bytes = await getFile(file.key);
+      if (!bytes || !attachmentMatches(m[2], bytes)) {
+        await removeFile(file.key);
+        await securityEvent("upload_rejected", { user: ctx.user.id, ext: m[2], size });
+        fail("That file's contents don't match its type, so it can't be sent.");
+      }
       const name = file.name.replace(/^.*[\\/]/, "").replace(/[\u0000-\u001f"]/g, "").slice(-120) || `attachment.${m[2]}`;
       attachment = [file.key, name, MESSAGE_FILE_TYPES[m[2]], size];
     }
@@ -157,6 +173,7 @@ export async function sendMessage(convId: number, body: string, file?: { key: st
 export async function createGroup(_: ActionResult, f: FormData): Promise<ActionResult> {
   const res = await guarded(undefined, async (ctx) => {
     if (!canStartGroup(ctx.user.role)) fail("Only learners and school staff can start a study group.");
+    await limit(ctx, "group", 10, 3600);
     const title = str(f, "title").slice(0, 80);
     if (!title) fail("Give the group a name.");
     const topic = opt(f, "description")?.slice(0, 300) ?? null;
@@ -259,6 +276,7 @@ export async function leaveGroup(convId: number): Promise<ActionResult> {
 export async function startChat(_: ActionResult, f: FormData): Promise<ActionResult> {
   const res = await guarded(undefined, async (ctx) => {
     const otherId = num(f, "user_id");
+    await limit(ctx, "chat", 30, 3600);
     const other = (await get<{ role: string }>("SELECT role FROM users WHERE id = ? AND school_id = ? AND active = 1", otherId, ctx.schoolId)) ?? fail("Person not found.");
     const family = ["learner", "parent"];
     if (family.includes(ctx.user.role) && family.includes(other.role)) fail("Learners and parents can message school staff only.");
@@ -271,6 +289,7 @@ export async function startChat(_: ActionResult, f: FormData): Promise<ActionRes
           return c;
         }));
     const first = str(f, "body");
+    if (first.length > 4000) fail("Message is too long.");
     if (first) {
       await run("INSERT INTO messages (conversation_id, sender_id, body) VALUES (?,?,?)", id, ctx.user.id, first);
       await notifyMessage(ctx.user, id);

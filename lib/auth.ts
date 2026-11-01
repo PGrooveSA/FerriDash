@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { all, get } from "./db";
 import { SESSION_COOKIE, verifySession } from "./session";
+import { securityEvent } from "./security-log";
 
 export type Role = "super_admin" | "school_admin" | "teacher" | "learner" | "parent";
 /** Everyone who works inside a school. The platform admin (super_admin) only manages schools. */
@@ -51,7 +52,12 @@ export const getCtx = cache(async (): Promise<Ctx | null> => {
        (SELECT id FROM teachers WHERE user_id = u.id) teacher_id, (SELECT id FROM learners WHERE user_id = u.id) learner_id,
        (SELECT row_to_json(s) FROM schools s WHERE s.id = CASE WHEN u.role = 'super_admin' THEN (SELECT MIN(id) FROM schools) ELSE u.school_id END) school
      FROM users u WHERE u.id = ? AND u.active = 1`, session.uid);
-  if (!row || row.session_version !== session.sv) return null;
+  if (!row) return null;
+  if (row.session_version !== session.sv) {
+    // A session ended by a password change or reset is still being used: possibly a stolen cookie.
+    await securityEvent("stale_session", { user: session.uid });
+    return null;
+  }
   const { session_version: _sv, teacher_id, learner_id, school, ...user } = row;
 
   // Platform admins don't belong to a school and never act inside one; the first school only fills
@@ -74,7 +80,10 @@ export async function requireCtx(roles?: Role[]): Promise<Ctx> {
   // Signed in, but the account or its school can no longer be used: end the session properly.
   if (!ctx) redirect((await cookies()).get(SESSION_COOKIE) ? "/api/session-end" : "/login");
   // No roles = any school user. The platform admin only reaches pages that name "super_admin".
-  if (!(roles ?? SCHOOL_ROLES).includes(ctx.user.role)) redirect("/dashboard");
+  if (!(roles ?? SCHOOL_ROLES).includes(ctx.user.role)) {
+    await securityEvent("forbidden_route", { user: ctx.user.id, role: ctx.user.role, needs: (roles ?? SCHOOL_ROLES).join("|") });
+    redirect("/dashboard");
+  }
   return ctx;
 }
 
