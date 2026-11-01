@@ -4,10 +4,37 @@ import { fullName, avatarUrl } from "@/lib/format";
 import { Card, PageHeader, Pager, TableWrap, Empty, hrefWith } from "@/components/ui/kit";
 import { FormDialog, DeleteButton, Filters, type Field } from "@/components/ui/forms";
 import Avatar from "@/components/ui/Avatar";
+import { ChevronDown } from "lucide-react";
 import { saveParent, linkChild, unlinkChild, deleteUser, resetPassword } from "@/app/actions/people";
 
 export const metadata = { title: "Parents" };
 const PER_PAGE = 12;
+
+type Kid = { parent_user_id: number; learner_id: number; relationship: string; first_name: string; last_name: string; className: string | null };
+
+function KidChip({ parentId, k }: { parentId: number; k: Kid }) {
+  return (
+    <span className="chip chip-info">
+      {k.first_name} {k.last_name} · {k.className ?? "-"} <span className="muted">({k.relationship})</span>
+      <form action={async () => { "use server"; await unlinkChild(parentId, k.learner_id); }}><button className="ml-1 hover:text-rose-600" aria-label={`Unlink ${k.first_name}`}>×</button></form>
+    </span>
+  );
+}
+
+/** One child shows as it is; several fold into a "3 children" dropdown so a big family doesn't stretch the table. */
+function Children({ parentId, kids }: { parentId: number; kids: Kid[] }) {
+  if (kids.length === 0) return <span className="text-xs muted">None linked</span>;
+  if (kids.length === 1) return <KidChip parentId={parentId} k={kids[0]} />;
+  return (
+    <details className="group">
+      <summary className="chip chip-info cursor-pointer list-none select-none [&::-webkit-details-marker]:hidden">
+        {kids.length} children <span className="muted font-normal truncate max-w-[12rem]">({kids.map((k) => k.first_name).join(", ")})</span>
+        <ChevronDown className="w-3.5 h-3.5 transition-transform group-open:rotate-180" />
+      </summary>
+      <div className="flex flex-col items-start gap-1.5 mt-2">{kids.map((k) => <KidChip key={k.learner_id} parentId={parentId} k={k} />)}</div>
+    </details>
+  );
+}
 
 type P = { id: number; title: string | null; first_name: string; last_name: string; email: string; phone: string | null; last_login: string | null; avatar_updated_at: string | null };
 
@@ -18,10 +45,10 @@ export default async function ParentsPage({ searchParams }: { searchParams: Prom
   const where = "u.school_id = ?1 AND u.role = 'parent' AND (?2 = '' OR u.first_name || ' ' || u.last_name LIKE '%' || ?2 || '%' OR u.email LIKE '%' || ?2 || '%' OR u.phone LIKE '%' || ?2 || '%')";
   const total = (await get<{ n: number }>(`SELECT COUNT(*) n FROM users u WHERE ${where}`, ctx.schoolId, q))!.n;
   const rows = await all<P>(`SELECT id, title, first_name, last_name, email, phone, last_login, avatar_updated_at FROM users u WHERE ${where} ORDER BY last_name, first_name LIMIT ?3 OFFSET ?4`, ctx.schoolId, q, PER_PAGE, (page - 1) * PER_PAGE);
-  const kids = rows.length ? (await all<{ parent_user_id: number; learner_id: number; relationship: string; first_name: string; last_name: string; className: string | null }>(`
+  const kids = rows.length ? (await all<Kid>(`
     SELECT g.parent_user_id, g.learner_id, g.relationship, l.first_name, l.last_name, c.name className
     FROM guardian_links g JOIN learners l ON l.id = g.learner_id LEFT JOIN classes c ON c.id = l.class_id
-    WHERE g.parent_user_id IN (${rows.map(() => "?").join(",")})`, ...rows.map((r) => r.id))) : [];
+    WHERE g.parent_user_id IN (${rows.map(() => "?").join(",")}) ORDER BY l.first_name`, ...rows.map((r) => r.id))) : [];
 
   const fields = (p?: P): Field[] => [
     { name: "title", label: "Title", type: "select", options: ["Mr", "Ms", "Mrs", "Dr"].map((v) => ({ value: v, label: v })), defaultValue: p?.title, half: true },
@@ -48,16 +75,7 @@ export default async function ParentsPage({ searchParams }: { searchParams: Prom
                   <tr key={p.id}>
                     <td><div className="flex items-center gap-3"><Avatar first={p.first_name} last={p.last_name} size={38} photo={avatarUrl(p.id, p.avatar_updated_at)} /><div><p className="font-semibold">{fullName(p, true)}</p><p className="text-xs muted">{p.email}</p></div></div></td>
                     <td className="whitespace-nowrap">{p.phone ?? "-"}</td>
-                    <td>
-                      <div className="flex flex-wrap gap-1.5">
-                        {kids.filter((k) => k.parent_user_id === p.id).map((k) => (
-                          <span key={k.learner_id} className="chip chip-info">
-                            {k.first_name} {k.last_name} · {k.className ?? "-"} <span className="muted">({k.relationship})</span>
-                            <form action={async () => { "use server"; await unlinkChild(p.id, k.learner_id); }}><button className="ml-1 hover:text-rose-600" aria-label="Unlink">×</button></form>
-                          </span>
-                        ))}
-                      </div>
-                    </td>
+                    <td><Children parentId={p.id} kids={kids.filter((k) => k.parent_user_id === p.id)} /></td>
                     <td className="text-xs muted">{p.last_login ?? "Never"}</td>
                     <td>
                       <div className="flex justify-end gap-1.5">
