@@ -308,4 +308,11 @@ export const MIGRATIONS: { version: number; sql: string }[] = [
         END IF;
       END $$;`,
   },
+  {
+    version: 14,
+    // Colour themes: the school admin picks one for everyone at the school; the platform admin picks their own.
+    sql: `
+      ALTER TABLE schools ADD COLUMN IF NOT EXISTS theme TEXT NOT NULL DEFAULT 'classic';
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS theme TEXT;`,
+  },
 ];

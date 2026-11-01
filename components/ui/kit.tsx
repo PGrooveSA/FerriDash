@@ -39,7 +39,7 @@ const TONES = {
 
 export function StatCard({ label, value, icon: Icon, tone = "sky", delta, hint }: { label: string; value: React.ReactNode; icon?: LucideIcon; tone?: keyof typeof TONES; delta?: number; hint?: string }) {
   return (
-    <div className={`glass p-5 bg-gradient-to-br ${TONES[tone]} relative overflow-hidden`}>
+    <div className={`glass tile p-5 bg-gradient-to-br ${TONES[tone]} relative overflow-hidden`}>
       <div className="flex items-start justify-between">
         {Icon && <span className="icon-btn !w-10 !h-10"><Icon className="w-5 h-5" /></span>}
         {delta != null && (

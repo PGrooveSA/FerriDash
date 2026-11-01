@@ -146,6 +146,7 @@ export default {
   // Fees, admissions and re-enrolment
   "Fee Settings": "Disetting tsa ditefello", "Fees": "Ditefello tsa sekolo",
   "Admissions": "Kamohelo", "Applications": "Dikopo",
+  "Appearance": "Ponahalo",
   "Re-enrolment": "Ho ngodisa hape", "Re-enrolment for {year}": "Ho ngodisa hape ha {year}",
   "Please let the school know whether {names} will return next year.": "Ka kopo tsebisa sekolo hore na {names} o tla kgutla selemong se tlang.", "Closes {date}.": "E kwalwa ka {date}.",
   "School fees due now": "Ditefello tse lokelang ho lefuwa hona jwale", "{amount} overdue": "{amount} e fetilweng ke nako",

@@ -154,6 +154,7 @@ export default {
   // Fees, admissions and re-enrolment
   "Fee Settings": "Izilungiselelo zemali yesikole", "Fees": "Imali yesikole",
   "Admissions": "Ukwamukelwa", "Applications": "Izicelo",
+  "Appearance": "Ukubukeka",
   "Re-enrolment": "Ukubhalisa kabusha", "Re-enrolment for {year}": "Ukubhalisa kabusha kuka-{year}",
   "Please let the school know whether {names} will return next year.": "Sicela wazise isikole ukuthi {names} uzobuya yini ngonyaka ozayo.", "Closes {date}.": "Kuvala ngomhla ka-{date}.",
   "School fees due now": "Imali yesikole okufanele ikhokhwe manje", "{amount} overdue": "{amount} engakhokhwanga ngesikhathi",

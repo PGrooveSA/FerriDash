@@ -146,6 +146,7 @@ export default {
   // Fees, admissions and re-enrolment
   "Fee Settings": "Iisetingi zemirhumo", "Fees": "Imirhumo",
   "Admissions": "Ukwamkelwa", "Applications": "Izicelo",
+  "Appearance": "Inkangeleko",
   "Re-enrolment": "Ukubhalisa kwakhona", "Re-enrolment for {year}": "Ukubhalisa kwakhona ka-{year}",
   "Please let the school know whether {names} will return next year.": "Nceda wazise isikolo ukuba {names} uza kubuya na kunyaka ozayo.", "Closes {date}.": "Kuvala ngo-{date}.",
   "School fees due now": "Imirhumo ehlawulwayo ngoku", "{amount} overdue": "{amount} egqithileyo",

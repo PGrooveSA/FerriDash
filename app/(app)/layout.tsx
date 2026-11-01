@@ -5,14 +5,17 @@ import Topbar from "@/components/shell/Topbar";
 import { I18nProvider } from "@/components/I18nProvider";
 import { dictFor } from "@/lib/i18n";
 import { feesOn } from "@/lib/fees";
+import { themeOr } from "@/lib/themes";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const ctx = await requireCtx(EVERYONE);
   const platform = ctx.user.role === "super_admin";
   const features = platform ? [] : [...(feesOn(ctx.school) ? ["fees" as const] : []), ...(ctx.school.reenrol_year ? ["reenrol" as const] : [])];
+  // The school's theme for everyone at it; the platform admin's own. globals.css styles the page from data-skin.
+  const skin = themeOr(platform ? ctx.user.theme : ctx.school.theme);
   return (
     <I18nProvider dict={dictFor(ctx.user.language)}>
-    <div className="min-h-screen">
+    <div className="skin-root min-h-screen" data-skin={skin}>
       <div className="no-print"><Sidebar role={ctx.user.role} school={platform ? null : { id: ctx.school.id, name: ctx.school.name, logo_updated_at: ctx.school.logo_updated_at }} features={features} /></div>
       <div className="app-content lg:pl-[17rem]">
         <div className="app-content-inner max-w-[1600px] mx-auto px-4 sm:px-6 py-4 flex flex-col min-h-screen">

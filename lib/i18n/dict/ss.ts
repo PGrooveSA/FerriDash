@@ -146,6 +146,7 @@ export default {
   // Fees, admissions and re-enrolment
   "Fee Settings": "Tilungiselelo temali yesikolo", "Fees": "Imali yesikolo",
   "Admissions": "Kwemukelwa", "Applications": "Ticelo",
+  "Appearance": "Kubukeka",
   "Re-enrolment": "Kubhalisa kabusha", "Re-enrolment for {year}": "Kubhalisa kabusha kwa-{year}",
   "Please let the school know whether {names} will return next year.": "Sicela utsatise sikolo kutsi {names} utawubuya yini ngemnyaka lotako.", "Closes {date}.": "Kuvala nga-{date}.",
   "School fees due now": "Imali yesikolo lokufanele ikhokhwe nyalo", "{amount} overdue": "{amount} lesele yendlula sikhatsi",

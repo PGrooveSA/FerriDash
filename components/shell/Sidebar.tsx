@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useT } from "@/components/I18nProvider";
 import {
   LayoutDashboard, Building2, GraduationCap, Users, UsersRound, BookOpen, CalendarCheck, Award, FileBarChart,
-  Wallet, Megaphone, CalendarDays, Clock, MessageSquare, UserCircle, Settings, Upload, LogOut, ChevronDown, X, Menu, ClipboardList, Receipt, DoorOpen,
+  Wallet, Megaphone, CalendarDays, Clock, MessageSquare, UserCircle, Settings, Palette, Upload, LogOut, ChevronDown, X, Menu, ClipboardList, Receipt, DoorOpen,
 } from "lucide-react";
 import { logout } from "@/app/actions/auth";
 import SchoolCrest from "@/components/SchoolCrest";
@@ -16,7 +16,7 @@ type Role = "super_admin" | "school_admin" | "teacher" | "learner" | "parent";
 type Feature = "fees" | "reenrol";
 type Item = { href: string; label: string; icon: typeof LayoutDashboard; roles: Role[]; feature?: Feature; children?: { href: string; label: string; roles?: Role[]; feature?: Feature }[] };
 
-// School menus. The platform admin (super_admin) only gets the schools dashboard and their profile.
+// School menus. The platform admin (super_admin) only gets the schools dashboard, their profile and their theme.
 const STAFF: Role[] = ["school_admin", "teacher"];
 const ADMIN: Role[] = ["school_admin"];
 const ALL: Role[] = ["school_admin", "teacher", "learner", "parent"];
@@ -82,6 +82,7 @@ const OTHER: Item[] = [
   { href: "/profile", label: "Profile", icon: UserCircle, roles: EVERYONE },
   { href: "/import", label: "Import Data", icon: Upload, roles: ADMIN },
   { href: "/settings", label: "Settings", icon: Settings, roles: ADMIN },
+  { href: "/appearance", label: "Appearance", icon: Palette, roles: ["super_admin", "school_admin"] },
 ];
 
 export default function Sidebar({ role, school, features = [] }: { role: Role; school: { id: number; name: string; logo_updated_at: string | null } | null; features?: Feature[] }) {
@@ -102,8 +103,8 @@ export default function Sidebar({ role, school, features = [] }: { role: Role; s
     const Icon = item.icon;
     const kids = item.children?.filter((c) => (!c.roles || c.roles.includes(role)) && (!c.feature || features.includes(c.feature)));
     const active = isActive(item.href);
-    const base = "flex items-center gap-3 rounded-2xl px-4 py-2.5 text-base font-normal transition-colors";
-    const cls = active ? `${base} bg-gradient-to-r from-brand-200/90 to-gold-200/70 text-slate-900 dark:from-brand-500/25 dark:to-gold-500/20 dark:text-white shadow-sm` : `${base} muted hover:bg-white/50 dark:hover:bg-white/5 hover:text-[var(--ink)]`;
+    const base = "flex items-center gap-3 rounded-2xl px-4 py-2.5 text-base font-normal transition-all duration-300";
+    const cls = `${base} ${active ? "nav-active" : "nav-idle"}`;
     if (kids && kids.length > 1) {
       const isOpen = expanded === item.href;
       return (

@@ -14,6 +14,8 @@ export const EVERYONE: Role[] = ["super_admin", ...SCHOOL_ROLES];
 export type User = {
   id: number; school_id: number | null; role: Role; title: string | null;
   first_name: string; last_name: string; email: string; phone: string | null; avatar_updated_at: string | null; banner_updated_at: string | null; language: string | null;
+  /** The platform admin's own theme (school users get the school's). */
+  theme: string | null;
 };
 
 export type School = {
@@ -23,6 +25,8 @@ export type School = {
   /** Set by the platform admin for fee-paying schools (lib/fees.ts: feesOn, paymentsOn, remindersOn). */
   fee_billing: number; online_payments: number; fee_reminders: number;
   report_style: "caps" | "ieb";
+  /** Colour theme for everyone at the school (lib/themes.ts). */
+  theme: string;
   admissions_open: number; admissions_code: string | null; admissions_year: number | null; admissions_info: string | null;
   reenrol_year: number | null; reenrol_deadline: string | null;
 };
@@ -41,7 +45,7 @@ export type Ctx = {
 const NO_SCHOOL: School = {
   id: 0, name: "FerriDash", emis_number: "", province: "", district: "", quintile: 0, school_type: "", fee_paying: 0,
   address: "", phone: "", email: "", principal: "", motto: "", current_year: new Date().getFullYear(), current_term: 1, logo_updated_at: null,
-  fee_billing: 0, online_payments: 0, fee_reminders: 0, report_style: "caps",
+  fee_billing: 0, online_payments: 0, fee_reminders: 0, report_style: "caps", theme: "classic",
   admissions_open: 0, admissions_code: null, admissions_year: null, admissions_info: null, reenrol_year: null, reenrol_deadline: null,
 };
 
@@ -55,7 +59,7 @@ export const getCtx = cache(async (): Promise<Ctx | null> => {
   const session = await verifySession(store.get(SESSION_COOKIE)?.value);
   if (!session) return null;
   const row = await get<User & { session_version: number; teacher_id: number | null; learner_id: number | null; school: (School & { active: number }) | null }>(
-    `SELECT u.id, u.school_id, u.role, u.title, u.first_name, u.last_name, u.email, u.phone, u.avatar_updated_at, u.banner_updated_at, u.language, u.session_version,
+    `SELECT u.id, u.school_id, u.role, u.title, u.first_name, u.last_name, u.email, u.phone, u.avatar_updated_at, u.banner_updated_at, u.language, u.theme, u.session_version,
        (SELECT id FROM teachers WHERE user_id = u.id) teacher_id, (SELECT id FROM learners WHERE user_id = u.id) learner_id,
        (SELECT row_to_json(s) FROM schools s WHERE s.id = CASE WHEN u.role = 'super_admin' THEN (SELECT MIN(id) FROM schools) ELSE u.school_id END) school
      FROM users u WHERE u.id = ? AND u.active = 1`, session.uid);

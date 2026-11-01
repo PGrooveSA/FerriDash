@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { LOGIN_NONCE_COOKIE, SESSION_COOKIE, newLoginNonce, verifySession } from "./lib/session";
 
-const PLATFORM_PATHS = ["/dashboard", "/schools", "/profile", "/api/avatar", "/api/session-end"];
+const PLATFORM_PATHS = ["/dashboard", "/schools", "/profile", "/appearance", "/api/avatar", "/api/session-end"];
 
 export async function middleware(req: NextRequest) {
   const session = await verifySession(req.cookies.get(SESSION_COOKIE)?.value);

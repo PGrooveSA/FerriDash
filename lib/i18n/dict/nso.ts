@@ -146,6 +146,7 @@ export default {
   // Fees, admissions and re-enrolment
   "Fee Settings": "Dipeakanyo tša ditefelo", "Fees": "Ditefelo tša sekolo",
   "Admissions": "Go amogelwa", "Applications": "Dikgopelo",
+  "Appearance": "Ponagalo",
   "Re-enrolment": "Go ingwadiša gape", "Re-enrolment for {year}": "Go ingwadiša gape ga {year}",
   "Please let the school know whether {names} will return next year.": "Hle tsebiša sekolo ge e ba {names} o tla boa ngwaga wo o tlago.", "Closes {date}.": "Go tswalelwa ka {date}.",
   "School fees due now": "Ditefelo tšeo di swanetšego go lefšwa bjale", "{amount} overdue": "{amount} tšeo di fetilwego ke nako",
