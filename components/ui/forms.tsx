@@ -19,6 +19,8 @@ export type Field = {
   /** For checkboxes: message shown when there is nothing to choose from. */
   emptyText?: string;
   required?: boolean; defaultValue?: string | number | null; placeholder?: string; half?: boolean; step?: string; help?: string;
+  /** Only shown (and sent) while another select in the form has this value, e.g. fee options for fee-paying schools. */
+  showIf?: { field: string; value: string };
 };
 
 export function FormDialog({ title, fields, action, hidden = {}, trigger = "add", triggerLabel, submitLabel = "Save", size = "md" }: {
@@ -30,10 +32,14 @@ export function FormDialog({ title, fields, action, hidden = {}, trigger = "add"
   const t = useT();
   const router = useRouter();
   const ref = useRef<HTMLDialogElement>(null);
+  // Current values of the selects other fields depend on (showIf).
+  const initial = () => Object.fromEntries(fields.map((f) => [f.name, String(f.defaultValue ?? "")]));
+  const [values, setValues] = useState<Record<string, string>>(initial);
+  const shown = fields.filter((f) => !f.showIf || values[f.showIf.field] === f.showIf.value);
 
   useEffect(() => {
-    if (open) ref.current?.showModal(); else ref.current?.close();
-  }, [open]);
+    if (open) { setValues(initial()); ref.current?.showModal(); } else ref.current?.close();
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (state?.ok) { setOpen(false); router.refresh(); }
   }, [state, router]);
@@ -47,14 +53,16 @@ export function FormDialog({ title, fields, action, hidden = {}, trigger = "add"
         {/* Submitting through onSubmit (not the action prop) stops React from clearing every field
             after the server replies, so entries survive a validation error. */}
         {open && (
-          <form onSubmit={(e) => { e.preventDefault(); const data = new FormData(e.currentTarget); startTransition(() => formAction(data)); }} className="glass-solid p-6 text-[var(--ink)]">
+          <form onSubmit={(e) => { e.preventDefault(); const data = new FormData(e.currentTarget); startTransition(() => formAction(data)); }}
+            onChange={(e) => { const el = e.target as unknown as HTMLSelectElement; if (el.name && fields.some((f) => f.showIf?.field === el.name)) setValues((v) => ({ ...v, [el.name]: el.value })); }}
+            className="glass-solid p-6 text-[var(--ink)]">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">{t(title)}</h3>
               <button type="button" className="icon-btn !w-8 !h-8" onClick={() => setOpen(false)} aria-label={t("Close")}><X className="w-4 h-4" /></button>
             </div>
             {Object.entries(hidden).map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
             <div className="grid grid-cols-2 gap-3 max-h-[65vh] overflow-y-auto p-0.5">
-              {fields.map((f) => (
+              {shown.map((f) => (
                 <div key={f.name} className={f.half ? "col-span-2 sm:col-span-1" : "col-span-2"}>
                   <label className="label" htmlFor={`f-${f.name}`}>{t(f.label)}{f.required && <span className="text-rose-500"> *</span>}</label>
                   {f.type === "select" ? (

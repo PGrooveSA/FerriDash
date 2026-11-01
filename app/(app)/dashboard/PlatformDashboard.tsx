@@ -12,7 +12,8 @@ type S = {
   learners: number; teachers: number; last_login: string | null;
 };
 const YES_NO = [{ value: 1, label: "On" }, { value: 0, label: "Off" }];
-const feeFeatures = (s: S) => !s.fee_paying ? "No-fee" : !s.fee_billing ? "Fee-paying" : ["Fee billing", s.online_payments ? "online payments" : "", s.fee_reminders ? "reminders" : ""].filter(Boolean).join(", ");
+const FEE_PAYING = { field: "fee_paying", value: "1" };
+const feeFeatures = (s: S) => !s.fee_paying ? "No-fee" : !s.fee_billing ? "Fee-paying (fee billing off)" : ["Fee billing", s.online_payments ? "online payments" : "", s.fee_reminders ? "reminders" : ""].filter(Boolean).join(", ");
 
 type Admin = { id: number; school_id: number; name: string; email: string; last_login: string | null };
 
@@ -40,10 +41,10 @@ export default async function PlatformDashboard({ ctx, sp }: { ctx: Ctx; sp: Rec
     { name: "quintile", label: "Quintile", type: "select", options: [1, 2, 3, 4, 5].map((n) => ({ value: n, label: `Quintile ${n}` })), defaultValue: s?.quintile, half: true },
     { name: "school_type", label: "Type", type: "select", required: true, options: ["Primary", "Secondary", "Combined"].map((v) => ({ value: v, label: v })), defaultValue: s?.school_type, half: true },
     { name: "fee_paying", label: "Fees", type: "select", required: true, options: [{ value: 1, label: "Fee-paying" }, { value: 0, label: "No-fee school" }], defaultValue: s?.fee_paying ?? 1, half: true },
-    // Fee-paying schools only: a no-fee school never gets these, whatever is chosen here (app/actions/academics.ts saveSchool).
-    { name: "fee_billing", label: "Fee billing and statements", type: "select", required: true, options: YES_NO, defaultValue: s?.fee_billing ?? 0, half: true, help: "Fee-paying schools only." },
-    { name: "online_payments", label: "Online payments (PayFast, Ozow)", type: "select", required: true, options: YES_NO, defaultValue: s?.online_payments ?? 0, half: true, help: "Needs fee billing. The school connects its own merchant account." },
-    { name: "fee_reminders", label: "Automatic overdue fee reminders", type: "select", required: true, options: YES_NO, defaultValue: s?.fee_reminders ?? 0, half: true, help: "Needs fee billing." },
+    // Shown only for fee-paying schools (a no-fee school never gets them; app/actions/academics.ts saveSchool). On by default for a new school.
+    { name: "fee_billing", label: "Fee billing and statements", type: "select", required: true, options: YES_NO, defaultValue: s ? s.fee_billing : 1, half: true, showIf: FEE_PAYING, help: "Fees, invoices and statements for parents." },
+    { name: "online_payments", label: "Online payments (PayFast, Ozow)", type: "select", required: true, options: YES_NO, defaultValue: s ? s.online_payments : 1, half: true, showIf: FEE_PAYING, help: "Needs fee billing. The school connects its own merchant account." },
+    { name: "fee_reminders", label: "Automatic overdue fee reminders", type: "select", required: true, options: YES_NO, defaultValue: s ? s.fee_reminders : 1, half: true, showIf: FEE_PAYING, help: "Needs fee billing." },
     { name: "principal", label: "Principal", defaultValue: s?.principal, half: true },
     { name: "phone", label: "Phone", type: "tel", defaultValue: s?.phone, half: true },
     { name: "email", label: "Office email", type: "email", defaultValue: s?.email },
