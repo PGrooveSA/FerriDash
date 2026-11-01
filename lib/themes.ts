@@ -11,7 +11,7 @@ export type Theme = {
 };
 
 export const THEMES: Theme[] = [
-  { id: "classic", name: "Tangerine", description: "FerriDash's own warm orange and sunshine glass.", font: "Segoe UI", swatch: ["#eef3fb", "#ffffff", "#f4600c", "#fcca1c", "#3b3531"] },
+  { id: "classic", name: "Tangerine", description: "FerriDash's own warm orange and sunshine glass.", font: "Plus Jakarta Sans", swatch: ["#eef3fb", "#ffffff", "#f4600c", "#fcca1c", "#3b3531"] },
   { id: "citrus", name: "Citrus Mint", description: "Lime highlights and deep teal on a soft blush backdrop.", font: "Urbanist", swatch: ["#eef0ea", "#fbfdf5", "#1a9683", "#dff57a", "#14201e"] },
   { id: "slate", name: "Slate Ember", description: "Cool slate panels, navy text and an ember-orange accent.", font: "Inter", swatch: ["#dfe3ea", "#ffffff", "#e5532d", "#7ea8dc", "#1f2a3c"] },
   { id: "lavender", name: "Lavender Dusk", description: "Midnight navy with lavender, peach and sky pastels.", font: "Poppins", swatch: ["#e3e7f3", "#f7f6fd", "#8b5cf6", "#f59673", "#2a2155"] },

@@ -6,7 +6,7 @@ import type { ActionResult } from "@/lib/action-utils";
 import type { Theme, ThemeId } from "@/lib/themes";
 
 const FONT: Record<ThemeId, string> = {
-  classic: '"Segoe UI Variable Text", "Segoe UI", sans-serif', citrus: "var(--font-urbanist)", slate: "var(--font-inter)",
+  classic: "var(--font-jakarta)", citrus: "var(--font-urbanist)", slate: "var(--font-inter)",
   lavender: "var(--font-poppins)", mono: "var(--font-jakarta)", forest: "var(--font-manrope)", honey: "var(--font-outfit)",
 };
 

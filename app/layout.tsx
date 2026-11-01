@@ -3,11 +3,12 @@ import "./globals.css";
 import { Inter, Manrope, Outfit, Plus_Jakarta_Sans, Poppins, Urbanist } from "next/font/google";
 import DeviceLink from "@/components/DeviceLink";
 
-// Theme fonts (lib/themes.ts), self-hosted by Next. Not preloaded: a browser only downloads the one its theme uses.
+// Theme fonts (lib/themes.ts), self-hosted by Next. Only Plus Jakarta Sans (the default theme and the sign-in page) is
+// preloaded; a browser downloads another only when its theme uses it.
 const urbanist = Urbanist({ subsets: ["latin"], display: "swap", preload: false, variable: "--font-urbanist" });
 const inter = Inter({ subsets: ["latin"], display: "swap", preload: false, variable: "--font-inter" });
 const poppins = Poppins({ subsets: ["latin"], display: "swap", preload: false, weight: ["300", "400", "500", "600", "700"], variable: "--font-poppins" });
-const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], display: "swap", preload: false, variable: "--font-jakarta" });
+const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], display: "swap", variable: "--font-jakarta" });
 const manrope = Manrope({ subsets: ["latin"], display: "swap", preload: false, variable: "--font-manrope" });
 const outfit = Outfit({ subsets: ["latin"], display: "swap", preload: false, variable: "--font-outfit" });
 const fontVars = [urbanist, inter, poppins, jakarta, manrope, outfit].map((f) => f.variable).join(" ");
