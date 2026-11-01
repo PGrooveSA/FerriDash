@@ -289,7 +289,8 @@ export async function resetPassword(_: ActionResult, f: FormData) {
     if (!strongEnough(pw)) fail("Password needs 8+ characters, a capital letter and a number.");
     const scope = await get("SELECT id FROM users WHERE id = ? AND school_id = ?", id, ctx.schoolId);
     if (!scope) fail("User not found.");
-    await run("UPDATE users SET password_hash = ? WHERE id = ?", bcrypt.hashSync(pw, 10), id);
+    // The new session version signs the user out everywhere (whoever knew the old password is out too).
+    await run("UPDATE users SET password_hash = ?, session_version = session_version + 1 WHERE id = ?", bcrypt.hashSync(pw, 10), id);
     await audit(ctx.schoolId, ctx.user.id, "reset_password", "user", id);
   });
 }

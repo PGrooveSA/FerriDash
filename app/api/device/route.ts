@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { SESSION_COOKIE, verifySession } from "@/lib/session";
+import { getCtx } from "@/lib/auth";
 import { DEVICE_COOKIE, deviceCookieValue, linkDevice, parseDevice } from "@/lib/devices";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +17,8 @@ export async function POST(req: Request) {
     httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production" && process.env.INSECURE_COOKIES !== "1",
     path: "/", maxAge: 365 * 24 * 3600,
   });
-  const session = await verifySession(store.get(SESSION_COOKIE)?.value);
-  if (session) await linkDevice(session.uid, device);
+  // Only a session that is still valid (not ended by a password change) gets this phone's notifications.
+  const ctx = await getCtx();
+  if (ctx) await linkDevice(ctx.user.id, device);
   return Response.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
 }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireCtx, ownLearnerIds } from "@/lib/auth";
 import { all } from "@/lib/db";
+import { noticeAudiences } from "@/lib/notices";
 import { Card, PageHeader, Empty } from "@/components/ui/kit";
 import { avatarUrl } from "@/lib/format";
 import Avatar from "@/components/ui/Avatar";
@@ -17,7 +18,9 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
       "SELECT l.id, l.first_name, l.last_name, l.admission_number, c.name className, l.user_id, (SELECT avatar_updated_at FROM users WHERE id = l.user_id) av FROM learners l LEFT JOIN classes c ON c.id = l.class_id WHERE l.school_id = ? AND (l.first_name || ' ' || l.last_name LIKE ? OR l.admission_number LIKE ?) LIMIT 15", ctx.schoolId, like, like)) : [];
   const teachers = q ? (await all<{ id: number; first_name: string; last_name: string; title: string | null; email: string; avatar_updated_at: string | null }>(
       "SELECT u.id, u.first_name, u.last_name, u.title, u.email, u.avatar_updated_at FROM users u WHERE u.school_id = ? AND u.active = 1 AND u.role IN ('teacher','school_admin') AND (u.first_name || ' ' || u.last_name LIKE ? OR u.email LIKE ?) LIMIT 10", ctx.schoolId, like, like)) : [];
-  const notices = q ? (await all<{ id: number; title: string }>("SELECT id, title FROM notices WHERE school_id = ? AND (title LIKE ? OR body LIKE ?) LIMIT 10", ctx.schoolId, like, like)) : [];
+  // Only notices this user may read (a staff-only notice stays hidden from learners and parents).
+  const audiences = noticeAudiences(ctx);
+  const notices = q ? (await all<{ id: number; title: string }>(`SELECT id, title FROM notices WHERE school_id = ? AND audience IN (${audiences.map(() => "?").join(",")}) AND (title LIKE ? OR body LIKE ?) LIMIT 10`, ctx.schoolId, ...audiences, like, like)) : [];
   const nothing = !learners.length && !teachers.length && !notices.length;
 
   return (

@@ -100,4 +100,26 @@ export const MIGRATIONS: { version: number; sql: string }[] = [
       CREATE INDEX IF NOT EXISTS idx_timetable_class_date ON timetable_slots(class_id, date);
       ALTER TABLE timetable_slots ENABLE ROW LEVEL SECURITY;`,
   },
+  {
+    version: 11,
+    // Security and speed. session_version: raising it ends every older session (password changes and resets).
+    // login_attempts: failed sign-in counters shared by every server instance. Indexes for sign-in (lower(email)),
+    // unread counts, parents' children, notices, teaching allocations and the audit log.
+    sql: `
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS session_version INTEGER NOT NULL DEFAULT 0;
+      CREATE TABLE IF NOT EXISTS login_attempts (
+        key TEXT PRIMARY KEY,
+        n INTEGER NOT NULL DEFAULT 0,
+        window_start TIMESTAMPTZ NOT NULL DEFAULT now(),
+        blocked_until TIMESTAMPTZ
+      );
+      ALTER TABLE login_attempts ENABLE ROW LEVEL SECURITY;
+      CREATE INDEX IF NOT EXISTS idx_users_email_lower ON users (lower(email));
+      CREATE INDEX IF NOT EXISTS idx_conv_members_user ON conversation_members(user_id);
+      CREATE INDEX IF NOT EXISTS idx_guardian_learner ON guardian_links(learner_id);
+      CREATE INDEX IF NOT EXISTS idx_notices_school ON notices(school_id, created_at);
+      CREATE INDEX IF NOT EXISTS idx_class_subjects_teacher ON class_subjects(teacher_id);
+      CREATE INDEX IF NOT EXISTS idx_classes_class_teacher ON classes(class_teacher_id);
+      CREATE INDEX IF NOT EXISTS idx_audit_school ON audit_log(school_id, created_at);`,
+  },
 ];

@@ -7,7 +7,8 @@ export const SESSION_HOURS = 12;
 /** "Remember me" on the sign-in page keeps the session for this long. */
 export const REMEMBER_DAYS = 30;
 
-export type SessionPayload = { uid: number; role: string };
+/** sv: the user's session_version when signed in. Raising it in the database ends every older session (password changes and resets). */
+export type SessionPayload = { uid: number; role: string; sv?: number };
 
 /**
  * The server's own secret: signs session cookies.
@@ -27,11 +28,11 @@ export async function signSession(p: SessionPayload, hours = SESSION_HOURS) {
   return new SignJWT({ ...p }).setProtectedHeader({ alg: "HS256" }).setIssuedAt().setExpirationTime(`${hours}h`).sign(key());
 }
 
-export async function verifySession(token: string | undefined): Promise<SessionPayload | null> {
+export async function verifySession(token: string | undefined): Promise<(Required<SessionPayload> & { exp: number }) | null> {
   if (!token) return null;
   try {
-    const { payload } = await jwtVerify(token, key());
-    return { uid: Number(payload.uid), role: String(payload.role) };
+    const { payload } = await jwtVerify(token, key(), { algorithms: ["HS256"] });
+    return { uid: Number(payload.uid), role: String(payload.role), sv: Number(payload.sv ?? 0), exp: Number(payload.exp ?? 0) };
   } catch {
     return null;
   }

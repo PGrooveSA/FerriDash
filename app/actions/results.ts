@@ -126,7 +126,9 @@ export async function publishAllApproved(term: number) {
 export async function saveComment(_: ActionResult, f: FormData) {
   return guarded(STAFF, async (ctx) => {
     const learnerId = num(f, "learner_id"), term = num(f, "term");
-    if (!(await get("SELECT id FROM learners WHERE id = ? AND school_id = ?", learnerId, ctx.schoolId))) fail("Learner not found.");
+    const l = (await get<{ class_id: number | null }>("SELECT class_id FROM learners WHERE id = ? AND school_id = ?", learnerId, ctx.schoolId)) ?? fail("Learner not found.");
+    // Report comments are written by the learner's class teacher (and school management).
+    if (!ctx.isAdmin && !(await get("SELECT 1 FROM classes WHERE id = ? AND class_teacher_id = ?", l.class_id, ctx.teacherId ?? -1))) fail("Only the class teacher can write this learner's report comments.");
     await run(`INSERT INTO report_comments (school_id, learner_id, year, term, class_teacher_comment, principal_comment) VALUES (?,?,?,?,?,?)
          ON CONFLICT(learner_id, year, term) DO UPDATE SET class_teacher_comment = excluded.class_teacher_comment, principal_comment = COALESCE(excluded.principal_comment, report_comments.principal_comment)`,
             ctx.schoolId, learnerId, ctx.school.current_year, term, str(f, "class_teacher_comment") || null, ctx.isAdmin ? str(f, "principal_comment") || null : null);

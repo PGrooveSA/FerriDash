@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { all, get } from "./db";
@@ -36,25 +37,36 @@ const NO_SCHOOL: School = {
   address: "", phone: "", email: "", principal: "", motto: "", current_year: new Date().getFullYear(), current_term: 1, logo_updated_at: null,
 };
 
-export async function getCtx(): Promise<Ctx | null> {
+/**
+ * Who is signed in, with their school. One database round trip, remembered for the rest of the request
+ * (the layout, the page and its components all ask). A session older than the user's session_version
+ * (password changed or reset since) no longer counts.
+ */
+export const getCtx = cache(async (): Promise<Ctx | null> => {
   const store = await cookies();
   const session = await verifySession(store.get(SESSION_COOKIE)?.value);
   if (!session) return null;
-  const user = await get<User>("SELECT id, school_id, role, title, first_name, last_name, email, phone, avatar_updated_at, banner_updated_at, language FROM users WHERE id = ? AND active = 1", session.uid);
-  if (!user) return null;
+  const row = await get<User & { session_version: number; teacher_id: number | null; learner_id: number | null; school: (School & { active: number }) | null }>(
+    `SELECT u.id, u.school_id, u.role, u.title, u.first_name, u.last_name, u.email, u.phone, u.avatar_updated_at, u.banner_updated_at, u.language, u.session_version,
+       (SELECT id FROM teachers WHERE user_id = u.id) teacher_id, (SELECT id FROM learners WHERE user_id = u.id) learner_id,
+       (SELECT row_to_json(s) FROM schools s WHERE s.id = CASE WHEN u.role = 'super_admin' THEN (SELECT MIN(id) FROM schools) ELSE u.school_id END) school
+     FROM users u WHERE u.id = ? AND u.active = 1`, session.uid);
+  if (!row || row.session_version !== session.sv) return null;
+  const { session_version: _sv, teacher_id, learner_id, school, ...user } = row;
 
   // Platform admins don't belong to a school and never act inside one; the first school only fills
   // the context's school field (school pages and actions refuse platform admins). On a new installation
   // there is no school yet: the platform admin still signs in, to add the first one.
-  const schoolId = user.role === "super_admin" ? ((await get<{ id: number }>("SELECT id FROM schools ORDER BY id LIMIT 1"))?.id ?? null) : user.school_id;
-  if (!schoolId) return user.role === "super_admin" ? { user, school: NO_SCHOOL, schoolId: 0, teacherId: null, learnerId: null, isAdmin: false } : null;
-  const school = (await get<School & { active: number }>("SELECT * FROM schools WHERE id = ?", schoolId))!;
+  if (!school) return user.role === "super_admin" ? { user, school: NO_SCHOOL, schoolId: 0, teacherId: null, learnerId: null, isAdmin: false } : null;
   // A suspended school's users are signed out straight away, not only at their next login.
   if (user.role !== "super_admin" && !school.active) return null;
-  const teacherId = user.role === "teacher" ? ((await get<{ id: number }>("SELECT id FROM teachers WHERE user_id = ?", user.id))?.id ?? null) : null;
-  const learnerId = user.role === "learner" ? ((await get<{ id: number }>("SELECT id FROM learners WHERE user_id = ?", user.id))?.id ?? null) : null;
-  return { user, school, schoolId, teacherId, learnerId, isAdmin: user.role === "school_admin" };
-}
+  return {
+    user, school, schoolId: school.id,
+    teacherId: user.role === "teacher" ? teacher_id : null,
+    learnerId: user.role === "learner" ? learner_id : null,
+    isAdmin: user.role === "school_admin",
+  };
+});
 
 /** Use at the top of every protected page / action. Redirects when not allowed. */
 export async function requireCtx(roles?: Role[]): Promise<Ctx> {
