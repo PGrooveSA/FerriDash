@@ -10,6 +10,7 @@ import { notify } from "@/lib/push";
 import { clientIp, overLimit } from "@/lib/rate-limit";
 import { securityEvent } from "@/lib/security-log";
 import { today } from "@/lib/today";
+import { autoBill } from "@/lib/fees";
 
 const STATUSES = ["Submitted", "Reviewing", "Accepted", "Waitlisted", "Declined", "Withdrawn"];
 const strongEnough = (p: string) => p.length >= 8 && /[A-Z]/.test(p) && /\d/.test(p);
@@ -120,9 +121,9 @@ export async function enrolApplicant(_: ActionResult, f: FormData) {
         : existing.role === "super_admin" ? "a FerriDash platform account" : "an account at another school on FerriDash";
       fail(`${email} is already used by ${who}, so it can't be this parent's login. Enter another email address for the parent above (or the email of their existing parent account at your school).`);
     }
-    let created = false;
+    let created = false, learnerId = 0;
     await tx(async () => {
-      const learnerId = (await run("INSERT INTO learners (first_name, last_name, admission_number, id_number, gender, date_of_birth, class_id, home_language, address, status, school_id, enrolled_on) VALUES (?,?,?,?,?,?,?,?,?,'Active',?,date('now'))",
+      learnerId = (await run("INSERT INTO learners (first_name, last_name, admission_number, id_number, gender, date_of_birth, class_id, home_language, address, status, school_id, enrolled_on) VALUES (?,?,?,?,?,?,?,?,?,'Active',?,date('now'))",
         a.first_name, a.last_name, admission, a.id_number, a.gender, a.date_of_birth, classId, a.home_language, a.address, ctx.schoolId)).id;
       let parent = existing ? { id: existing.id } : undefined;
       if (!parent) {
@@ -134,11 +135,14 @@ export async function enrolApplicant(_: ActionResult, f: FormData) {
       await run("UPDATE applications SET status = 'Enrolled', learner_id = ?, parent_email = ?, updated_at = datetime('now') WHERE id = ?", learnerId, email, a.id);
       await audit(ctx.schoolId, ctx.user.id, "enrol", "learner", learnerId, `from application ${id}`);
     });
+    // School fees on the school's schedule, when the year has been billed (lib/fees.ts autoBill).
+    const fees = await autoBill(ctx.schoolId, learnerId) ? " This year's school fees were added to their account." : "";
     revalidatePath("/admissions");
     revalidatePath("/learners");
-    return { ok: true, message: created
+    revalidatePath("/finance", "layout");
+    return { ok: true, message: (created
       ? `${a.first_name} is enrolled. A parent account was created for ${email}${pw ? " with the password you set" : ": set its password under Parents → Reset password and share it with the parent"}.`
-      : `${a.first_name} is enrolled and linked to the existing parent account ${email}.` };
+      : `${a.first_name} is enrolled and linked to the existing parent account ${email}.`) + fees };
   });
 }
 

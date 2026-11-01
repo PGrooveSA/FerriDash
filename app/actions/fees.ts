@@ -10,7 +10,7 @@ import { encryptSecret, decryptSecret } from "@/lib/secrets";
 import { createPayment, forgetToken, OzowError, testConnection } from "@/lib/ozow";
 import { paymentForm } from "@/lib/payfast";
 import {
-  account, allocatePayment, checkOnlinePayment, feesOn, MIN_ONLINE_PAYMENT, newMerchantReference, onlineMethods, PAYMENT_WINDOW_MINUTES,
+  account, allocatePayment, billingSchedule, billLearners, checkOnlinePayment, feesOn, MIN_ONLINE_PAYMENT, newMerchantReference, onlineMethods, PAYMENT_WINDOW_MINUTES,
   paymentSettings, paymentsOn, publicBase, remindersOn, sendReminders,
 } from "@/lib/fees";
 
@@ -70,25 +70,29 @@ export async function generateInvoices(_: ActionResult, f: FormData) {
       periods = Array.from({ length: months }, (_, i) => ({ period: MONTHS[i], due: `${year}-${String(i + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`, label: MONTHS[i] }));
     } else fail("Choose how the fees are paid.");
 
-    const learners = await all<{ id: number; grade: number; total: number }>(`
-      SELECT l.id, c.grade, fs.tuition + fs.activities + fs.other total FROM learners l
-      JOIN classes c ON c.id = l.class_id JOIN fee_structures fs ON fs.school_id = l.school_id AND fs.year = ?1 AND fs.grade = c.grade
-      WHERE l.school_id = ?2 AND l.status = 'Active' AND NOT EXISTS (SELECT 1 FROM invoices i WHERE i.learner_id = l.id AND i.year = ?1 AND i.period IS NOT NULL)`, year, ctx.schoolId);
-    if (!learners.length) fail("Every learner with fees set for their grade has already been billed this year (or no grade fees are set yet).");
+    const billed = await billLearners(ctx.schoolId, year, periods);
+    if (!billed) fail("Every learner with fees set for their grade has already been billed this year (or no grade fees are set yet).");
     const n = periods.length;
-    await tx(async () => {
-      for (const l of learners) {
-        const part = Math.floor((l.total / n) * 100) / 100;
-        for (let i = 0; i < n; i++) {
-          const amount = i === n - 1 ? Math.round((l.total - part * (n - 1)) * 100) / 100 : part;
-          await run("INSERT INTO invoices (school_id, learner_id, year, period, description, amount, due_date) VALUES (?,?,?,?,?,?,?) ON CONFLICT (learner_id, year, period) DO NOTHING",
-            ctx.schoolId, l.id, year, periods[i].period, `${year} school fees · ${gradeLabel(l.grade)} · ${periods[i].label}`, amount, periods[i].due);
-        }
-      }
-    });
-    await audit(ctx.schoolId, ctx.user.id, "generate_invoices", "invoice", null, `${learners.length} learner(s), ${n} instalment(s) each`);
+    await audit(ctx.schoolId, ctx.user.id, "generate_invoices", "invoice", null, `${billed} learner(s), ${n} instalment(s) each`);
     refresh();
-    return { ok: true, message: `Billed ${learners.length} learner${learners.length === 1 ? "" : "s"} (${n} instalment${n === 1 ? "" : "s"} each).` };
+    return { ok: true, message: `Billed ${billed} learner${billed === 1 ? "" : "s"} (${n} instalment${n === 1 ? "" : "s"} each).` };
+  });
+}
+
+/**
+ * Bills learners who missed the year's billing (joined later, or had no class or grade fees then) on the schedule the
+ * school already uses, from the current instalment on. One learner, or everyone not billed yet.
+ */
+export async function billNow(learnerId: number | null): Promise<ActionResult> {
+  return guarded(ADMIN, async (ctx) => {
+    needFees(ctx);
+    const year = ctx.school.current_year;
+    const schedule = (await billingSchedule(ctx.schoolId, year)) ?? fail("Nobody has been billed this year yet. Use Generate invoices first to choose how parents pay.");
+    const billed = await billLearners(ctx.schoolId, year, schedule, { learnerIds: learnerId ? [learnerId] : undefined, fromNow: true });
+    if (!billed) fail(learnerId ? "This learner can't be billed yet: put them in a class and set the fees for their grade first." : "Nobody can be billed yet: the learners left need a class, or fees for their grade.");
+    await audit(ctx.schoolId, ctx.user.id, "generate_invoices", "invoice", learnerId, `${billed} learner(s), from the current instalment`);
+    refresh();
+    return { ok: true, message: `Billed ${billed} learner${billed === 1 ? "" : "s"}.` };
   });
 }
 

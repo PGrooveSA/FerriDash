@@ -8,6 +8,7 @@ import { revalidatePath } from "next/cache";
 import { all, audit, get, run, tx } from "@/lib/db";
 import { EXIT_REASONS } from "@/lib/staff";
 import { parseSaId } from "@/lib/format";
+import { autoBill } from "@/lib/fees";
 import { isLang } from "@/lib/i18n";
 import { ADMIN, EVERYONE, STAFF, emailField, fail, guarded, isDate, limit, num, opt, str, type ActionResult } from "@/lib/action-utils";
 
@@ -193,6 +194,7 @@ export async function saveLearner(_: ActionResult, f: FormData) {
     if (!fields[0] || !fields[1] || !fields[2]) fail("Name, surname and admission number are required.");
     if (fields[5] && !isDate(String(fields[5]))) fail("Enter a valid date of birth.");
 
+    let savedId = 0;
     await tx(async () => {
             let learnerId = id;
             if (id) {
@@ -221,8 +223,12 @@ export async function saveLearner(_: ActionResult, f: FormData) {
               await run("INSERT INTO guardian_links (parent_user_id, learner_id, relationship) VALUES (?,?,?) ON CONFLICT (parent_user_id, learner_id) DO NOTHING", parent.id, learnerId!, str(f, "relationship") || "Parent");
             }
             await audit(ctx.schoolId, ctx.user.id, id ? "update" : "create", "learner", learnerId);
+            savedId = learnerId ?? 0;
           });
+    // A new learner, or one just placed in a class, gets this year's school fees on the school's schedule (lib/fees.ts).
+    if (savedId && fields[9] === "Active") await autoBill(ctx.schoolId, savedId);
     revalidatePath("/learners");
+    revalidatePath("/finance", "layout");
   });
 }
 

@@ -2,12 +2,12 @@ import { requireCtx, ownLearnerIds } from "@/lib/auth";
 import { all, get } from "@/lib/db";
 import { zar, fmtDate, gradeLabel, logoUrl } from "@/lib/format";
 import { today } from "@/lib/today";
-import { account, feesOn, MIN_ONLINE_PAYMENT, onlineMethods, onlinePaymentsOf, paymentSettings } from "@/lib/fees";
+import { account, billingSchedule, feesOn, MIN_ONLINE_PAYMENT, onlineMethods, onlinePaymentsOf, paymentSettings } from "@/lib/fees";
 import { Card, PageHeader, Empty, StatusChip } from "@/components/ui/kit";
 import { Filters, PrintButton, DeleteButton } from "@/components/ui/forms";
 import { deletePayment, deleteInvoice } from "@/app/actions/fees";
 import { BrandMark } from "@/components/BrandLogo";
-import { PayNow, OnlinePaymentsList, RemindButton } from "./PayOnline";
+import { PayNow, OnlinePaymentsList, RemindButton, BillNowButton } from "./PayOnline";
 import FeesOff from "../FeesOff";
 
 export const metadata = { title: "Fee statement" };
@@ -19,11 +19,15 @@ export default async function StatementPage({ searchParams }: { searchParams: Pr
   const ids = ctx.isAdmin ? (sp.learner ? [Number(sp.learner)] : []) : ((await ownLearnerIds(ctx)) ?? []);
   const learnerId = ids.includes(Number(sp.learner)) ? Number(sp.learner) : ids[0];
   if (!learnerId) return <Card><Empty title="Choose a learner" hint={ctx.isAdmin ? "Open a statement from Fees Collection." : "No learner is linked to your account."} /></Card>;
-  const l = await get<{ first_name: string; last_name: string; admission_number: string; className: string | null; grade: number | null }>("SELECT l.first_name, l.last_name, l.admission_number, c.name className, c.grade FROM learners l LEFT JOIN classes c ON c.id = l.class_id WHERE l.id = ? AND l.school_id = ?", learnerId, ctx.schoolId);
+  const l = await get<{ first_name: string; last_name: string; admission_number: string; className: string | null; grade: number | null; grade_fees: number }>(`SELECT l.first_name, l.last_name, l.admission_number, c.name className, c.grade,
+      EXISTS (SELECT 1 FROM fee_structures fs WHERE fs.school_id = l.school_id AND fs.year = ? AND fs.grade = c.grade)::int grade_fees
+    FROM learners l LEFT JOIN classes c ON c.id = l.class_id WHERE l.id = ? AND l.school_id = ?`, ctx.school.current_year, learnerId, ctx.schoolId);
   if (!l) return <Card><Empty title="Learner not found" /></Card>;
   const kids = !ctx.isAdmin && ids.length > 1 ? (await all<{ id: number; name: string }>(`SELECT id, first_name || ' ' || last_name name FROM learners WHERE id IN (${ids.map(() => "?").join(",")})`, ...ids)) : [];
   const t = today();
   const acc = await account(learnerId, t);
+  const unbilled = acc.invoices.length === 0;
+  const schedule = unbilled && ctx.isAdmin ? await billingSchedule(ctx.schoolId, ctx.school.current_year) : null;
 
   // Running ledger: invoices are debits (on their due date), payments are credits (one line per receipt).
   const lines = await all<{ id: number; kind: "invoice" | "payment"; date: string; description: string; receipt: string | null; debit: number; credit: number }>(`
@@ -63,10 +67,26 @@ export default async function StatementPage({ searchParams }: { searchParams: Pr
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-4 text-sm">
           <div><p className="text-xs muted">Learner</p><p className="font-semibold">{l.first_name} {l.last_name}</p></div>
           <div><p className="text-xs muted">Grade / class</p><p>{l.grade != null ? `${gradeLabel(l.grade)} · ${l.className}` : "-"}</p></div>
-          <div><p className="text-xs muted">Due now</p><p className={`text-2xl font-bold ${acc.overdue > 0.5 ? "text-rose-600" : ""}`}>{zar(Math.max(0, acc.dueNow))}</p>{acc.overdue > 0.5 && <p className="text-xs text-rose-600">{zar(acc.overdue)} overdue since {fmtDate(acc.overdueSince)}</p>}</div>
-          <div><p className="text-xs muted">{acc.total < -0.005 ? "In credit" : "Balance (whole year)"}</p><p className={`text-2xl font-bold ${acc.total <= 0.5 ? "text-emerald-600" : ""}`}>{zar(Math.abs(acc.total))}</p></div>
+          {unbilled ? (
+            // Nothing billed yet is not the same as paid up: say so instead of showing R 0,00.
+            <div className="col-span-2"><p className="text-xs muted">School fees</p><p className="text-xl font-bold">Not billed yet</p></div>
+          ) : <>
+            <div><p className="text-xs muted">Due now</p><p className={`text-2xl font-bold ${acc.overdue > 0.5 ? "text-rose-600" : ""}`}>{zar(Math.max(0, acc.dueNow))}</p>{acc.overdue > 0.5 && <p className="text-xs text-rose-600">{zar(acc.overdue)} overdue since {fmtDate(acc.overdueSince)}</p>}</div>
+            <div><p className="text-xs muted">{acc.total < -0.005 ? "In credit" : "Balance (whole year)"}</p><p className={`text-2xl font-bold ${acc.total <= 0.5 ? "text-emerald-600" : ""}`}>{zar(Math.abs(acc.total))}</p></div>
+          </>}
         </div>
-        {ledger.length === 0 ? <Empty title="No fees billed yet" /> : (
+        {unbilled && (
+          <div className="no-print rounded-2xl border border-butter-300 bg-butter-100/50 dark:bg-butter-500/10 p-4 mb-4 text-sm flex flex-wrap items-center gap-3">
+            <p className="flex-1 min-w-[14rem]">{!ctx.isAdmin
+              ? `The school hasn't billed ${l.first_name}'s fees for ${ctx.school.current_year} yet. They will show here as soon as it does.`
+              : l.grade == null ? `${l.first_name} is not in a class yet. Put them in a class under Learners, and their fees are billed on the school's schedule.`
+              : !l.grade_fees ? `No fees are set for ${gradeLabel(l.grade)} in ${ctx.school.current_year}. Set them under Finance → Fees Collection (Set fees).`
+              : !schedule ? `Nobody has been billed for ${ctx.school.current_year} yet. Use Generate invoices on Fees Collection to choose how parents pay.`
+              : `${l.first_name} has not been billed for ${ctx.school.current_year}. Bill them on the school's schedule, from the current instalment.`}</p>
+            {ctx.isAdmin && l.grade != null && !!l.grade_fees && schedule && <BillNowButton learnerId={learnerId} label={`Bill ${l.first_name} now`} />}
+          </div>
+        )}
+        {ledger.length === 0 ? null : (
           <div className="overflow-x-auto">
             <table className="table">
               <thead><tr><th>Date</th><th>Description</th><th className="text-right">Debit</th><th className="text-right">Credit</th><th className="text-right">Balance</th>{ctx.isAdmin && <th className="no-print" />}</tr></thead>

@@ -8,7 +8,7 @@ import { headers } from "next/headers";
 import type { School } from "./auth";
 import { all, audit, get, run, tx } from "./db";
 import { notify, parentsOf } from "./push";
-import { zar, fmtDate } from "./format";
+import { zar, fmtDate, gradeLabel } from "./format";
 import { addDays, today } from "./today";
 import { decryptSecret } from "./secrets";
 import { paymentTransactions, OzowError, type OzowConfig } from "./ozow";
@@ -94,6 +94,70 @@ export async function account(learnerId: number, asOf = today()): Promise<Accoun
     overdueSince: late[0]?.due_date ?? null,
   };
 }
+
+// ---------------- Billing ----------------
+export type Instalment = { period: string; due: string; label: string };
+
+/** How this school billed the year (taken from its invoices), or null when nobody has been billed yet this year. */
+export async function billingSchedule(schoolId: number, year: number): Promise<Instalment[] | null> {
+  const rows = await all<{ period: string; due_date: string; n: number }>(
+    "SELECT period, due_date, COUNT(*) n FROM invoices WHERE school_id = ? AND year = ? AND period IS NOT NULL GROUP BY period, due_date", schoolId, year);
+  if (!rows.length) return null;
+  const best = new Map<string, { due: string; n: number }>();
+  for (const r of rows) if ((best.get(r.period)?.n ?? 0) < r.n) best.set(r.period, { due: r.due_date, n: r.n });
+  return [...best].map(([period, b]) => ({ period, due: b.due, label: period === "Year" ? "full year" : period })).sort((a, b) => a.due.localeCompare(b.due));
+}
+
+/**
+ * Bills active learners (in a class whose grade has fees, and not billed this year yet) on this schedule: the grade's
+ * yearly total split evenly over the instalments. fromNow bills someone joining mid-year only for the current
+ * instalment (the latest one already due) and the ones after it. Returns how many learners were billed.
+ */
+export async function billLearners(schoolId: number, year: number, schedule: Instalment[], opts: { learnerIds?: number[]; fromNow?: boolean } = {}): Promise<number> {
+  if (!schedule.length || (opts.learnerIds && !opts.learnerIds.length)) return 0;
+  // Numbered placeholders throughout (?1, ?2, then ?3...): lib/db.ts can't mix them with plain "?".
+  const only = opts.learnerIds ? `AND l.id IN (${opts.learnerIds.map((_, i) => `?${i + 3}`).join(",")})` : "";
+  const learners = await all<{ id: number; grade: number; total: number }>(`
+    SELECT l.id, c.grade, fs.tuition + fs.activities + fs.other total FROM learners l
+    JOIN classes c ON c.id = l.class_id JOIN fee_structures fs ON fs.school_id = l.school_id AND fs.year = ?1 AND fs.grade = c.grade
+    WHERE l.school_id = ?2 AND l.status = 'Active' AND NOT EXISTS (SELECT 1 FROM invoices i WHERE i.learner_id = l.id AND i.year = ?1 AND i.period IS NOT NULL) ${only}`,
+    year, schoolId, ...(opts.learnerIds ?? []));
+  if (!learners.length) return 0;
+  const n = schedule.length, t = today();
+  const current = schedule.reduce((k, s, i) => (s.due <= t ? i : k), 0);
+  const first = opts.fromNow ? current : 0;
+  await tx(async () => {
+    for (const l of learners) {
+      const part = Math.floor((l.total / n) * 100) / 100;
+      for (let i = first; i < n; i++) {
+        const amount = i === n - 1 ? cents(l.total - part * (n - 1)) : part;
+        await run("INSERT INTO invoices (school_id, learner_id, year, period, description, amount, due_date) VALUES (?,?,?,?,?,?,?) ON CONFLICT (learner_id, year, period) DO NOTHING",
+          schoolId, l.id, year, schedule[i].period, `${year} school fees · ${gradeLabel(l.grade)} · ${schedule[i].label}`, amount, schedule[i].due);
+      }
+    }
+  });
+  return learners.length;
+}
+
+/**
+ * A learner who joins (or is placed in a class) after the school billed the year is billed straight away on the same
+ * schedule. Nothing happens when fees are off, the year hasn't been billed yet, or the learner is already billed.
+ */
+export async function autoBill(schoolId: number, learnerId: number): Promise<number> {
+  const s = await get<Flags & { current_year: number }>("SELECT fee_paying, fee_billing, online_payments, fee_reminders, current_year FROM schools WHERE id = ?", schoolId);
+  if (!s || !feesOn(s)) return 0;
+  const schedule = await billingSchedule(schoolId, s.current_year);
+  return schedule ? billLearners(schoolId, s.current_year, schedule, { learnerIds: [learnerId], fromNow: true }) : 0;
+}
+
+export type Unbilled = { id: number; first_name: string; last_name: string; admission_number: string; className: string | null; grade: number | null; grade_fees: number; enrolled_on: string | null };
+
+/** Active learners with no school fees for the year yet, and why: no class, no fees for their grade, or simply not billed. */
+export const unbilledLearners = (schoolId: number, year: number) => all<Unbilled>(`
+  SELECT l.id, l.first_name, l.last_name, l.admission_number, c.name className, c.grade, (fs.id IS NOT NULL)::int grade_fees, l.enrolled_on
+  FROM learners l LEFT JOIN classes c ON c.id = l.class_id LEFT JOIN fee_structures fs ON fs.school_id = l.school_id AND fs.year = ?1 AND fs.grade = c.grade
+  WHERE l.school_id = ?2 AND l.status = 'Active' AND NOT EXISTS (SELECT 1 FROM invoices i WHERE i.learner_id = l.id AND i.year = ?1 AND i.period IS NOT NULL)
+  ORDER BY c.grade NULLS FIRST, l.last_name, l.first_name`, year, schoolId);
 
 const newReceipt = () => ("RC" + Date.now().toString(36) + randomBytes(2).toString("hex")).toUpperCase();
 

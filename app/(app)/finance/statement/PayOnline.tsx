@@ -2,7 +2,7 @@
 import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Landmark, ShieldCheck, RefreshCw, CreditCard } from "lucide-react";
-import { startOnlinePayment, checkPayment, remindNow, type StartPaymentResult } from "@/app/actions/fees";
+import { startOnlinePayment, checkPayment, remindNow, billNow, type StartPaymentResult } from "@/app/actions/fees";
 
 const zar = (n: number) => "R " + n.toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -130,6 +130,23 @@ export function RemindButton({ learnerId, label = "Remind" }: { learnerId?: numb
         router.refresh();
       }}>
       {busy ? "Sending..." : label}
+    </button>
+  );
+}
+
+/** School admin: bill a learner who missed the year's billing (or everyone not billed yet) on the school's schedule. */
+export function BillNowButton({ learnerId, label = "Bill now" }: { learnerId?: number; label?: string }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  return (
+    <button type="button" className={learnerId ? "btn btn-ghost btn-sm" : "btn btn-primary btn-sm"} disabled={busy}
+      onClick={async () => {
+        setBusy(true);
+        const r = await billNow(learnerId ?? null);
+        setBusy(false);
+        if (r.error) alert(r.error); else router.refresh();
+      }}>
+      {busy ? "Billing..." : label}
     </button>
   );
 }

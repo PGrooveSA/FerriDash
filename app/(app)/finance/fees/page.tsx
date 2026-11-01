@@ -3,13 +3,13 @@ import { requireCtx } from "@/lib/auth";
 import { all, get } from "@/lib/db";
 import { zar, gradeLabel, avatarUrl, fmtDate } from "@/lib/format";
 import { MONTHS, today } from "@/lib/today";
-import { feesOn, onlineMethods, overdueAccounts, remindersOn } from "@/lib/fees";
+import { billingSchedule, feesOn, onlineMethods, overdueAccounts, remindersOn, unbilledLearners } from "@/lib/fees";
 import { Card, PageHeader, Pager, Empty, StatusChip, StatCard, hrefWith } from "@/components/ui/kit";
 import { FormDialog, Filters, DeleteButton, CsvButton } from "@/components/ui/forms";
 import { AreaTrend } from "@/components/charts";
 import Avatar from "@/components/ui/Avatar";
 import { recordPayment, saveFeeStructure, deleteFeeStructure, generateInvoices, addCharge } from "@/app/actions/fees";
-import { OnlinePaymentsList, RemindButton } from "../statement/PayOnline";
+import { OnlinePaymentsList, RemindButton, BillNowButton } from "../statement/PayOnline";
 import FeesOff from "../FeesOff";
 import { Wallet, Receipt, AlertTriangle, BadgePercent } from "lucide-react";
 
@@ -60,6 +60,10 @@ export default async function FeesPage({ searchParams }: { searchParams: Promise
     FROM online_payments o JOIN learners l ON l.id = o.learner_id WHERE o.school_id = ? AND (o.provider_payment_id IS NOT NULL OR o.provider = 'PayFast') ORDER BY o.id DESC LIMIT 15`, ctx.schoolId);
   const overdueList = await overdueAccounts(ctx.schoolId);
   const reminders = remindersOn(ctx.school);
+  // Learners with no school fees this year yet (joined after billing, no class, or no fees for their grade).
+  const unbilledList = await unbilledLearners(ctx.schoolId, year);
+  const schedule = await billingSchedule(ctx.schoolId, year);
+  const billable = unbilledList.filter((u) => u.grade != null && u.grade_fees);
 
   const csv = [["Learner", "Admission no.", "Class", `Billed ${year}`, `Paid ${year}`, "Balance", "Overdue", "Status"],
     ...rows.map((r) => [`${r.first_name} ${r.last_name}`, r.admission_number, r.className, r.billed.toFixed(2), r.paid.toFixed(2), r.balance.toFixed(2), r.overdue.toFixed(2), statusOf(r)])];
@@ -136,6 +140,25 @@ export default async function FeesPage({ searchParams }: { searchParams: Promise
         )}
         <Pager page={page} pages={Math.ceil(total / PER_PAGE)} makeHref={(p) => hrefWith("/finance/fees", sp, { page: p })} />
       </Card>
+
+      {unbilledList.length > 0 && (
+        <Card title={`Not billed for ${year} (${unbilledList.length})`} className="mt-6" action={schedule && billable.length > 1 && <BillNowButton label={`Bill all ${billable.length}`} />}>
+          <p className="text-sm muted mb-3">{schedule
+            ? "These learners have no school fees this year yet, so their statements show nothing due. New learners are billed automatically when they are enrolled or placed in a class; bill the rest here, from the current instalment."
+            : "Nobody has been billed this year yet. Set each grade's fees below, then Generate invoices to choose how parents pay."}</p>
+          <div className="overflow-x-auto"><table className="table">
+            <thead><tr><th>Learner</th><th>Class</th><th>Why not billed</th><th className="text-right" /></tr></thead>
+            <tbody>{unbilledList.slice(0, 50).map((u) => (
+              <tr key={u.id}>
+                <td><p className="font-medium">{u.first_name} {u.last_name}</p><p className="text-xs muted font-mono">{u.admission_number}</p></td>
+                <td>{u.className ?? "-"}</td>
+                <td className="text-sm">{u.grade == null ? "Not in a class" : !u.grade_fees ? `No fees set for ${gradeLabel(u.grade)}` : schedule ? "Joined after billing" : "Invoices not generated yet"}</td>
+                <td className="text-right">{schedule && u.grade != null && !!u.grade_fees ? <BillNowButton learnerId={u.id} /> : u.grade == null ? <Link href={`/learners/${u.id}`} className="btn btn-ghost btn-sm">Learner</Link> : null}</td>
+              </tr>))}
+            </tbody>
+          </table></div>
+        </Card>
+      )}
 
       <Card title="Overdue accounts" className="mt-6" action={overdueList.length > 0 && <RemindButton label="Remind all overdue" />}>
         <p className="text-sm muted mb-3">{reminders
