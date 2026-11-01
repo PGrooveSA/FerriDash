@@ -1,8 +1,10 @@
 // Browser security rules for every page. Scripts and styles come only from FerriDash itself ('unsafe-inline' is
 // needed by Next.js's own inline scripts and the theme script). Message pictures and direct uploads go to
-// Supabase Storage. No other site may show FerriDash in a frame (clickjacking).
+// Supabase Storage. No other site may show FerriDash in a frame (clickjacking). Forms may only post to FerriDash
+// and PayFast (parents paying fees are sent to PayFast's payment page with a signed form; lib/payfast.ts).
 const dev = process.env.NODE_ENV !== "production";
 const storage = "https://*.supabase.co";
+const payfast = ["https://www.payfast.co.za", "https://sandbox.payfast.co.za", process.env.PAYFAST_BASE_URL].filter(Boolean).join(" ");
 const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${dev ? " 'unsafe-eval'" : ""}`,
@@ -13,7 +15,7 @@ const csp = [
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",
-  "form-action 'self'",
+  `form-action 'self' ${payfast}`,
   "frame-ancestors 'none'",
 ].join("; ");
 

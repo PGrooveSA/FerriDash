@@ -1,7 +1,9 @@
 import Link from "next/link";
 import type { Ctx } from "@/lib/auth";
 import { ownLearnerIds } from "@/lib/auth";
-import { zar, fullName, avatarUrl, bannerUrl } from "@/lib/format";
+import { zar, fullName, avatarUrl, bannerUrl, fmtDate } from "@/lib/format";
+import { all } from "@/lib/db";
+import { account, feesOn } from "@/lib/fees";
 import { Card, Empty, LevelBadge } from "@/components/ui/kit";
 import { bannerStyle } from "@/components/ui/banner";
 import { tFor } from "@/lib/i18n";
@@ -14,6 +16,12 @@ export default async function ParentDashboard({ ctx }: { ctx: Ctx }) {
   const tr = tFor(ctx.user);
   const kids = (await Promise.all(((await ownLearnerIds(ctx)) ?? []).map((id) => learnerSnapshot(ctx, id)))).filter((x): x is NonNullable<typeof x> => !!x);
   const banner = bannerStyle(bannerUrl(ctx.user.id, ctx.user.banner_updated_at));
+  // Fees (fee-paying schools with fee billing) and an unanswered re-enrolment question, per child.
+  const fees = feesOn(ctx.school) ? new Map(await Promise.all(kids.map(async (k) => [k.learner.id, await account(k.learner.id)] as const))) : null;
+  const answered = ctx.school.reenrol_year && kids.length
+    ? new Set((await all<{ learner_id: number }>(`SELECT learner_id FROM reenrolments WHERE year = ? AND learner_id IN (${kids.map(() => "?").join(",")})`, ctx.school.reenrol_year, ...kids.map((k) => k.learner.id))).map((r) => r.learner_id))
+    : null;
+  const unanswered = answered ? kids.filter((k) => !answered.has(k.learner.id) && (k.learner.grade ?? 0) < 12) : [];
   return (
     <div className="grid grid-cols-1 xl:grid-cols-[1fr_22rem] gap-6">
       <div className="space-y-6 min-w-0">
@@ -27,6 +35,12 @@ export default async function ParentDashboard({ ctx }: { ctx: Ctx }) {
         {/* Every child's lessons today, in one list (class shown when there is more than one child). */}
         <ClassesToday tr={tr} classIds={[...new Set(kids.map((k) => k.learner.class_id).filter((c): c is number => !!c))]} showClass={kids.length > 1}
           card={{ title: tr("Today's classes"), action: <Link href="/timetable" className="text-xs muted">{tr("Full timetable")}</Link> }} />
+        {unanswered.length > 0 && (
+          <Link href="/admissions/reenrol" className="glass block p-5 border-2 border-brand-300 hover:-translate-y-0.5 transition-transform">
+            <p className="font-semibold">{tr("Re-enrolment for {year}", { year: ctx.school.reenrol_year! })}</p>
+            <p className="text-sm muted">{tr("Please let the school know whether {names} will return next year.", { names: unanswered.map((k) => k.learner.first_name).join(", ") })}{ctx.school.reenrol_deadline ? ` ${tr("Closes {date}.", { date: fmtDate(ctx.school.reenrol_deadline) })}` : ""}</p>
+          </Link>
+        )}
         {kids.length === 0 && <Card><Empty title={tr("No learners linked")} hint={tr("Ask the school office to link your child to your account.")} /></Card>}
         {kids.map(({ learner: l, latest, att }) => (
           <Card key={l.id}>
@@ -45,7 +59,16 @@ export default async function ParentDashboard({ ctx }: { ctx: Ctx }) {
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-5">
               <div className="glass-strong rounded-2xl p-4"><p className="text-xs muted">{tr("Attendance")}</p><p className="text-2xl font-bold">{att.rate != null ? `${att.rate}%` : "-"}</p><p className="text-xs muted">{tr("{n} absent days", { n: att.absent ?? 0 })}</p></div>
               <div className="glass-strong rounded-2xl p-4"><p className="text-xs muted">{latest ? tr("Term {n} average", { n: latest.term }) : tr("Average")}</p><p className="text-2xl font-bold">{latest?.row?.average != null ? `${latest.row.average}%` : "-"}</p><p className="text-xs muted">{latest?.row?.position ? tr("Position {n}", { n: latest.row.position }) : tr("Not yet published")}</p></div>
-              <div className="glass-strong rounded-2xl p-4"><p className="text-xs muted">{tr("Subjects")}</p><p className="text-2xl font-bold">{latest?.cr?.subjects.length ?? "-"}</p><p className="text-xs muted">{tr("CAPS curriculum")}</p></div>
+              {fees ? (() => {
+                const a = fees.get(l.id)!;
+                return (
+                  <Link href={`/finance/statement?learner=${l.id}`} className="glass-strong rounded-2xl p-4 hover:-translate-y-0.5 transition-transform">
+                    <p className="text-xs muted">{tr("School fees due now")}</p>
+                    <p className={`text-2xl font-bold ${a.overdue > 0.5 ? "text-rose-600" : ""}`}>{zar(Math.max(0, a.dueNow))}</p>
+                    <p className="text-xs muted">{a.overdue > 0.5 ? tr("{amount} overdue", { amount: zar(a.overdue) }) : a.total > 0.5 ? tr("{amount} for the rest of the year", { amount: zar(a.total - Math.max(0, a.dueNow)) }) : tr("Paid up. Thank you!")}</p>
+                  </Link>
+                );
+              })() : <div className="glass-strong rounded-2xl p-4"><p className="text-xs muted">{tr("Subjects")}</p><p className="text-2xl font-bold">{latest?.cr?.subjects.length ?? "-"}</p><p className="text-xs muted">{tr("CAPS curriculum")}</p></div>}
             </div>
             {latest && (
               <div className="flex flex-wrap gap-2 mt-4">

@@ -21,6 +21,15 @@ export function capsLevel(pct: number | null | undefined): Level | null {
   return CAPS_LEVELS.find((l) => p >= l.min) ?? CAPS_LEVELS[CAPS_LEVELS.length - 1];
 }
 
+/** Symbols for IEB-style reports (independent schools): one letter per CAPS level, A (80%+) down to G (under 30%). */
+export const SYMBOLS: { symbol: string; level: number; min: number; max: number }[] =
+  CAPS_LEVELS.map((l, i) => ({ symbol: "ABCDEFG"[i], level: l.level, min: l.min, max: l.max }));
+
+export function symbolFor(pct: number | null | undefined): string | null {
+  const l = capsLevel(pct);
+  return l ? SYMBOLS.find((s) => s.level === l.level)!.symbol : null;
+}
+
 export type Phase = "Foundation" | "Intermediate" | "Senior" | "FET";
 
 export function phaseOf(grade: number): Phase {

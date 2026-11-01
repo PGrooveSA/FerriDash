@@ -8,9 +8,12 @@ import { saveSchool, toggleSchool, resetSchoolAdminPassword, addSchoolAdmin } fr
 
 type S = {
   id: number; name: string; emis_number: string | null; province: string; district: string | null; quintile: number | null; school_type: string;
-  fee_paying: number; address: string | null; phone: string | null; email: string | null; principal: string | null; active: number; created_at: string;
+  fee_paying: number; fee_billing: number; online_payments: number; fee_reminders: number; address: string | null; phone: string | null; email: string | null; principal: string | null; active: number; created_at: string;
   learners: number; teachers: number; last_login: string | null;
 };
+const YES_NO = [{ value: 1, label: "On" }, { value: 0, label: "Off" }];
+const feeFeatures = (s: S) => !s.fee_paying ? "No-fee" : !s.fee_billing ? "Fee-paying" : ["Fee billing", s.online_payments ? "online payments" : "", s.fee_reminders ? "reminders" : ""].filter(Boolean).join(", ");
+
 type Admin = { id: number; school_id: number; name: string; email: string; last_login: string | null };
 
 /** The platform admin's home page: every school on the installation, and nothing inside them. */
@@ -37,6 +40,10 @@ export default async function PlatformDashboard({ ctx, sp }: { ctx: Ctx; sp: Rec
     { name: "quintile", label: "Quintile", type: "select", options: [1, 2, 3, 4, 5].map((n) => ({ value: n, label: `Quintile ${n}` })), defaultValue: s?.quintile, half: true },
     { name: "school_type", label: "Type", type: "select", required: true, options: ["Primary", "Secondary", "Combined"].map((v) => ({ value: v, label: v })), defaultValue: s?.school_type, half: true },
     { name: "fee_paying", label: "Fees", type: "select", required: true, options: [{ value: 1, label: "Fee-paying" }, { value: 0, label: "No-fee school" }], defaultValue: s?.fee_paying ?? 1, half: true },
+    // Fee-paying schools only: a no-fee school never gets these, whatever is chosen here (app/actions/academics.ts saveSchool).
+    { name: "fee_billing", label: "Fee billing and statements", type: "select", required: true, options: YES_NO, defaultValue: s?.fee_billing ?? 0, half: true, help: "Fee-paying schools only." },
+    { name: "online_payments", label: "Online payments (PayFast, Ozow)", type: "select", required: true, options: YES_NO, defaultValue: s?.online_payments ?? 0, half: true, help: "Needs fee billing. The school connects its own merchant account." },
+    { name: "fee_reminders", label: "Automatic overdue fee reminders", type: "select", required: true, options: YES_NO, defaultValue: s?.fee_reminders ?? 0, half: true, help: "Needs fee billing." },
     { name: "principal", label: "Principal", defaultValue: s?.principal, half: true },
     { name: "phone", label: "Phone", type: "tel", defaultValue: s?.phone, half: true },
     { name: "email", label: "Office email", type: "email", defaultValue: s?.email },
@@ -78,7 +85,7 @@ export default async function PlatformDashboard({ ctx, sp }: { ctx: Ctx; sp: Rec
               return (
                 <tr key={s.id} className={s.active ? "" : "opacity-70"}>
                   <td className="min-w-[11rem]"><p className="font-semibold">{s.name}</p><p className="text-xs muted">EMIS {s.emis_number ?? "-"}{s.principal ? ` · ${s.principal}` : ""}</p></td>
-                  <td className="whitespace-nowrap">{s.province}<p className="text-xs muted">{s.school_type} · {s.fee_paying ? "Fee-paying" : "No-fee"}{s.quintile ? ` · Q${s.quintile}` : ""}</p></td>
+                  <td className="whitespace-nowrap">{s.province}<p className="text-xs muted">{s.school_type} · {feeFeatures(s)}{s.quintile ? ` · Q${s.quintile}` : ""}</p></td>
                   <td className="whitespace-nowrap text-sm">{s.learners.toLocaleString("en-ZA")} learner{s.learners === 1 ? "" : "s"}<p className="text-xs muted">{s.teachers} educator{s.teachers === 1 ? "" : "s"}</p></td>
                   <td className="text-xs">{sa.length ? sa.map((a) => <p key={a.id}>{a.email}</p>) : <span className="text-rose-600">None</span>}
                     <p className="muted mt-0.5">Last sign-in: {s.last_login ? fmtDate(s.last_login.slice(0, 10)) : "never"}</p></td>

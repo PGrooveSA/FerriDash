@@ -63,7 +63,7 @@ async function ready(): Promise<void> {
 }
 
 // Tables without an "id" column (no RETURNING id on insert).
-const NO_ID = new Set(["enrolments", "guardian_links", "conversation_members", "schema_version", "login_attempts"]);
+const NO_ID = new Set(["enrolments", "guardian_links", "conversation_members", "schema_version", "login_attempts", "payment_settings"]);
 const cache = new Map<string, { text: string; order: number[] | null }>();
 
 /** SQLite-flavoured SQL to PostgreSQL. Text inside quotes is left alone. */

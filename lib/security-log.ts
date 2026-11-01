@@ -5,7 +5,8 @@ import { headers } from "next/headers";
 
 export type SecurityEvent =
   | "login_failed" | "login_locked" | "login_blocked" | "login_state_refused"
-  | "rate_limited" | "forbidden_route" | "stale_session" | "upload_rejected" | "bad_origin";
+  | "rate_limited" | "forbidden_route" | "stale_session" | "upload_rejected" | "bad_origin"
+  | "payment_rejected" | "application_spam";
 
 /** The visitor's address and browser, when there is a request (empty otherwise). */
 export async function requestInfo(): Promise<{ ip: string | null; ua: string | null; path: string | null }> {

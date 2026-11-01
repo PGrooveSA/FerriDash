@@ -71,7 +71,9 @@ export function TableWrap({ children }: { children: React.ReactNode }) {
 
 const STATUS_TONE: Record<string, string> = {
   paid: "chip-info", published: "chip-green", approved: "chip-info", submitted: "chip-butter", draft: "chip-slate",
-  pending: "chip-butter", partial: "chip-butter", overdue: "chip-red", available: "chip-info", "checked out": "chip-red",
+  pending: "chip-butter", partial: "chip-butter", overdue: "chip-red", "not yet due": "chip-slate", credit: "chip-green",
+  reviewing: "chip-butter", accepted: "chip-green", waitlisted: "chip-gold", declined: "chip-red", enrolled: "chip-info", withdrawn: "chip-slate",
+  returning: "chip-green", leaving: "chip-red", unsure: "chip-butter", "no answer": "chip-slate", available: "chip-info", "checked out": "chip-red",
   active: "chip-green", promoted: "chip-green", "not promoted": "chip-red", present: "chip-info", absent: "chip-red", late: "chip-butter", excused: "chip-gold",
   exempt: "chip-gold",
 };

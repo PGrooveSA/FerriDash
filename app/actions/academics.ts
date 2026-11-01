@@ -81,9 +81,11 @@ export async function removeClassSubject(csId: number) {
 // ---------------- School settings ----------------
 export async function saveSchoolSettings(_: ActionResult, f: FormData) {
   return guarded(ADMIN, async (ctx) => {
-    await run(`UPDATE schools SET name=?, emis_number=?, province=?, district=?, quintile=?, school_type=?, fee_paying=?, address=?, phone=?, email=?, principal=?, motto=?, current_year=?, current_term=? WHERE id = ?`,
-            str(f, "name"), opt(f, "emis_number"), str(f, "province"), opt(f, "district"), num(f, "quintile"), str(f, "school_type"), str(f, "fee_paying") === "1" ? 1 : 0,
-            opt(f, "address"), opt(f, "phone"), opt(f, "email"), opt(f, "principal"), opt(f, "motto"), num(f, "current_year"), num(f, "current_term"), ctx.schoolId);
+    // Fee-paying or no-fee, and which fee features the school has, are the platform admin's decision (saveSchool).
+    const reportStyle = str(f, "report_style") === "ieb" ? "ieb" : "caps";
+    await run(`UPDATE schools SET name=?, emis_number=?, province=?, district=?, quintile=?, school_type=?, address=?, phone=?, email=?, principal=?, motto=?, current_year=?, current_term=?, report_style=? WHERE id = ?`,
+            str(f, "name"), opt(f, "emis_number"), str(f, "province"), opt(f, "district"), num(f, "quintile"), str(f, "school_type"),
+            opt(f, "address"), opt(f, "phone"), opt(f, "email"), opt(f, "principal"), opt(f, "motto"), num(f, "current_year"), num(f, "current_term"), reportStyle, ctx.schoolId);
     for (const t of [1, 2, 3, 4]) {
       const a = str(f, `t${t}_start`), b = str(f, `t${t}_end`);
       if (a && b) await run("INSERT INTO terms (school_id, year, number, start_date, end_date) VALUES (?,?,?,?,?) ON CONFLICT(school_id, year, number) DO UPDATE SET start_date = excluded.start_date, end_date = excluded.end_date", ctx.schoolId, num(f, "current_year"), t, a, b);
@@ -123,10 +125,15 @@ export async function saveSchool(_: ActionResult, f: FormData) {
   return guarded(PLATFORM, async (ctx) => {
     const id = num(f, "id");
     if (!str(f, "name")) fail("Enter the school's name.");
-    const vals = [str(f, "name"), opt(f, "emis_number"), str(f, "province"), opt(f, "district"), num(f, "quintile"), str(f, "school_type") || "Combined", str(f, "fee_paying") === "1" ? 1 : 0, opt(f, "address"), opt(f, "phone"), opt(f, "email"), opt(f, "principal")];
+    // Fee billing, online payments and reminders are only for fee-paying schools; payments and reminders need billing.
+    const feePaying = str(f, "fee_paying") === "1" ? 1 : 0;
+    const billing = feePaying && str(f, "fee_billing") === "1" ? 1 : 0;
+    const fees = [billing, billing && str(f, "online_payments") === "1" ? 1 : 0, billing && str(f, "fee_reminders") === "1" ? 1 : 0];
+    const vals = [str(f, "name"), opt(f, "emis_number"), str(f, "province"), opt(f, "district"), num(f, "quintile"), str(f, "school_type") || "Combined", feePaying, ...fees, opt(f, "address"), opt(f, "phone"), opt(f, "email"), opt(f, "principal")];
+    const feeNote = `fees: ${feePaying ? `fee-paying, billing ${fees[0] ? "on" : "off"}, online payments ${fees[1] ? "on" : "off"}, reminders ${fees[2] ? "on" : "off"}` : "no-fee"}`;
     if (id) {
-      if (!(await run("UPDATE schools SET name=?, emis_number=?, province=?, district=?, quintile=?, school_type=?, fee_paying=?, address=?, phone=?, email=?, principal=? WHERE id = ?", ...vals, id)).changes) fail("School not found.");
-      await audit(id, ctx.user.id, "update", "school", id);
+      if (!(await run("UPDATE schools SET name=?, emis_number=?, province=?, district=?, quintile=?, school_type=?, fee_paying=?, fee_billing=?, online_payments=?, fee_reminders=?, address=?, phone=?, email=?, principal=? WHERE id = ?", ...vals, id)).changes) fail("School not found.");
+      await audit(id, ctx.user.id, "update", "school", id, feeNote);
     } else {
       const adminEmail = str(f, "admin_email").toLowerCase(), pw = str(f, "admin_password");
       if (!adminEmail.includes("@")) fail("Enter the school admin's email address.");
@@ -134,9 +141,9 @@ export async function saveSchool(_: ActionResult, f: FormData) {
       if (await get("SELECT id FROM users WHERE lower(email) = ?", adminEmail)) fail("That email already belongs to another account.");
       await tx(async () => {
                 const year = new Date().getFullYear();
-                const sid = (await run("INSERT INTO schools (name, emis_number, province, district, quintile, school_type, fee_paying, address, phone, email, principal, current_year, current_term) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,1)", ...vals, year)).id;
+                const sid = (await run("INSERT INTO schools (name, emis_number, province, district, quintile, school_type, fee_paying, fee_billing, online_payments, fee_reminders, address, phone, email, principal, current_year, current_term) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1)", ...vals, year)).id;
                 await run("INSERT INTO users (school_id, role, first_name, last_name, email, password_hash) VALUES (?,?,?,?,?,?)", sid, "school_admin", str(f, "admin_first_name") || "School", str(f, "admin_last_name") || "Administrator", adminEmail, bcrypt.hashSync(pw, 10));
-                await audit(sid, ctx.user.id, "create", "school", sid);
+                await audit(sid, ctx.user.id, "create", "school", sid, feeNote);
               });
     }
     revalidatePath("/dashboard");

@@ -5,14 +5,16 @@ import { useEffect, useState } from "react";
 import { useT } from "@/components/I18nProvider";
 import {
   LayoutDashboard, Building2, GraduationCap, Users, UsersRound, BookOpen, CalendarCheck, Award, FileBarChart,
-  Wallet, Megaphone, CalendarDays, Clock, MessageSquare, UserCircle, Settings, Upload, LogOut, ChevronDown, X, Menu, ClipboardList,
+  Wallet, Megaphone, CalendarDays, Clock, MessageSquare, UserCircle, Settings, Upload, LogOut, ChevronDown, X, Menu, ClipboardList, Receipt, DoorOpen,
 } from "lucide-react";
 import { logout } from "@/app/actions/auth";
 import SchoolCrest from "@/components/SchoolCrest";
 import BrandLogo from "@/components/BrandLogo";
 
 type Role = "super_admin" | "school_admin" | "teacher" | "learner" | "parent";
-type Item = { href: string; label: string; icon: typeof LayoutDashboard; roles: Role[]; children?: { href: string; label: string; roles?: Role[] }[] };
+/** What a school has switched on: fees (fee-paying schools with fee billing), reenrol (re-enrolment is open). */
+type Feature = "fees" | "reenrol";
+type Item = { href: string; label: string; icon: typeof LayoutDashboard; roles: Role[]; feature?: Feature; children?: { href: string; label: string; roles?: Role[]; feature?: Feature }[] };
 
 // School menus. The platform admin (super_admin) only gets the schools dashboard and their profile.
 const STAFF: Role[] = ["school_admin", "teacher"];
@@ -52,11 +54,23 @@ const MENU: Item[] = [
     ],
   },
   {
+    // Every school keeps School Expenses; fees only show for fee-paying schools with fee billing.
     href: "/finance", label: "Finance", icon: Wallet, roles: ADMIN,
     children: [
+      { href: "/finance/fees", label: "Fees Collection", roles: ADMIN, feature: "fees" },
+      { href: "/finance/settings", label: "Fee Settings", roles: ADMIN, feature: "fees" },
       { href: "/finance/expenses", label: "School Expenses", roles: ADMIN },
     ],
   },
+  { href: "/finance/statement", label: "Fees", icon: Receipt, roles: ["parent"], feature: "fees" },
+  {
+    href: "/admissions", label: "Admissions", icon: DoorOpen, roles: ADMIN,
+    children: [
+      { href: "/admissions", label: "Applications", roles: ADMIN },
+      { href: "/admissions/reenrol", label: "Re-enrolment", roles: ADMIN },
+    ],
+  },
+  { href: "/admissions/reenrol", label: "Re-enrolment", icon: DoorOpen, roles: ["parent"], feature: "reenrol" },
   { href: "/assignments", label: "Assignments", icon: ClipboardList, roles: ALL },
   { href: "/notices", label: "Notices", icon: Megaphone, roles: ALL },
   { href: "/timetable", label: "Timetable", icon: Clock, roles: ALL },
@@ -67,10 +81,10 @@ const MENU: Item[] = [
 const OTHER: Item[] = [
   { href: "/profile", label: "Profile", icon: UserCircle, roles: EVERYONE },
   { href: "/import", label: "Import Data", icon: Upload, roles: ADMIN },
-  { href: "/settings", label: "Settings", icon: Settings, roles: EVERYONE },
+  { href: "/settings", label: "Settings", icon: Settings, roles: ADMIN },
 ];
 
-export default function Sidebar({ role, school }: { role: Role; school: { id: number; name: string; logo_updated_at: string | null } | null }) {
+export default function Sidebar({ role, school, features = [] }: { role: Role; school: { id: number; name: string; logo_updated_at: string | null } | null; features?: Feature[] }) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -86,7 +100,7 @@ export default function Sidebar({ role, school }: { role: Role; school: { id: nu
 
   const renderItem = (item: Item) => {
     const Icon = item.icon;
-    const kids = item.children?.filter((c) => !c.roles || c.roles.includes(role));
+    const kids = item.children?.filter((c) => (!c.roles || c.roles.includes(role)) && (!c.feature || features.includes(c.feature)));
     const active = isActive(item.href);
     const base = "flex items-center gap-3 rounded-2xl px-4 py-2.5 text-base font-normal transition-colors";
     const cls = active ? `${base} bg-gradient-to-r from-brand-200/90 to-gold-200/70 text-slate-900 dark:from-brand-500/25 dark:to-gold-500/20 dark:text-white shadow-sm` : `${base} muted hover:bg-white/50 dark:hover:bg-white/5 hover:text-[var(--ink)]`;
@@ -138,7 +152,7 @@ export default function Sidebar({ role, school }: { role: Role; school: { id: nu
       </div>
       <nav className="flex-1 overflow-y-auto pr-1 -mr-1">
         <p className="px-4 text-[0.7rem] font-normal tracking-widest muted mb-2">{t("MENU")}</p>
-        <ul className="space-y-0.5">{MENU.filter((m) => m.roles.includes(role)).map(renderItem)}</ul>
+        <ul className="space-y-0.5">{MENU.filter((m) => m.roles.includes(role) && (!m.feature || features.includes(m.feature))).map(renderItem)}</ul>
         <p className="px-4 text-[0.7rem] font-normal tracking-widest muted mt-6 mb-2">{t("OTHER")}</p>
         <ul className="space-y-0.5">
           {OTHER.filter((m) => m.roles.includes(role)).map(renderItem)}

@@ -1,4 +1,4 @@
-import { CAPS_LEVELS, capsLevel, phaseOf, promotion, type Promotion } from "@/lib/caps";
+import { CAPS_LEVELS, SYMBOLS, capsLevel, phaseOf, promotion, symbolFor, type Promotion } from "@/lib/caps";
 import { fmtDate, gradeLabel, logoUrl } from "@/lib/format";
 import { today } from "@/lib/today";
 import type { School } from "@/lib/auth";
@@ -50,6 +50,8 @@ const RESULT_STYLE = {
 
 export default function ReportCard({ d, editor }: { d: ReportCardData; editor?: React.ReactNode }) {
   const { school, cr, row, period } = d;
+  // IEB-style (independent schools): percentage, symbol, class average and subject teacher; no Department heading.
+  const ieb = school.report_style === "ieb";
   const result = overallResult(d);
   const rs = RESULT_STYLE[result.status];
   const classAvg = (csId: number) => {
@@ -67,9 +69,9 @@ export default function ReportCard({ d, editor }: { d: ReportCardData; editor?: 
           {school.motto && <p className="text-xs italic mt-0.5">“{school.motto}”</p>}
         </div>
         <div className="text-right">
-          <p className="text-xs uppercase tracking-widest muted">Learner Progress Report</p>
+          <p className="text-xs uppercase tracking-widest muted">{ieb ? "Academic Report" : "Learner Progress Report"}</p>
           <p className="font-bold text-lg">{periodLabel(period)} · {cr.year}</p>
-          <p className="text-xs muted">{school.province} Department of Education</p>
+          <p className="text-xs muted">{ieb ? "Independent school" : `${school.province} Department of Education`}</p>
         </div>
       </header>
 
@@ -94,33 +96,54 @@ export default function ReportCard({ d, editor }: { d: ReportCardData; editor?: 
         </div>
       </section>
 
-      <table className="table rc-table !text-sm">
-        <thead><tr><th>Subject</th><th className="text-center">Mark %</th><th className="text-center">Level</th><th>Achievement descriptor</th><th className="text-center">Class avg</th></tr></thead>
-        <tbody>
-          {cr.subjects.map((s) => {
-            const v = row.pct[s.csId], lv = capsLevel(v);
-            return (
-              <tr key={s.csId}>
-                <td className="font-medium">{s.name}</td>
-                <td className={`text-center font-semibold ${v != null && v < 40 ? "text-rose-600" : ""}`}>{v ?? "-"}</td>
-                <td className="text-center font-bold">{lv?.level ?? "-"}</td>
-                <td>{lv?.descriptor ?? "-"}</td>
-                <td className="text-center muted">{classAvg(s.csId) ?? "-"}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      {ieb ? (
+        <table className="table rc-table !text-sm">
+          <thead><tr><th>Subject</th><th>Teacher</th><th className="text-center">Mark %</th><th className="text-center">Symbol</th><th className="text-center">Class avg %</th><th className="text-center">+/- avg</th></tr></thead>
+          <tbody>
+            {cr.subjects.map((s) => {
+              const v = row.pct[s.csId], avg = classAvg(s.csId), diff = v != null && avg != null ? Math.round(v - avg) : null;
+              return (
+                <tr key={s.csId}>
+                  <td className="font-medium">{s.name}</td>
+                  <td className="text-xs muted">{s.teacher ?? "-"}</td>
+                  <td className={`text-center font-semibold ${v != null && v < 40 ? "text-rose-600" : ""}`}>{v ?? "-"}</td>
+                  <td className="text-center font-bold">{symbolFor(v) ?? "-"}</td>
+                  <td className="text-center muted">{avg ?? "-"}</td>
+                  <td className="text-center text-xs">{diff == null ? "-" : diff > 0 ? `+${diff}` : diff}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      ) : (
+        <table className="table rc-table !text-sm">
+          <thead><tr><th>Subject</th><th className="text-center">Mark %</th><th className="text-center">Level</th><th>Achievement descriptor</th><th className="text-center">Class avg</th></tr></thead>
+          <tbody>
+            {cr.subjects.map((s) => {
+              const v = row.pct[s.csId], lv = capsLevel(v);
+              return (
+                <tr key={s.csId}>
+                  <td className="font-medium">{s.name}</td>
+                  <td className={`text-center font-semibold ${v != null && v < 40 ? "text-rose-600" : ""}`}>{v ?? "-"}</td>
+                  <td className="text-center font-bold">{lv?.level ?? "-"}</td>
+                  <td>{lv?.descriptor ?? "-"}</td>
+                  <td className="text-center muted">{classAvg(s.csId) ?? "-"}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
 
       <section className="rc-grid rc-summary grid grid-cols-3 gap-3 mt-4">
-        <div className="rounded-2xl bg-brand-100/60 dark:bg-brand-500/10 p-3"><p className="text-xs muted">Average</p><p className="text-xl font-bold">{row.average ?? "-"}%</p></div>
+        <div className="rounded-2xl bg-brand-100/60 dark:bg-brand-500/10 p-3"><p className="text-xs muted">Average</p><p className="text-xl font-bold">{row.average ?? "-"}%{ieb && row.average != null ? ` · ${symbolFor(row.average)}` : ""}</p></div>
         <div className="rounded-2xl bg-gold-100/60 dark:bg-gold-500/10 p-3"><p className="text-xs muted">Position in class</p><p className="text-xl font-bold">{row.position ?? "-"} <span className="text-sm font-normal muted">/ {cr.learners.length}</span></p></div>
         <div className="rounded-2xl bg-emerald-100/60 dark:bg-emerald-500/10 p-3"><p className="text-xs muted">Attendance</p><p className="text-xl font-bold">{d.attendance.rate ?? "-"}%</p></div>
       </section>
 
       {result.promo && (
         <section className={`rc-box mt-4 rounded-2xl p-4 border ${result.promo.promoted ? "border-emerald-300 bg-emerald-50/60 dark:bg-emerald-500/10" : "border-rose-300 bg-rose-50/60 dark:bg-rose-500/10"}`}>
-          <p className="font-semibold">CAPS pass requirements{row.promotion ? ` · ${row.provisional ? "provisional outcome" : "outcome"}: ${row.promotion.outcome}` : ` · ${periodLabel(period)}`}</p>
+          <p className="font-semibold">{ieb ? "Promotion requirements" : "CAPS pass requirements"}{row.promotion ? ` · ${row.provisional ? "provisional outcome" : "outcome"}: ${row.promotion.outcome}` : ` · ${periodLabel(period)}`}</p>
           <ul className="text-xs mt-1 grid sm:grid-cols-2 gap-x-4">{result.promo.checks.map((c, i) => <li key={i}>{c.ok ? "✓" : "✗"} {c.label}</li>)}</ul>
           {cr.grade === 12 && row.promotion && <p className="text-xs muted mt-1">The official NSC result is issued by the Department of Basic Education.</p>}
         </section>
@@ -137,8 +160,13 @@ export default function ReportCard({ d, editor }: { d: ReportCardData; editor?: 
       </section>
 
       <p className="mt-6 pt-3 border-t border-line text-[0.68rem] muted flex flex-wrap gap-x-3 gap-y-1">
-        <span className="font-semibold">CAPS scale:</span>
-        {CAPS_LEVELS.map((l) => <span key={l.level}>{l.level} = {l.min}–{l.max}% {l.short}</span>)}
+        {ieb ? <>
+          <span className="font-semibold">Symbols:</span>
+          {SYMBOLS.map((s) => <span key={s.symbol}>{s.symbol} = {s.min}–{s.max}%</span>)}
+        </> : <>
+          <span className="font-semibold">CAPS scale:</span>
+          {CAPS_LEVELS.map((l) => <span key={l.level}>{l.level} = {l.min}–{l.max}% {l.short}</span>)}
+        </>}
       </p>
 
       {/* Bottom of every printed page (see .rc-page in globals.css). */}

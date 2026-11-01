@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { FileText, Table2, ArrowUpCircle, CalendarCheck, Wallet, BarChart3 } from "lucide-react";
+import { FileText, Table2, ArrowUpCircle, CalendarCheck, Wallet, BarChart3, Database } from "lucide-react";
 import { requireCtx } from "@/lib/auth";
 import { PageHeader } from "@/components/ui/kit";
 
@@ -12,7 +12,8 @@ const REPORTS = [
   { href: "/reports/promotion", icon: ArrowUpCircle, title: "Promotion schedule", text: "End-of-year outcomes against the CAPS promotion requirements, including NSC pass types for Grade 12.", tone: "from-butter-300/80", admin: false },
   { href: "/results/analysis", icon: BarChart3, title: "Results analysis", text: "Subject averages, pass rates, CAPS level distribution and learners needing support.", tone: "from-charcoal-200/80", admin: false },
   { href: "/reports/attendance", icon: CalendarCheck, title: "Attendance report", text: "Attendance rates per learner and per class for any date range, with chronic absentees flagged.", tone: "from-brand-200/80", admin: false },
-  { href: "/reports/finance", icon: Wallet, title: "Finance report", text: "Fees billed, collected and outstanding in Rand, debtors list and expenses by category.", tone: "from-gold-200/80", admin: true },
+  { href: "/reports/finance", icon: Wallet, title: "Finance report", text: "School expenses for the year by category and month, and the largest expenses.", tone: "from-gold-200/80", admin: true },
+  { href: "/reports/sa-sams", icon: Database, title: "SA-SAMS export", text: "Learner details and term marks as spreadsheets with SA-SAMS field names, so nothing is captured twice.", tone: "from-butter-300/80", admin: true },
 ];
 
 export default async function ReportsPage() {

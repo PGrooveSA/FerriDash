@@ -20,6 +20,11 @@ export type School = {
   id: number; name: string; emis_number: string; province: string; district: string; quintile: number;
   school_type: string; fee_paying: number; address: string; phone: string; email: string; principal: string;
   motto: string; current_year: number; current_term: number; logo_updated_at: string | null;
+  /** Set by the platform admin for fee-paying schools (lib/fees.ts: feesOn, paymentsOn, remindersOn). */
+  fee_billing: number; online_payments: number; fee_reminders: number;
+  report_style: "caps" | "ieb";
+  admissions_open: number; admissions_code: string | null; admissions_year: number | null; admissions_info: string | null;
+  reenrol_year: number | null; reenrol_deadline: string | null;
 };
 
 export type Ctx = {
@@ -36,6 +41,8 @@ export type Ctx = {
 const NO_SCHOOL: School = {
   id: 0, name: "FerriDash", emis_number: "", province: "", district: "", quintile: 0, school_type: "", fee_paying: 0,
   address: "", phone: "", email: "", principal: "", motto: "", current_year: new Date().getFullYear(), current_term: 1, logo_updated_at: null,
+  fee_billing: 0, online_payments: 0, fee_reminders: 0, report_style: "caps",
+  admissions_open: 0, admissions_code: null, admissions_year: null, admissions_info: null, reenrol_year: null, reenrol_deadline: null,
 };
 
 /**

@@ -32,14 +32,22 @@ export default function SettingsForm({ school, terms, provinces }: { school: Sch
             <select id="school_type" name="school_type" defaultValue={school.school_type} className="input">{["Primary", "Secondary", "Combined"].map((t) => <option key={t}>{t}</option>)}</select>
           </div>
           <div className="col-span-2 sm:col-span-1">
-            <label className="label" htmlFor="fee_paying">Fees</label>
-            <select id="fee_paying" name="fee_paying" defaultValue={school.fee_paying} className="input"><option value={1}>Fee-paying</option><option value={0}>No-fee school</option></select>
+            <p className="label">Fees</p>
+            <p className="input !bg-transparent muted">{school.fee_paying ? "Fee-paying" : "No-fee school"}</p>
+            <p className="text-xs muted mt-1">Set by FerriDash when the school was registered. Contact FerriDash support to change it.</p>
           </div>
           {input("principal", "Principal")}
           {input("phone", "Phone", "tel")}
           {input("email", "Office email", "email")}
           {input("address", "Physical address", "text", false)}
           {input("motto", "Motto (shown on report cards)", "text", false)}
+          <div className="col-span-2">
+            <label className="label" htmlFor="report_style">Report card style</label>
+            <select id="report_style" name="report_style" defaultValue={school.report_style ?? "caps"} className="input">
+              <option value="caps">CAPS (Department of Basic Education): levels 1 to 7</option>
+              <option value="ieb">IEB-style (independent schools): percentage, symbol A to G, class average</option>
+            </select>
+          </div>
         </div>
       </div>
       <div>

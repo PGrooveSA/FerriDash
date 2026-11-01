@@ -8,7 +8,9 @@ export async function middleware(req: NextRequest) {
   const isLogin = req.nextUrl.pathname.startsWith("/login");
   // Public: legal pages and school logos (school branding, not personal data).
   // The app reports its push token before anyone signs in (app/api/device).
-  if (req.nextUrl.pathname.startsWith("/legal") || req.nextUrl.pathname.startsWith("/api/logo/") || req.nextUrl.pathname === "/api/device") return NextResponse.next();
+  // Online admissions forms (/apply/<code>), PayFast's payment notifications and the daily job (each checks its own caller).
+  const p = req.nextUrl.pathname;
+  if (p.startsWith("/legal") || p.startsWith("/api/logo/") || p === "/api/device" || p.startsWith("/apply/") || p === "/api/payfast/notify" || p === "/api/cron/daily") return NextResponse.next();
   if (!session && !isLogin) return NextResponse.redirect(new URL("/login", req.url));
   if (session && isLogin) return NextResponse.redirect(new URL("/dashboard", req.url));
   // The sign-in page: the browser gets a fresh random value that the form's signed state must match (lib/session.ts).
