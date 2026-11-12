@@ -4,6 +4,8 @@ import {
 } from "recharts";
 
 const axis = { stroke: "var(--muted)", fontSize: 12, tickLine: false, axisLine: false } as const;
+// Legend labels in the page's text colour (the dot keeps the series colour): pale series colours are hard to read as text.
+const legendText = (v: string) => <span style={{ color: "var(--ink)" }}>{v}</span>;
 const tooltipStyle = { contentStyle: { background: "var(--glass-solid)", border: "1px solid var(--glass-border)", borderRadius: 14, backdropFilter: "blur(12px)", color: "var(--ink)", fontSize: 12 }, cursor: { fill: "rgb(148 163 184 / 0.12)" } };
 
 export function Donut({ data, center, sub, height = 220 }: { data: { name: string; value: number; color: string }[]; center?: string; sub?: string; height?: number }) {
@@ -35,7 +37,7 @@ export function Bars({ data, xKey, series, height = 260, yMax, unit = "" }: { da
           <XAxis dataKey={xKey} {...axis} />
           <YAxis {...axis} width={40} domain={[0, yMax ?? "auto"]} unit={unit} />
           <Tooltip {...tooltipStyle} formatter={(v) => `${v}${unit}`} />
-          {series.length > 1 && <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />}
+          {series.length > 1 && <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} formatter={legendText} />}
           {series.map((s) => <Bar isAnimationActive={false} key={s.key} dataKey={s.key} name={s.name} fill={s.color} radius={[8, 8, 8, 8]} maxBarSize={18} />)}
         </BarChart>
       </ResponsiveContainer>
@@ -79,7 +81,7 @@ export function AreaTrend({ data, xKey, series, height = 260, money = false }: {
           <XAxis dataKey={xKey} {...axis} />
           <YAxis {...axis} width={48} tickFormatter={fmt} />
           <Tooltip {...tooltipStyle} formatter={(v) => (money ? new Intl.NumberFormat("en-ZA", { style: "currency", currency: "ZAR", maximumFractionDigits: 0 }).format(Number(v)) : String(v))} />
-          {series.length > 1 && <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />}
+          {series.length > 1 && <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} formatter={legendText} />}
           {series.map((s) => <Area isAnimationActive={false} key={s.key} type="monotone" dataKey={s.key} name={s.name} stroke={s.color} strokeWidth={3} fill={`url(#g-${s.key})`} dot={false} activeDot={{ r: 6 }} />)}
         </AreaChart>
       </ResponsiveContainer>
@@ -96,7 +98,7 @@ export function Trend({ data, xKey, series, height = 220 }: { data: Record<strin
           <XAxis dataKey={xKey} {...axis} />
           <YAxis {...axis} width={36} domain={[0, 100]} />
           <Tooltip {...tooltipStyle} />
-          <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />
+          <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} formatter={legendText} />
           {series.map((s) => <Line isAnimationActive={false} key={s.key} type="monotone" dataKey={s.key} name={s.name} stroke={s.color} strokeWidth={3} dot={{ r: 4 }} connectNulls />)}
         </LineChart>
       </ResponsiveContainer>

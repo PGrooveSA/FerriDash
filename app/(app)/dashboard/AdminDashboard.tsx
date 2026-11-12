@@ -74,7 +74,7 @@ export default async function AdminDashboard({ ctx }: { ctx: Ctx }) {
               </div>
             </Card>
             <Card title={tr("Attendance")} action={<Link href="/attendance" className="text-xs muted hover:text-[var(--ink)]">{tr("View register")}</Link>}>
-              <Bars data={att} xKey="day" yMax={100} unit="%" series={[{ key: "present", name: tr("Present"), color: "#6ee7b7" }, { key: "absent", name: tr("Absent"), color: "#ffa86d" }]} />
+              <Bars data={att} xKey="day" yMax={100} unit="%" series={[{ key: "present", name: tr("Present"), color: "#10b981" }, { key: "absent", name: tr("Absent"), color: "#ffa86d" }]} />
             </Card>
           </div>
 
@@ -97,7 +97,7 @@ export default async function AdminDashboard({ ctx }: { ctx: Ctx }) {
           </div>
 
           <Card title={tr("Academic performance by class · Term {n}", { n: term })} action={<Link href="/results/analysis" className="text-xs muted hover:text-[var(--ink)]">{tr("Analysis")}</Link>}>
-            <Bars data={perf} xKey="name" yMax={100} unit="%" series={[{ key: "average", name: tr("Class average"), color: "#38bdf8" }, { key: "pass", name: tr("Learners averaging 50%+"), color: "#6ee7b7" }]} />
+            <Bars data={perf} xKey="name" yMax={100} unit="%" series={[{ key: "average", name: tr("Class average"), color: "#38bdf8" }, { key: "pass", name: tr("Learners averaging 50%+"), color: "#10b981" }]} />
             <p className="text-xs muted mt-2">{tr("Averages use CAPS phase weighting: School-Based Assessment blended with examinations.")}</p>
           </Card>
         </div>
