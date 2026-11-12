@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import { logout } from "@/app/actions/auth";
 import SchoolCrest from "@/components/SchoolCrest";
-import BrandLogo from "@/components/BrandLogo";
 
 type Role = "super_admin" | "school_admin" | "teacher" | "learner" | "parent";
 /** What a school has switched on: fees (fee-paying schools with fee billing), reenrol (re-enrolment is open). */
@@ -136,19 +135,15 @@ export default function Sidebar({ role, school, features = [] }: { role: Role; s
 
   const nav = (
     <div className="flex flex-col h-full">
-      <div className="flex items-center gap-2 px-3 pt-1 pb-4">
-        <Link href="/dashboard" aria-label="FerriDash: go to dashboard" className="rounded-lg transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-500">
-          <BrandLogo className="w-[9.5rem]" />
-        </Link>
-        <button className="ml-auto lg:hidden icon-btn" onClick={() => setOpen(false)} aria-label={t("Close menu")}><X className="w-4 h-4" /></button>
-      </div>
-      <div className="flex items-center gap-3 mx-1 mb-5 p-2.5 rounded-2xl bg-white/45 dark:bg-white/5 border border-white/60 dark:border-white/10">
+      {/* The school's own logo and name head the menu (the platform admin sees the platform instead). */}
+      <div className="relative mx-1 mb-5 px-3 pt-4 pb-3.5 rounded-3xl bg-white/45 dark:bg-white/5 border border-white/60 dark:border-white/10 flex flex-col items-center text-center gap-2.5">
+        <button className="absolute top-2 right-2 lg:hidden icon-btn !w-8 !h-8" onClick={() => setOpen(false)} aria-label={t("Close menu")}><X className="w-4 h-4" /></button>
         {school ? <>
-          <SchoolCrest school={school} size={44} zoom />
-          <p className="text-sm font-semibold leading-snug line-clamp-2">{school.name}</p>
+          <SchoolCrest school={school} size={76} zoom />
+          <Link href="/dashboard" className="text-[0.95rem] font-semibold leading-snug hover:text-brand-600 transition-colors">{school.name}</Link>
         </> : <>
-          <span className="w-11 h-11 rounded-xl grid place-items-center bg-brand-500/15 text-brand-600 shrink-0"><Building2 className="w-5 h-5" /></span>
-          <p className="text-sm font-semibold leading-snug">{t("Platform admin")}<span className="block text-xs muted font-normal">{t("All schools")}</span></p>
+          <span className="w-[4.75rem] h-[4.75rem] rounded-[28%] grid place-items-center bg-brand-500/15 text-brand-600"><Building2 className="w-8 h-8" /></span>
+          <Link href="/dashboard" className="text-[0.95rem] font-semibold leading-snug hover:text-brand-600 transition-colors">{t("Platform admin")}<span className="block text-xs muted font-normal">{t("All schools")}</span></Link>
         </>}
       </div>
       <nav className="flex-1 overflow-y-auto pr-1 -mr-1">
