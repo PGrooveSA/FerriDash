@@ -41,8 +41,8 @@ export async function login(_: unknown, form: FormData): Promise<{ error?: strin
     return { error: blocked.includes(limits[0].key) ? LOCKED : TOO_MANY };
   }
 
-  const user = await get<{ id: number; role: string; password_hash: string; school_id: number | null; session_version: number }>(
-      "SELECT u.id, u.role, u.password_hash, u.school_id, u.session_version FROM users u LEFT JOIN schools s ON s.id = u.school_id WHERE lower(u.email) = ? AND u.active = 1 AND (s.id IS NULL OR s.active = 1)", email);
+  const user = await get<{ id: number; role: string; password_hash: string; school_id: number | null; session_version: number; org_type: string | null }>(
+      "SELECT u.id, u.role, u.password_hash, u.school_id, u.session_version, s.org_type FROM users u LEFT JOIN schools s ON s.id = u.school_id WHERE lower(u.email) = ? AND u.active = 1 AND (s.id IS NULL OR s.active = 1)", email);
   const ok = await bcrypt.compare(password, user?.password_hash ?? NO_USER_HASH);
   if (!user || !ok) {
     const nowBlocked = await recordFailure(limits);
@@ -62,7 +62,7 @@ export async function login(_: unknown, form: FormData): Promise<{ error?: strin
   // (and the session expires after 12 hours either way).
   const remember = form.get("remember") === "1";
   const hours = remember ? REMEMBER_DAYS * 24 : SESSION_HOURS;
-  store.set(SESSION_COOKIE, await signSession({ uid: user.id, role: user.role, sv: user.session_version }, hours), {
+  store.set(SESSION_COOKIE, await signSession({ uid: user.id, role: user.role, sv: user.session_version, ...(user.org_type === "childcare" ? { org: "childcare" } : {}) }, hours), {
     httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production" && process.env.INSECURE_COOKIES !== "1", path: "/",
     ...(remember ? { maxAge: hours * 3600 } : {}),
   });
@@ -100,7 +100,7 @@ export async function changePassword(_: unknown, form: FormData): Promise<{ erro
   const store = await cookies();
   const old = await verifySession(store.get(SESSION_COOKIE)?.value);
   const hours = Math.max(1, Math.round(((old?.exp ?? 0) * 1000 - Date.now()) / 3_600_000)) || SESSION_HOURS;
-  store.set(SESSION_COOKIE, await signSession({ uid: ctx.user.id, role: ctx.user.role, sv: session_version }, hours), {
+  store.set(SESSION_COOKIE, await signSession({ uid: ctx.user.id, role: ctx.user.role, sv: session_version, ...(ctx.school.org_type === "childcare" && ctx.user.role !== "super_admin" ? { org: "childcare" } : {}) }, hours), {
     httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production" && process.env.INSECURE_COOKIES !== "1", path: "/",
     ...(hours > SESSION_HOURS ? { maxAge: hours * 3600 } : {}),
   });

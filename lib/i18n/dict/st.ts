@@ -146,6 +146,12 @@ export default {
   // Fees, admissions and re-enrolment
   "Fee Settings": "Disetting tsa ditefello", "Fees": "Ditefello tsa sekolo",
   "Admissions": "Kamohelo", "Applications": "Dikopo",
+  "Check-in": "Ho kena",
+  "My children": "Bana ba ka",
+  "Classrooms": "Diphaposi",
+  "Search children...": "Batla bana...",
+  "Owner": "Mong",
+  "Practitioner": "Mosebeletsi wa bana",
   "Appearance": "Ponahalo",
   "Re-enrolment": "Ho ngodisa hape", "Re-enrolment for {year}": "Ho ngodisa hape ha {year}",
   "Please let the school know whether {names} will return next year.": "Ka kopo tsebisa sekolo hore na {names} o tla kgutla selemong se tlang.", "Closes {date}.": "E kwalwa ka {date}.",

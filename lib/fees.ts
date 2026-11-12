@@ -8,6 +8,7 @@ import { headers } from "next/headers";
 import type { School } from "./auth";
 import { all, audit, get, run, tx } from "./db";
 import { notify, parentsOf } from "./push";
+import { messageUser } from "./messages";
 import { zar, fmtDate, gradeLabel } from "./format";
 import { addDays, today } from "./today";
 import { decryptSecret } from "./secrets";
@@ -110,20 +111,23 @@ export async function billingSchedule(schoolId: number, year: number): Promise<I
 
 /**
  * Bills active learners (in a class whose grade has fees, and not billed this year yet) on this schedule: the grade's
- * yearly total split evenly over the instalments. fromNow bills someone joining mid-year only for the current
+ * yearly total split evenly over the instalments. At a childcare centre a child on a fee plan pays the plan's monthly
+ * fee for each instalment instead (centres bill monthly), whatever their classroom. fromNow bills someone joining mid-year only for the current
  * instalment (the latest one already due) and the ones after it. Returns how many learners were billed.
  */
 export async function billLearners(schoolId: number, year: number, schedule: Instalment[], opts: { learnerIds?: number[]; fromNow?: boolean } = {}): Promise<number> {
   if (!schedule.length || (opts.learnerIds && !opts.learnerIds.length)) return 0;
   // Numbered placeholders throughout (?1, ?2, then ?3...): lib/db.ts can't mix them with plain "?".
   const only = opts.learnerIds ? `AND l.id IN (${opts.learnerIds.map((_, i) => `?${i + 3}`).join(",")})` : "";
-  const learners = await all<{ id: number; grade: number; total: number }>(`
-    SELECT l.id, c.grade, fs.tuition + fs.activities + fs.other total FROM learners l
-    JOIN classes c ON c.id = l.class_id JOIN fee_structures fs ON fs.school_id = l.school_id AND fs.year = ?1 AND fs.grade = c.grade
-    WHERE l.school_id = ?2 AND l.status = 'Active' AND NOT EXISTS (SELECT 1 FROM invoices i WHERE i.learner_id = l.id AND i.year = ?1 AND i.period IS NOT NULL) ${only}`,
+  const n = schedule.length, t = today();
+  const learners = await all<{ id: number; grade: number | null; total: number; plan: string | null }>(`
+    SELECT l.id, c.grade, CASE WHEN fp.id IS NOT NULL THEN fp.monthly * ${n} ELSE fs.tuition + fs.activities + fs.other END total, fp.name plan FROM learners l
+    LEFT JOIN classes c ON c.id = l.class_id LEFT JOIN fee_structures fs ON fs.school_id = l.school_id AND fs.year = ?1 AND fs.grade = c.grade
+    LEFT JOIN fee_plans fp ON fp.id = l.fee_plan_id AND fp.school_id = l.school_id
+    WHERE l.school_id = ?2 AND l.status = 'Active' AND (fp.id IS NOT NULL OR fs.id IS NOT NULL)
+      AND NOT EXISTS (SELECT 1 FROM invoices i WHERE i.learner_id = l.id AND i.year = ?1 AND i.period IS NOT NULL) ${only}`,
     year, schoolId, ...(opts.learnerIds ?? []));
   if (!learners.length) return 0;
-  const n = schedule.length, t = today();
   const current = schedule.reduce((k, s, i) => (s.due <= t ? i : k), 0);
   const first = opts.fromNow ? current : 0;
   await tx(async () => {
@@ -132,7 +136,7 @@ export async function billLearners(schoolId: number, year: number, schedule: Ins
       for (let i = first; i < n; i++) {
         const amount = i === n - 1 ? cents(l.total - part * (n - 1)) : part;
         await run("INSERT INTO invoices (school_id, learner_id, year, period, description, amount, due_date) VALUES (?,?,?,?,?,?,?) ON CONFLICT (learner_id, year, period) DO NOTHING",
-          schoolId, l.id, year, schedule[i].period, `${year} school fees · ${gradeLabel(l.grade)} · ${schedule[i].label}`, amount, schedule[i].due);
+          schoolId, l.id, year, schedule[i].period, l.plan ? `${year} fees · ${l.plan} · ${schedule[i].label}` : `${year} school fees · ${gradeLabel(l.grade ?? 0)} · ${schedule[i].label}`, amount, schedule[i].due);
       }
     }
   });
@@ -150,12 +154,16 @@ export async function autoBill(schoolId: number, learnerId: number): Promise<num
   return schedule ? billLearners(schoolId, s.current_year, schedule, { learnerIds: [learnerId], fromNow: true }) : 0;
 }
 
-export type Unbilled = { id: number; first_name: string; last_name: string; admission_number: string; className: string | null; grade: number | null; grade_fees: number; enrolled_on: string | null };
+export type Unbilled = { id: number; first_name: string; last_name: string; admission_number: string; className: string | null; grade: number | null; grade_fees: number; fee_plan: number; enrolled_on: string | null };
 
-/** Active learners with no school fees for the year yet, and why: no class, no fees for their grade, or simply not billed. */
+/**
+ * Active learners with no school fees for the year yet, and why: no class, no fees for their grade, or simply not billed.
+ * fee_plan: a childcare child on a fee plan (billable whatever their classroom).
+ */
 export const unbilledLearners = (schoolId: number, year: number) => all<Unbilled>(`
-  SELECT l.id, l.first_name, l.last_name, l.admission_number, c.name className, c.grade, (fs.id IS NOT NULL)::int grade_fees, l.enrolled_on
+  SELECT l.id, l.first_name, l.last_name, l.admission_number, c.name className, c.grade, (fs.id IS NOT NULL)::int grade_fees, (fp.id IS NOT NULL)::int fee_plan, l.enrolled_on
   FROM learners l LEFT JOIN classes c ON c.id = l.class_id LEFT JOIN fee_structures fs ON fs.school_id = l.school_id AND fs.year = ?1 AND fs.grade = c.grade
+  LEFT JOIN fee_plans fp ON fp.id = l.fee_plan_id AND fp.school_id = l.school_id
   WHERE l.school_id = ?2 AND l.status = 'Active' AND NOT EXISTS (SELECT 1 FROM invoices i WHERE i.learner_id = l.id AND i.year = ?1 AND i.period IS NOT NULL)
   ORDER BY c.grade NULLS FIRST, l.last_name, l.first_name`, year, schoolId);
 
@@ -307,19 +315,6 @@ export async function overdueAccounts(schoolId: number, afterDays = 0): Promise<
 const senderFor = async (schoolId: number) =>
   (await get<{ id: number }>("SELECT id FROM users WHERE school_id = ? AND role = 'school_admin' AND active = 1 ORDER BY id LIMIT 1", schoolId))?.id ?? null;
 
-/** Puts a message from the school in a parent's Messages (reusing their chat with the sender) and pushes it to their phone. */
-async function messageParent(schoolId: number, senderId: number, parentId: number, body: string) {
-  const existing = await get<{ id: number }>(`SELECT c.id FROM conversations c WHERE c.is_group = 0 AND c.school_id = ?
-    AND EXISTS (SELECT 1 FROM conversation_members WHERE conversation_id = c.id AND user_id = ?)
-    AND EXISTS (SELECT 1 FROM conversation_members WHERE conversation_id = c.id AND user_id = ?)`, schoolId, senderId, parentId);
-  const conv = existing?.id ?? (await tx(async () => {
-    const c = (await run("INSERT INTO conversations (school_id, is_group) VALUES (?, 0)", schoolId)).id;
-    await run("INSERT INTO conversation_members (conversation_id, user_id) VALUES (?,?), (?,?)", c, senderId, c, parentId);
-    return c;
-  }));
-  await run("INSERT INTO messages (conversation_id, sender_id, body) VALUES (?,?,?)", conv, senderId, body);
-}
-
 function reminderText(school: { name: string }, r: Overdue, banking: string | null, online: boolean) {
   const how = online ? "You can pay online in FerriDash under Fees." : banking ? `Banking details: ${banking}` : "Please contact the school office for banking details.";
   return `Dear parent / guardian,\n\nThis is a friendly reminder that ${r.first_name} ${r.last_name}'s school fees account has an overdue balance of ${zar(r.overdue)} (overdue since ${fmtDate(r.since)}).\n\n${how}\n\nIf you have already paid, thank you, and please ignore this message. If you are struggling to pay, please speak to the school about a payment plan or a fee exemption.\n\n${school.name}`;
@@ -346,7 +341,7 @@ export async function sendReminders(schoolId: number, opts: { automatic: boolean
   for (const r of due) {
     const parents = await parentsOf(r.learner_id);
     const body = reminderText(school, r, s.banking_details, online);
-    if (sender) for (const p of parents) await messageParent(schoolId, sender, p, body);
+    if (sender) for (const p of parents) await messageUser(schoolId, sender, p, body);
     notify(parents, { title: "School fees overdue", body: `${r.first_name}'s account is ${zar(r.overdue)} overdue. Tap to view the statement.`, url: `/finance/statement?learner=${r.learner_id}` });
     await run("INSERT INTO fee_reminders (school_id, learner_id, amount, overdue_since, sent_to, automatic) VALUES (?,?,?,?,?,?)", schoolId, r.learner_id, r.overdue, r.since, parents.length, opts.automatic ? 1 : 0);
     n++;

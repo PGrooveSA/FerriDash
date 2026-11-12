@@ -146,6 +146,12 @@ export default {
   // Fees, admissions and re-enrolment
   "Fee Settings": "Dipeakanyo tša ditefelo", "Fees": "Ditefelo tša sekolo",
   "Admissions": "Go amogelwa", "Applications": "Dikgopelo",
+  "Check-in": "Go tsena",
+  "My children": "Bana ba ka",
+  "Classrooms": "Diphapoši",
+  "Search children...": "Nyaka bana...",
+  "Owner": "Mong",
+  "Practitioner": "Mošomi wa bana",
   "Appearance": "Ponagalo",
   "Re-enrolment": "Go ingwadiša gape", "Re-enrolment for {year}": "Go ingwadiša gape ga {year}",
   "Please let the school know whether {names} will return next year.": "Hle tsebiša sekolo ge e ba {names} o tla boa ngwaga wo o tlago.", "Closes {date}.": "Go tswalelwa ka {date}.",

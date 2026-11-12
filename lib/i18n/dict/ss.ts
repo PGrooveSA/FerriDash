@@ -146,6 +146,12 @@ export default {
   // Fees, admissions and re-enrolment
   "Fee Settings": "Tilungiselelo temali yesikolo", "Fees": "Imali yesikolo",
   "Admissions": "Kwemukelwa", "Applications": "Ticelo",
+  "Check-in": "Kungena",
+  "My children": "Bantfwana bami",
+  "Classrooms": "Emaklasi",
+  "Search children...": "Sesha bantfwana...",
+  "Owner": "Umnikati",
+  "Practitioner": "Sisebenti sebantfwana",
   "Appearance": "Kubukeka",
   "Re-enrolment": "Kubhalisa kabusha", "Re-enrolment for {year}": "Kubhalisa kabusha kwa-{year}",
   "Please let the school know whether {names} will return next year.": "Sicela utsatise sikolo kutsi {names} utawubuya yini ngemnyaka lotako.", "Closes {date}.": "Kuvala nga-{date}.",

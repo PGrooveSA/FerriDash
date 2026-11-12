@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { isChildcare } from "@/lib/org";
+import { saveFeePlan, deleteFeePlan } from "@/app/actions/childcare";
 import { requireCtx } from "@/lib/auth";
 import { all, get } from "@/lib/db";
 import { zar, gradeLabel, avatarUrl, fmtDate } from "@/lib/format";
@@ -63,22 +65,31 @@ export default async function FeesPage({ searchParams }: { searchParams: Promise
   // Learners with no school fees this year yet (joined after billing, no class, or no fees for their grade).
   const unbilledList = await unbilledLearners(ctx.schoolId, year);
   const schedule = await billingSchedule(ctx.schoolId, year);
-  const billable = unbilledList.filter((u) => u.grade != null && u.grade_fees);
+  // A childcare centre bills by monthly fee plan instead of grade fees (lib/fees.ts billLearners).
+  const childcare = isChildcare(ctx.school);
+  const billable = unbilledList.filter((u) => (childcare ? u.fee_plan : u.grade != null && u.grade_fees));
+  const plans = childcare ? await all<{ id: number; name: string; monthly: number; children: number }>(`SELECT p.id, p.name, p.monthly,
+    (SELECT COUNT(*) FROM learners l WHERE l.fee_plan_id = p.id AND l.status = 'Active') children FROM fee_plans p WHERE p.school_id = ? ORDER BY p.monthly DESC`, ctx.schoolId) : [];
+  const planless = childcare ? (await get<{ n: number }>("SELECT COUNT(*) n FROM learners WHERE school_id = ? AND status = 'Active' AND fee_plan_id IS NULL", ctx.schoolId))!.n : 0;
 
-  const csv = [["Learner", "Admission no.", "Class", `Billed ${year}`, `Paid ${year}`, "Balance", "Overdue", "Status"],
+  const csv = [[childcare ? "Child" : "Learner", childcare ? "Child no." : "Admission no.", childcare ? "Classroom" : "Class", `Billed ${year}`, `Paid ${year}`, "Balance", "Overdue", "Status"],
     ...rows.map((r) => [`${r.first_name} ${r.last_name}`, r.admission_number, r.className, r.billed.toFixed(2), r.paid.toFixed(2), r.balance.toFixed(2), r.overdue.toFixed(2), statusOf(r)])];
 
   return (
     <>
       <PageHeader title="Fees collection" subtitle={`${year} · all amounts in Rand (ZAR)`}>
-        <FormDialog title="Bill learners for the year" triggerLabel="Generate invoices" action={generateInvoices} submitLabel="Create invoices" fields={[
+        {childcare ? (
+          <FormDialog title="Bill monthly fees" triggerLabel="Generate invoices" action={generateInvoices} submitLabel="Create invoices" fields={[
+            { name: "due_day", label: "Fees due on day of the month", type: "number", defaultValue: 1, help: `Each child on a fee plan is billed their plan's monthly fee from this month to December (${billable.length} child${billable.length === 1 ? "" : "ren"} not billed yet). Children already billed are skipped; children joining later are billed automatically.` },
+          ]} />
+        ) : <FormDialog title="Bill learners for the year" triggerLabel="Generate invoices" action={generateInvoices} submitLabel="Create invoices" fields={[
           { name: "plan", label: "How parents pay", type: "select", required: true, defaultValue: "month", options: [{ value: "month", label: "Monthly instalments" }, { value: "term", label: "Per term (due on each term's first day)" }, { value: "year", label: "Once for the whole year" }] },
           { name: "months", label: "Monthly: number of months", type: "select", defaultValue: 10, options: [{ value: 10, label: "10 months (Jan to Oct)" }, { value: 11, label: "11 months (Jan to Nov)" }, { value: 12, label: "12 months (Jan to Dec)" }], half: true },
           { name: "due_day", label: "Monthly: due on day", type: "number", defaultValue: 1, half: true, help: "1 to 28." },
           { name: "due_date", label: "Whole year: due date", type: "date", defaultValue: `${year}-02-28`, help: `Bills each active learner from their grade's fees below (${unbilled} learner${unbilled === 1 ? "" : "s"} not billed yet this year). Learners already billed are skipped.` },
-        ]} />
-        <FormDialog title="Add a charge for a class" triggerLabel="Charge a class" trigger="button" action={addCharge} submitLabel="Add charge" fields={[
-          { name: "class_id", label: "Class", type: "select", required: true, options: classes.map((c) => ({ value: c.id, label: c.name })) },
+        ]} />}
+        <FormDialog title={childcare ? "Add a charge for a classroom" : "Add a charge for a class"} triggerLabel={childcare ? "Charge a classroom" : "Charge a class"} trigger="button" action={addCharge} submitLabel="Add charge" fields={[
+          { name: "class_id", label: childcare ? "Classroom" : "Class", type: "select", required: true, options: classes.map((c) => ({ value: c.id, label: c.name })) },
           { name: "description", label: "Charge", required: true, placeholder: "e.g. Grade 7 camp" },
           { name: "amount", label: "Amount per learner (R)", type: "number", step: "0.01", required: true, half: true },
           { name: "due_date", label: "Due date", type: "date", required: true, defaultValue: t, half: true },
@@ -91,14 +102,14 @@ export default async function FeesPage({ searchParams }: { searchParams: Promise
           <StatCard label={`Billed ${year}`} value={zar(sums.billed, true)} icon={Receipt} tone="sky" />
           <StatCard label="Collected" value={zar(sums.collected, true)} icon={Wallet} tone="green" hint={sums.billed ? `${Math.round((sums.collected / sums.billed) * 100)}% of this year's billing` : undefined} />
           <StatCard label="Overdue" value={zar(sums.overdue, true)} icon={AlertTriangle} tone="orange" hint={`${overdueList.length} account${overdueList.length === 1 ? "" : "s"} · ${zar(sums.outstanding, true)} outstanding in total`} />
-          <StatCard label="Exemptions" value={zar(sums.exempt, true)} icon={BadgePercent} tone="gold" hint="Fee exemption regulations" />
+          <StatCard label={childcare ? "Discounts" : "Exemptions"} value={zar(sums.exempt, true)} icon={BadgePercent} tone="gold" hint={childcare ? "Fee waivers given" : "Fee exemption regulations"} />
         </div>
       </div>
 
       <Card>
-        <PageHeader title="Learner accounts" subtitle="Record EFT, cash, card and debit-order payments; they are applied to the oldest unpaid fees first.">
+        <PageHeader title={childcare ? "Accounts" : "Learner accounts"} subtitle="Record EFT, cash, card and debit-order payments; they are applied to the oldest unpaid fees first.">
           <Filters search={{ name: "q", placeholder: "Search name or admission no.", value: q }} filters={[
-            { name: "class", label: "Class", value: classId || "", allLabel: "All classes", options: classes.map((c) => ({ value: c.id, label: c.name })) },
+            { name: "class", label: childcare ? "Classroom" : "Class", value: classId || "", allLabel: childcare ? "All classrooms" : "All classes", options: classes.map((c) => ({ value: c.id, label: c.name })) },
             { name: "status", label: "Status", value: status, allLabel: "All statuses", options: [{ value: "overdue", label: "Overdue" }, { value: "partial", label: "Partly paid, up to date" }, { value: "unpaid", label: "Nothing paid" }, { value: "paid", label: "Paid up" }] },
           ]} />
           <CsvButton filename={`fees-${year}.csv`} rows={csv} />
@@ -106,7 +117,7 @@ export default async function FeesPage({ searchParams }: { searchParams: Promise
         {rows.length === 0 ? <Empty title={structures.length ? "No accounts match" : "No fees billed yet"} hint={structures.length ? undefined : "Set each grade's fees below, then Generate invoices."} /> : (
           <div className="overflow-x-auto">
             <table className="table">
-              <thead><tr><th>Learner</th><th>Class</th><th>Billed {year}</th><th>Paid {year}</th><th>Balance</th><th>Overdue</th><th>Status</th><th className="text-right">Action</th></tr></thead>
+              <thead><tr><th>{childcare ? "Child" : "Learner"}</th><th>{childcare ? "Classroom" : "Class"}</th><th>Billed {year}</th><th>Paid {year}</th><th>Balance</th><th>Overdue</th><th>Status</th><th className="text-right">Action</th></tr></thead>
               <tbody>{rows.map((r) => (
                 <tr key={r.learner_id}>
                   <td><div className="flex items-center gap-3"><Avatar first={r.first_name} last={r.last_name} size={36} photo={avatarUrl(r.user_id, r.av)} /><div><p className="font-semibold">{r.first_name} {r.last_name}</p><p className="text-xs muted font-mono">{r.admission_number}</p></div></div></td>
@@ -143,17 +154,22 @@ export default async function FeesPage({ searchParams }: { searchParams: Promise
 
       {unbilledList.length > 0 && (
         <Card title={`Not billed for ${year} (${unbilledList.length})`} className="mt-6" action={schedule && billable.length > 1 && <BillNowButton label={`Bill all ${billable.length}`} />}>
-          <p className="text-sm muted mb-3">{schedule
+          <p className="text-sm muted mb-3">{childcare
+            ? (schedule ? "These children have no fees this year yet. Children are billed automatically when they are registered with a fee plan; give the rest a plan on their profile, then bill them here." : "Nobody has been billed this year yet. Add your fee plans below, give each child a plan, then Generate invoices.")
+            : schedule
             ? "These learners have no school fees this year yet, so their statements show nothing due. New learners are billed automatically when they are enrolled or placed in a class; bill the rest here, from the current instalment."
             : "Nobody has been billed this year yet. Set each grade's fees below, then Generate invoices to choose how parents pay."}</p>
           <div className="overflow-x-auto"><table className="table">
-            <thead><tr><th>Learner</th><th>Class</th><th>Why not billed</th><th className="text-right" /></tr></thead>
+            <thead><tr><th>{childcare ? "Child" : "Learner"}</th><th>{childcare ? "Classroom" : "Class"}</th><th>Why not billed</th><th className="text-right" /></tr></thead>
             <tbody>{unbilledList.slice(0, 50).map((u) => (
               <tr key={u.id}>
                 <td><p className="font-medium">{u.first_name} {u.last_name}</p><p className="text-xs muted font-mono">{u.admission_number}</p></td>
                 <td>{u.className ?? "-"}</td>
-                <td className="text-sm">{u.grade == null ? "Not in a class" : !u.grade_fees ? `No fees set for ${gradeLabel(u.grade)}` : schedule ? "Joined after billing" : "Invoices not generated yet"}</td>
-                <td className="text-right">{schedule && u.grade != null && !!u.grade_fees ? <BillNowButton learnerId={u.id} /> : u.grade == null ? <Link href={`/learners/${u.id}`} className="btn btn-ghost btn-sm">Learner</Link> : null}</td>
+                <td className="text-sm">{childcare ? (!u.fee_plan ? "No fee plan" : schedule ? "Joined after billing" : "Invoices not generated yet")
+                  : u.grade == null ? "Not in a class" : !u.grade_fees ? `No fees set for ${gradeLabel(u.grade)}` : schedule ? "Joined after billing" : "Invoices not generated yet"}</td>
+                <td className="text-right">{schedule && billable.some((b) => b.id === u.id) ? <BillNowButton learnerId={u.id} />
+                  : childcare ? <Link href={`/children/${u.id}`} className="btn btn-ghost btn-sm">Profile</Link>
+                  : u.grade == null ? <Link href={`/learners/${u.id}`} className="btn btn-ghost btn-sm">Learner</Link> : null}</td>
               </tr>))}
             </tbody>
           </table></div>
@@ -166,7 +182,7 @@ export default async function FeesPage({ searchParams }: { searchParams: Promise
           : "Automatic reminders are not switched on for your school. You can still remind parents here: they get a message in FerriDash Messages and a phone notification."}</p>
         {overdueList.length === 0 ? <Empty title="No overdue fees" /> : (
           <div className="overflow-x-auto"><table className="table">
-            <thead><tr><th>Learner</th><th>Overdue</th><th>Since</th><th>Reminders</th><th>Last reminded</th><th className="text-right" /></tr></thead>
+            <thead><tr><th>{childcare ? "Child" : "Learner"}</th><th>Overdue</th><th>Since</th><th>Reminders</th><th>Last reminded</th><th className="text-right" /></tr></thead>
             <tbody>{overdueList.slice(0, 50).map((o) => (
               <tr key={o.learner_id}>
                 <td><p className="font-medium">{o.first_name} {o.last_name}</p><p className="text-xs muted font-mono">{o.admission_number}</p></td>
@@ -182,6 +198,32 @@ export default async function FeesPage({ searchParams }: { searchParams: Promise
       {online.length > 0 && <div className="mt-6"><OnlinePaymentsList title="Online payments" hint={methods.payfast || methods.ozow ? `Parents pay from their fee statement${methods.testMode ? ". Test mode: no real money." : "."} Confirmed payments are added to the learner's account automatically.` : "Online payments are switched off in Fee Settings."}
         rows={online} autoCheck={online.filter((o) => (o.status === "Created" || o.status === "Pending") && o.provider === "Ozow").map((o) => o.id)} /></div>}
 
+      {childcare ? (
+        <Card title="Fee plans" className="mt-6" action={<FormDialog title="Add a fee plan" triggerLabel="Add plan" action={saveFeePlan} fields={[
+          { name: "name", label: "Plan name", required: true, placeholder: "e.g. Full day, Half day, Aftercare" },
+          { name: "monthly", label: "Monthly fee (R)", type: "number", step: "0.01", required: true, help: "Each child on this plan is billed this amount every month." },
+        ]} />}>
+          {plans.length === 0 ? <Empty title="No fee plans yet" hint="Add a plan for each way parents pay (full day, half day...), then choose each child's plan on their profile." /> : (
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+              {plans.map((p) => (
+                <div key={p.id} className="glass-strong rounded-2xl p-4 relative">
+                  <div className="absolute top-2 right-2 flex gap-1">
+                    <FormDialog trigger="edit" title={`Edit ${p.name}`} action={saveFeePlan} hidden={{ id: p.id }} fields={[
+                      { name: "name", label: "Plan name", required: true, defaultValue: p.name },
+                      { name: "monthly", label: "Monthly fee (R)", type: "number", step: "0.01", required: true, defaultValue: p.monthly, help: "Changes apply to invoices generated from now on." },
+                    ]} />
+                    <DeleteButton action={deleteFeePlan.bind(null, p.id)} label={`the ${p.name} plan`} />
+                  </div>
+                  <p className="text-sm muted pr-16">{p.name}</p>
+                  <p className="text-xl font-bold">{zar(p.monthly, true)}<span className="text-sm muted font-normal"> /month</span></p>
+                  <p className="text-xs muted">{p.children} child{p.children === 1 ? "" : "ren"}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          {planless > 0 && <p className="text-sm text-butter-600 mt-3">{planless} child{planless === 1 ? " has" : "ren have"} no fee plan yet: choose one on <Link href="/children" className="underline">their profile</Link>.</p>}
+        </Card>
+      ) : (
       <Card title={`Fees per grade · ${year}`} className="mt-6" action={<FormDialog title="Set grade fees" triggerLabel="Set fees" action={saveFeeStructure} fields={[
         { name: "grade", label: "Grade", type: "select", required: true, options: Array.from({ length: 13 }, (_, g) => ({ value: g, label: gradeLabel(g) })) },
         { name: "tuition", label: "Tuition (R per year)", type: "number", step: "0.01", required: true, half: true },
@@ -201,6 +243,7 @@ export default async function FeesPage({ searchParams }: { searchParams: Promise
           </div>
         )}
       </Card>
+      )}
     </>
   );
 }

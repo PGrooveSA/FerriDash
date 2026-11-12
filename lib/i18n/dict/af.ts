@@ -152,6 +152,12 @@ export default {
   // Fees, admissions and re-enrolment
   "Fee Settings": "Skoolgeld-instellings", "Fees": "Skoolgeld",
   "Admissions": "Toelatings", "Applications": "Aansoeke",
+  "Check-in": "Aanmelding",
+  "My children": "My kinders",
+  "Classrooms": "Klaskamers",
+  "Search children...": "Soek kinders...",
+  "Owner": "Eienaar",
+  "Practitioner": "Praktisyn",
   "Appearance": "Voorkoms",
   "Re-enrolment": "Herinskrywing", "Re-enrolment for {year}": "Herinskrywing vir {year}",
   "Please let the school know whether {names} will return next year.": "Laat die skool asseblief weet of {names} volgende jaar terugkom.", "Closes {date}.": "Sluit {date}.",

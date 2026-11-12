@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { isChildcare } from "@/lib/org";
 import { requireCtx } from "@/lib/auth";
 import { all, get } from "@/lib/db";
 import { fullName, avatarUrl, gradeLabel, fmtDate } from "@/lib/format";
@@ -59,6 +60,13 @@ export default async function TeachersPage({ searchParams }: { searchParams: Pro
     ];
   };
 
+  // A childcare centre's staff: no CAPS teaching, post levels, PERSAL or SACE; classrooms are set under Classrooms.
+  const childcare = isChildcare(ctx.school);
+  const SCHOOL_ONLY_FIELDS = ["post_level", "persal_number", "sace_number", "allocations", "teach_classes", "teach_subjects", "new_classes", "new_subjects", "homeroom_class_id"];
+  const rooms = childcare ? await all<{ teacher_id: number; name: string }>(`SELECT c.class_teacher_id teacher_id, c.name FROM classes c WHERE c.school_id = ?1 AND c.year = ?2 AND c.class_teacher_id IS NOT NULL
+    UNION SELECT cs.teacher_id, c.name FROM classroom_staff cs JOIN classes c ON c.id = cs.class_id WHERE c.school_id = ?1 AND c.year = ?2`, ctx.schoolId, ctx.school.current_year) : [];
+  const staffFields = (t?: T) => (childcare ? fields(t).filter((f) => !SCHOOL_ONLY_FIELDS.includes(f.name)) : fields(t));
+
   const fields = (t?: T): Field[] => [
     { name: "title", label: "Title", type: "select", options: ["Mr", "Ms", "Mrs", "Dr", "Prof"].map((v) => ({ value: v, label: v })), defaultValue: t?.title, half: true },
     { name: "gender", label: "Gender", type: "select", options: ["Female", "Male", "Other"].map((v) => ({ value: v, label: v })), defaultValue: t?.gender, half: true },
@@ -92,16 +100,16 @@ export default async function TeachersPage({ searchParams }: { searchParams: Pro
 
   return (
     <>
-      <PageHeader title="All Teachers" subtitle={`${total} ${status === "former" ? "former " : ""}educator${total === 1 ? "" : "s"} at ${ctx.school.name}`}>
+      <PageHeader title={childcare ? "Staff" : "All Teachers"} subtitle={`${total} ${status === "former" ? "former " : ""}${childcare ? "staff member" : "educator"}${total === 1 ? "" : "s"} at ${ctx.school.name}`}>
         <Filters filters={[{ name: "status", label: "Status", value: status, options: [{ value: "current", label: "Current staff" }, { value: "former", label: "Former (left)" }, { value: "all", label: "Everyone" }] }]}
           search={{ name: "q", placeholder: "Search by name, staff no. or email", value: q }} />
-        <FormDialog title="Add teacher" triggerLabel="Add teacher" fields={fields()} action={saveTeacher} size="lg" />
+        <FormDialog title={childcare ? "Add a staff member" : "Add teacher"} triggerLabel={childcare ? "Add staff member" : "Add teacher"} fields={staffFields()} action={saveTeacher} size="lg" />
       </PageHeader>
       <Card>
-        {rows.length === 0 ? <Empty title="No teachers found" /> : (
+        {rows.length === 0 ? <Empty title={childcare ? "No staff found" : "No teachers found"} hint={childcare ? "Add practitioners and assistants, then assign them to classrooms under Classrooms." : undefined} /> : (
           <TableWrap>
             <table className="table">
-              <thead><tr><th>Teacher</th><th>Staff no.</th><th>Subject(s)</th><th>Class(es)</th><th>Phone</th><th>Post level</th><th>Status</th><th className="text-right">Action</th></tr></thead>
+              <thead><tr><th>{childcare ? "Staff member" : "Teacher"}</th><th>Staff no.</th>{!childcare && <th>Subject(s)</th>}<th>{childcare ? "Classroom(s)" : "Class(es)"}</th><th>Phone</th>{!childcare && <th>Post level</th>}<th>Status</th><th className="text-right">Action</th></tr></thead>
               <tbody>
                 {rows.map((t) => (
                   <tr key={t.id}>
@@ -112,10 +120,10 @@ export default async function TeachersPage({ searchParams }: { searchParams: Pro
                       </div>
                     </td>
                     <td className="font-mono text-xs">{t.staff_number}</td>
-                    <td className="max-w-[16rem] text-sm">{t.subjects?.split(",").join(", ") ?? <span className="muted">Not allocated</span>}</td>
-                    <td className="text-sm">{t.classes?.split(",").join(", ") ?? "-"}</td>
+                    {!childcare && <td className="max-w-[16rem] text-sm">{t.subjects?.split(",").join(", ") ?? <span className="muted">Not allocated</span>}</td>}
+                    <td className="text-sm">{childcare ? rooms.filter((r) => r.teacher_id === t.id).map((r) => r.name).join(", ") || <span className="muted">None</span> : t.classes?.split(",").join(", ") ?? "-"}</td>
                     <td className="whitespace-nowrap">{t.phone}</td>
-                    <td><span className="chip chip-gold">{t.post_level}</span></td>
+                    {!childcare && <td><span className="chip chip-gold">{t.post_level}</span></td>}
                     <td className="whitespace-nowrap"><StatusChip status={t.status} />{t.left_on && <p className="text-xs muted mt-0.5">{fmtDate(t.left_on)}</p>}</td>
                     <td>
                       {t.status !== "Active" ? (
@@ -124,10 +132,10 @@ export default async function TeachersPage({ searchParams }: { searchParams: Pro
                           <ConfirmButton action={reinstateTeacher.bind(null, t.id)} label="Reinstate" confirmText={`Re-employ ${fullName(t)}? Their login works again; allocate their classes with Edit.`} />
                         </div>
                       ) : <div className="flex justify-end gap-1.5">
-                        <FormDialog trigger="edit" title={`Edit ${t.first_name}`} fields={fields(t)} hidden={{ id: t.id }} action={saveTeacher} size="lg" />
+                        <FormDialog trigger="edit" title={`Edit ${t.first_name}`} fields={staffFields(t)} hidden={{ id: t.id }} action={saveTeacher} size="lg" />
                         <FormDialog trigger="button" triggerLabel="Password" title={`Reset password · ${t.first_name} ${t.last_name}`} hidden={{ user_id: t.user_id }} action={resetPassword} submitLabel="Set password"
                           fields={[{ name: "password", label: "New password", type: "password", required: true, help: "8+ characters with a capital letter and a number." }]} />
-                        <FormDialog trigger="button" triggerLabel="Leaves school" title={`${fullName(t)} leaves the school`} hidden={{ id: t.id }} action={exitTeacher} submitLabel="Confirm departure" fields={exitFields(t)} size="lg" />
+                        <FormDialog trigger="button" triggerLabel={childcare ? "Leaves" : "Leaves school"} title={`${fullName(t)} leaves the ${childcare ? "centre" : "school"}`} hidden={{ id: t.id }} action={exitTeacher} submitLabel="Confirm departure" fields={exitFields(t)} size="lg" />
                         <DeleteButton action={deleteTeacher.bind(null, t.id)} label={fullName(t)} />
                       </div>}
                     </td>

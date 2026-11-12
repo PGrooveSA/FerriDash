@@ -8,7 +8,8 @@ export const SESSION_HOURS = 12;
 export const REMEMBER_DAYS = 30;
 
 /** sv: the user's session_version when signed in. Raising it in the database ends every older session (password changes and resets). */
-export type SessionPayload = { uid: number; role: string; sv?: number };
+/** org: "childcare" for a childcare centre's users (absent for schools); middleware keeps each kind on its own pages. */
+export type SessionPayload = { uid: number; role: string; sv?: number; org?: string };
 
 /**
  * The server's own secret: signs session cookies.
@@ -32,7 +33,7 @@ export async function verifySession(token: string | undefined): Promise<(Require
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, key(), { algorithms: ["HS256"] });
-    return { uid: Number(payload.uid), role: String(payload.role), sv: Number(payload.sv ?? 0), exp: Number(payload.exp ?? 0) };
+    return { uid: Number(payload.uid), role: String(payload.role), sv: Number(payload.sv ?? 0), org: payload.org === "childcare" ? "childcare" : "school", exp: Number(payload.exp ?? 0) };
   } catch {
     return null;
   }

@@ -146,6 +146,12 @@ export default {
   // Fees, admissions and re-enrolment
   "Fee Settings": "Nzudzanyo dza mbadelo", "Fees": "Mbadelo dza tshikolo",
   "Admissions": "U ṱanganedzwa", "Applications": "Khumbelo",
+  "Check-in": "U dzhena",
+  "My children": "Vhana vhanga",
+  "Classrooms": "Kilasi",
+  "Search children...": "Ṱoḓa vhana...",
+  "Owner": "Mune",
+  "Practitioner": "Mushumi wa vhana",
   "Appearance": "Mbonalo",
   "Re-enrolment": "U ṅwaliswa hafhu", "Re-enrolment for {year}": "U ṅwaliswa hafhu ha {year}",
   "Please let the school know whether {names} will return next year.": "Ri humbela ni ḓivhadze tshikolo arali {names} a tshi ḓo vhuya ṅwaha u ḓaho.", "Closes {date}.": "Hu valwa nga {date}.",

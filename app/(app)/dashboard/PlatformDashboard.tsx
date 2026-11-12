@@ -8,11 +8,14 @@ import { saveSchool, toggleSchool, resetSchoolAdminPassword, addSchoolAdmin } fr
 
 type S = {
   id: number; name: string; emis_number: string | null; province: string; district: string | null; quintile: number | null; school_type: string;
+  org_type: "school" | "childcare"; ecd_number: string | null; opens_at: string | null; closes_at: string | null;
   fee_paying: number; fee_billing: number; online_payments: number; fee_reminders: number; address: string | null; phone: string | null; email: string | null; principal: string | null; active: number; created_at: string;
   learners: number; teachers: number; last_login: string | null;
 };
 const YES_NO = [{ value: 1, label: "On" }, { value: 0, label: "Off" }];
 const FEE_PAYING = { field: "fee_paying", value: "1" };
+// A new organisation's form shows the school or the childcare fields; an existing one keeps its type.
+const SCHOOL = { field: "org_type", value: "school" }, CHILDCARE = { field: "org_type", value: "childcare" };
 const feeFeatures = (s: S) => !s.fee_paying ? "No-fee" : !s.fee_billing ? "Fee-paying (fee billing off)" : ["Fee billing", s.online_payments ? "online payments" : "", s.fee_reminders ? "reminders" : ""].filter(Boolean).join(", ");
 
 type Admin = { id: number; school_id: number; name: string; email: string; last_login: string | null };
@@ -33,29 +36,41 @@ export default async function PlatformDashboard({ ctx, sp }: { ctx: Ctx; sp: Rec
   const admins = await all<Admin>("SELECT id, school_id, first_name || ' ' || last_name name, email, last_login FROM users WHERE role = 'school_admin' ORDER BY first_name");
   const adminsOf = (id: number) => admins.filter((a) => a.school_id === id);
 
-  const fields = (s?: S): Field[] => [
-    { name: "name", label: "School name", required: true, defaultValue: s?.name },
-    { name: "emis_number", label: "EMIS number", defaultValue: s?.emis_number, half: true },
-    { name: "province", label: "Province", type: "select", required: true, options: PROVINCES.map((p) => ({ value: p, label: p })), defaultValue: s?.province, half: true },
-    { name: "district", label: "District", defaultValue: s?.district, half: true },
-    { name: "quintile", label: "Quintile", type: "select", options: [1, 2, 3, 4, 5].map((n) => ({ value: n, label: `Quintile ${n}` })), defaultValue: s?.quintile, half: true },
-    { name: "school_type", label: "Type", type: "select", required: true, options: ["Primary", "Secondary", "Combined"].map((v) => ({ value: v, label: v })), defaultValue: s?.school_type, half: true },
-    { name: "fee_paying", label: "Fees", type: "select", required: true, options: [{ value: 1, label: "Fee-paying" }, { value: 0, label: "No-fee school" }], defaultValue: s?.fee_paying ?? 1, half: true },
-    // Shown only for fee-paying schools (a no-fee school never gets them; app/actions/academics.ts saveSchool). On by default for a new school.
-    { name: "fee_billing", label: "Fee billing and statements", type: "select", required: true, options: YES_NO, defaultValue: s ? s.fee_billing : 1, half: true, showIf: FEE_PAYING, help: "Fees, invoices and statements for parents." },
-    { name: "online_payments", label: "Online payments (PayFast, Ozow)", type: "select", required: true, options: YES_NO, defaultValue: s ? s.online_payments : 1, half: true, showIf: FEE_PAYING, help: "Needs fee billing. The school connects its own merchant account." },
-    { name: "fee_reminders", label: "Automatic overdue fee reminders", type: "select", required: true, options: YES_NO, defaultValue: s ? s.fee_reminders : 1, half: true, showIf: FEE_PAYING, help: "Needs fee billing." },
-    { name: "principal", label: "Principal", defaultValue: s?.principal, half: true },
-    { name: "phone", label: "Phone", type: "tel", defaultValue: s?.phone, half: true },
-    { name: "email", label: "Office email", type: "email", defaultValue: s?.email },
-    { name: "address", label: "Physical address", defaultValue: s?.address },
-    ...(s ? [] : [
-      { name: "admin_first_name", label: "School admin first name", half: true } as Field,
-      { name: "admin_last_name", label: "School admin surname", half: true } as Field,
-      { name: "admin_email", label: "School admin email (login)", type: "email", required: true, half: true } as Field,
-      { name: "admin_password", label: "Initial password", type: "password", required: true, half: true, help: "8+ characters with a capital letter and a number." } as Field,
-    ]),
-  ];
+  const fields = (s?: S): Field[] => {
+    // Only a new organisation chooses its type; on edit the fields for its type are simply shown.
+    const only = (when: { field: string; value: string }, type: S["org_type"]) => (s ? (s.org_type === type ? {} : null) : { showIf: when });
+    const asSchool = only(SCHOOL, "school"), asChildcare = only(CHILDCARE, "childcare");
+    const pick = (f: Field, when: object | null): Field[] => (when ? [{ ...f, ...when }] : []);
+    const childcare = s?.org_type === "childcare";
+    return [
+      ...(s ? [] : [{ name: "org_type", label: "Type of organisation", type: "select", required: true, defaultValue: "school", options: [{ value: "school", label: "School" }, { value: "childcare", label: "Childcare centre (crèche, ECD centre)" }], help: "Can't be changed later." } as Field]),
+      { name: "name", label: s ? (childcare ? "Centre name" : "School name") : "Name", required: true, defaultValue: s?.name },
+      ...pick({ name: "emis_number", label: "EMIS number", defaultValue: s?.emis_number, half: true }, asSchool),
+      ...pick({ name: "ecd_number", label: "ECD registration number", defaultValue: s?.ecd_number, half: true }, asChildcare),
+      { name: "province", label: "Province", type: "select", required: true, options: PROVINCES.map((p) => ({ value: p, label: p })), defaultValue: s?.province, half: true },
+      { name: "district", label: "District", defaultValue: s?.district, half: true },
+      ...pick({ name: "quintile", label: "Quintile", type: "select", options: [1, 2, 3, 4, 5].map((n) => ({ value: n, label: `Quintile ${n}` })), defaultValue: s?.quintile, half: true }, asSchool),
+      ...pick({ name: "school_type", label: "Type", type: "select", required: true, options: ["Primary", "Secondary", "Combined"].map((v) => ({ value: v, label: v })), defaultValue: s?.school_type, half: true }, asSchool),
+      ...pick({ name: "opens_at", label: "Opens at", type: "time", defaultValue: s?.opens_at ?? "06:30", half: true }, asChildcare),
+      ...pick({ name: "closes_at", label: "Closes at", type: "time", defaultValue: s?.closes_at ?? "17:30", half: true, help: "Children still in after closing are flagged." }, asChildcare),
+      // Childcare centres always charge fees; a school chooses.
+      ...pick({ name: "fee_paying", label: "Fees", type: "select", required: true, options: [{ value: 1, label: "Fee-paying" }, { value: 0, label: "No-fee school" }], defaultValue: s?.fee_paying ?? 1, half: true }, asSchool),
+      // Shown only for fee-paying schools and childcare (a no-fee school never gets them; app/actions/academics.ts saveSchool). On by default.
+      { name: "fee_billing", label: "Fee billing and statements", type: "select", required: true, options: YES_NO, defaultValue: s ? s.fee_billing : 1, half: true, showIf: FEE_PAYING, help: "Fees, invoices and statements for parents." },
+      { name: "online_payments", label: "Online payments (PayFast, Ozow)", type: "select", required: true, options: YES_NO, defaultValue: s ? s.online_payments : 1, half: true, showIf: FEE_PAYING, help: "Needs fee billing. The school connects its own merchant account." },
+      { name: "fee_reminders", label: "Automatic overdue fee reminders", type: "select", required: true, options: YES_NO, defaultValue: s ? s.fee_reminders : 1, half: true, showIf: FEE_PAYING, help: "Needs fee billing." },
+      { name: "principal", label: s ? (childcare ? "Owner / principal" : "Principal") : "Principal / owner", defaultValue: s?.principal, half: true },
+      { name: "phone", label: "Phone", type: "tel", defaultValue: s?.phone, half: true },
+      { name: "email", label: "Office email", type: "email", defaultValue: s?.email },
+      { name: "address", label: "Physical address", defaultValue: s?.address },
+      ...(s ? [] : [
+        { name: "admin_first_name", label: "Admin / owner first name", half: true } as Field,
+        { name: "admin_last_name", label: "Admin / owner surname", half: true } as Field,
+        { name: "admin_email", label: "Admin / owner email (login)", type: "email", required: true, half: true } as Field,
+        { name: "admin_password", label: "Initial password", type: "password", required: true, half: true, help: "8+ characters with a capital letter and a number." } as Field,
+      ]),
+    ];
+  };
 
   const active = all_.filter((s) => s.active);
   return (
@@ -67,7 +82,7 @@ export default async function PlatformDashboard({ ctx, sp }: { ctx: Ctx; sp: Rec
             { name: "status", label: "Status", value: status, allLabel: "All statuses", options: [{ value: "active", label: "Active" }, { value: "suspended", label: "Suspended" }] },
           ]}
           search={{ name: "q", placeholder: "Search name, EMIS or principal", value: sp.q ?? "" }} />
-        <FormDialog title="Register a school" triggerLabel="Add school" fields={fields()} action={saveSchool} size="lg" />
+        <FormDialog title="Register a school or childcare centre" triggerLabel="Add school or centre" fields={fields()} action={saveSchool} size="lg" />
       </PageHeader>
 
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
@@ -85,9 +100,10 @@ export default async function PlatformDashboard({ ctx, sp }: { ctx: Ctx; sp: Rec
               const sa = adminsOf(s.id);
               return (
                 <tr key={s.id} className={s.active ? "" : "opacity-70"}>
-                  <td className="min-w-[11rem]"><p className="font-semibold">{s.name}</p><p className="text-xs muted">EMIS {s.emis_number ?? "-"}{s.principal ? ` · ${s.principal}` : ""}</p></td>
-                  <td className="whitespace-nowrap">{s.province}<p className="text-xs muted">{s.school_type} · {feeFeatures(s)}{s.quintile ? ` · Q${s.quintile}` : ""}</p></td>
-                  <td className="whitespace-nowrap text-sm">{s.learners.toLocaleString("en-ZA")} learner{s.learners === 1 ? "" : "s"}<p className="text-xs muted">{s.teachers} educator{s.teachers === 1 ? "" : "s"}</p></td>
+                  <td className="min-w-[11rem]"><p className="font-semibold">{s.name}{s.org_type === "childcare" && <span className="chip chip-butter ml-2">Childcare</span>}</p>
+                    <p className="text-xs muted">{s.org_type === "childcare" ? `ECD ${s.ecd_number ?? "-"}` : `EMIS ${s.emis_number ?? "-"}`}{s.principal ? ` · ${s.principal}` : ""}</p></td>
+                  <td className="whitespace-nowrap">{s.province}<p className="text-xs muted">{s.org_type === "childcare" ? `${s.opens_at ?? "?"}–${s.closes_at ?? "?"}` : s.school_type} · {feeFeatures(s)}{s.quintile && s.org_type !== "childcare" ? ` · Q${s.quintile}` : ""}</p></td>
+                  <td className="whitespace-nowrap text-sm">{s.learners.toLocaleString("en-ZA")} {s.org_type === "childcare" ? (s.learners === 1 ? "child" : "children") : `learner${s.learners === 1 ? "" : "s"}`}<p className="text-xs muted">{s.teachers} {s.org_type === "childcare" ? "staff" : `educator${s.teachers === 1 ? "" : "s"}`}</p></td>
                   <td className="text-xs">{sa.length ? sa.map((a) => <p key={a.id}>{a.email}</p>) : <span className="text-rose-600">None</span>}
                     <p className="muted mt-0.5">Last sign-in: {s.last_login ? fmtDate(s.last_login.slice(0, 10)) : "never"}</p></td>
                   <td><span className={`chip ${s.active ? "chip-green" : "chip-red"}`}>{s.active ? "Active" : <><Ban className="w-3 h-3" />Suspended</>}</span></td>

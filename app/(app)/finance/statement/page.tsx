@@ -9,6 +9,7 @@ import { deletePayment, deleteInvoice } from "@/app/actions/fees";
 import { BrandMark } from "@/components/BrandLogo";
 import { PayNow, OnlinePaymentsList, RemindButton, BillNowButton } from "./PayOnline";
 import FeesOff from "../FeesOff";
+import { isChildcare } from "@/lib/org";
 
 export const metadata = { title: "Fee statement" };
 
@@ -20,11 +21,12 @@ export default async function StatementPage({ searchParams }: { searchParams: Pr
   const learnerId = ids.includes(Number(sp.learner)) ? Number(sp.learner) : ids[0];
   if (!learnerId) return <Card><Empty title="Choose a learner" hint={ctx.isAdmin ? "Open a statement from Fees Collection." : "No learner is linked to your account."} /></Card>;
   const l = await get<{ first_name: string; last_name: string; admission_number: string; className: string | null; grade: number | null; grade_fees: number }>(`SELECT l.first_name, l.last_name, l.admission_number, c.name className, c.grade,
-      EXISTS (SELECT 1 FROM fee_structures fs WHERE fs.school_id = l.school_id AND fs.year = ? AND fs.grade = c.grade)::int grade_fees
+      (EXISTS (SELECT 1 FROM fee_structures fs WHERE fs.school_id = l.school_id AND fs.year = ? AND fs.grade = c.grade) OR l.fee_plan_id IS NOT NULL)::int grade_fees
     FROM learners l LEFT JOIN classes c ON c.id = l.class_id WHERE l.id = ? AND l.school_id = ?`, ctx.school.current_year, learnerId, ctx.schoolId);
   if (!l) return <Card><Empty title="Learner not found" /></Card>;
   const kids = !ctx.isAdmin && ids.length > 1 ? (await all<{ id: number; name: string }>(`SELECT id, first_name || ' ' || last_name name FROM learners WHERE id IN (${ids.map(() => "?").join(",")})`, ...ids)) : [];
   const t = today();
+  const childcare = isChildcare(ctx.school);
   const acc = await account(learnerId, t);
   const unbilled = acc.invoices.length === 0;
   const schedule = unbilled && ctx.isAdmin ? await billingSchedule(ctx.schoolId, ctx.school.current_year) : null;
@@ -65,8 +67,8 @@ export default async function StatementPage({ searchParams }: { searchParams: Pr
           <div className="text-right"><p className="text-xs uppercase tracking-widest muted">Statement of account</p><p className="font-semibold">{fmtDate(t)}</p></div>
         </header>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-4 text-sm">
-          <div><p className="text-xs muted">Learner</p><p className="font-semibold">{l.first_name} {l.last_name}</p></div>
-          <div><p className="text-xs muted">Grade / class</p><p>{l.grade != null ? `${gradeLabel(l.grade)} · ${l.className}` : "-"}</p></div>
+          <div><p className="text-xs muted">{childcare ? "Child" : "Learner"}</p><p className="font-semibold">{l.first_name} {l.last_name}</p></div>
+          <div><p className="text-xs muted">{childcare ? "Classroom" : "Grade / class"}</p><p>{childcare ? l.className ?? "-" : l.grade != null ? `${gradeLabel(l.grade)} · ${l.className}` : "-"}</p></div>
           {unbilled ? (
             // Nothing billed yet is not the same as paid up: say so instead of showing R 0,00.
             <div className="col-span-2"><p className="text-xs muted">School fees</p><p className="text-xl font-bold">Not billed yet</p></div>
@@ -79,11 +81,14 @@ export default async function StatementPage({ searchParams }: { searchParams: Pr
           <div className="no-print rounded-2xl border border-butter-300 bg-butter-100/50 dark:bg-butter-500/10 p-4 mb-4 text-sm flex flex-wrap items-center gap-3">
             <p className="flex-1 min-w-[14rem]">{!ctx.isAdmin
               ? `The school hasn't billed ${l.first_name}'s fees for ${ctx.school.current_year} yet. They will show here as soon as it does.`
+              : childcare && !l.grade_fees ? `${l.first_name} has no fee plan yet. Choose one on their profile under Children.`
+              : childcare && !schedule ? `Nobody has been billed for ${ctx.school.current_year} yet. Use Generate invoices on Fees Collection.`
+              : childcare ? `${l.first_name} has not been billed for ${ctx.school.current_year}. Bill them from the current month.`
               : l.grade == null ? `${l.first_name} is not in a class yet. Put them in a class under Learners, and their fees are billed on the school's schedule.`
               : !l.grade_fees ? `No fees are set for ${gradeLabel(l.grade)} in ${ctx.school.current_year}. Set them under Finance → Fees Collection (Set fees).`
               : !schedule ? `Nobody has been billed for ${ctx.school.current_year} yet. Use Generate invoices on Fees Collection to choose how parents pay.`
               : `${l.first_name} has not been billed for ${ctx.school.current_year}. Bill them on the school's schedule, from the current instalment.`}</p>
-            {ctx.isAdmin && l.grade != null && !!l.grade_fees && schedule && <BillNowButton learnerId={learnerId} label={`Bill ${l.first_name} now`} />}
+            {ctx.isAdmin && (childcare || l.grade != null) && !!l.grade_fees && schedule && <BillNowButton learnerId={learnerId} label={`Bill ${l.first_name} now`} />}
           </div>
         )}
         {ledger.length === 0 ? null : (
@@ -107,7 +112,7 @@ export default async function StatementPage({ searchParams }: { searchParams: Pr
           </div>
         )}
         {banking && <p className="text-sm mt-6"><b>Banking details:</b> {banking}. Use <b>{l.admission_number}</b> as the reference.</p>}
-        <p className="text-xs muted mt-4">{providers.length ? `Pay online with ${providers.join(" or ")} from FerriDash, or by EFT using the banking details.` : banking ? "" : "Banking details are available from the school office."} Parents who cannot afford school fees may apply for exemption in terms of the Exemption of Parents from Payment of School Fees Regulations, or ask the school about a payment plan.</p>
+        <p className="text-xs muted mt-4">{providers.length ? `Pay online with ${providers.join(" or ")} from FerriDash, or by EFT using the banking details.` : banking ? "" : "Banking details are available from the school office."} {childcare ? "Ask the centre about a payment plan if you need one." : "Parents who cannot afford school fees may apply for exemption in terms of the Exemption of Parents from Payment of School Fees Regulations, or ask the school about a payment plan."}</p>
         <p className="text-[0.68rem] muted mt-4 pt-3 border-t border-line flex items-center justify-end gap-1"><BrandMark />Generated by FerriDash · Copyright © Infinite Q Graphics</p>
       </article>
     </>

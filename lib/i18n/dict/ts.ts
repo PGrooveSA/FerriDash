@@ -146,6 +146,12 @@ export default {
   // Fees, admissions and re-enrolment
   "Fee Settings": "Swiletelo swa hakelo", "Fees": "Hakelo ya xikolo",
   "Admissions": "Ku amukeriwa", "Applications": "Swikombelo",
+  "Check-in": "Ku nghena",
+  "My children": "Vana va mina",
+  "Classrooms": "Tikamara",
+  "Search children...": "Lava vana...",
+  "Owner": "Nwinyi",
+  "Practitioner": "Mutirhi wa vana",
   "Appearance": "Xivumbeko",
   "Re-enrolment": "Ku tsarisa nakambe", "Re-enrolment for {year}": "Ku tsarisa nakambe ka {year}",
   "Please let the school know whether {names} will return next year.": "Hi kombela u tivisa xikolo loko {names} a ta vuya lembe leri taka.", "Closes {date}.": "Ku pfaliwa hi {date}.",

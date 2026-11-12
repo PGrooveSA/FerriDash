@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { LOGIN_NONCE_COOKIE, SESSION_COOKIE, newLoginNonce, verifySession } from "./lib/session";
+import { CHILDCARE_ONLY, SCHOOL_ONLY, inSection } from "./lib/org";
 
 const PLATFORM_PATHS = ["/dashboard", "/schools", "/profile", "/appearance", "/api/avatar", "/api/session-end"];
 
@@ -28,6 +29,10 @@ export async function middleware(req: NextRequest) {
   // The platform admin only manages schools: everything inside a school is off limits
   // (pages and server actions also check this themselves).
   if (session?.role === "super_admin" && !PLATFORM_PATHS.some((p) => req.nextUrl.pathname === p || req.nextUrl.pathname.startsWith(p + "/"))) {
+    return NextResponse.redirect(new URL("/dashboard", req.url));
+  }
+  // Schools and childcare centres each have their own pages (lib/org.ts); the other kind's go to the dashboard.
+  if (session && session.role !== "super_admin" && inSection(p, session.org === "childcare" ? SCHOOL_ONLY : CHILDCARE_ONLY)) {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
   return NextResponse.next();

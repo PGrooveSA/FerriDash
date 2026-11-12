@@ -146,6 +146,12 @@ export default {
   // Fees, admissions and re-enrolment
   "Fee Settings": "Iinlungiselelo zemali yesikolo", "Fees": "Imali yesikolo",
   "Admissions": "Ukwamukelwa", "Applications": "Iimbawo",
+  "Check-in": "Ukungena",
+  "My children": "Abantwana bami",
+  "Classrooms": "Amakilasi",
+  "Search children...": "Funa abantwana...",
+  "Owner": "Umnikazi",
+  "Practitioner": "Isisebenzi sabantwana",
   "Appearance": "Ukubonakala",
   "Re-enrolment": "Ukutlolisa kabutjha", "Re-enrolment for {year}": "Ukutlolisa kabutjha kwa-{year}",
   "Please let the school know whether {names} will return next year.": "Sibawa wazise isikolo bona {names} uzokubuyela na ngomnyaka ozako.", "Closes {date}.": "Kuvala ngo-{date}.",

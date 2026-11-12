@@ -1,5 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { isChildcare } from "@/lib/org";
 import { ownLearnerIds, requireCtx, type Ctx } from "@/lib/auth";
 import { all, audit, get, run, tx } from "@/lib/db";
 import { ADMIN, fail, guarded, isDate, limit, num, opt, str, type ActionResult } from "@/lib/action-utils";
@@ -54,7 +55,7 @@ export async function deleteFeeStructure(grade: number) {
 export async function generateInvoices(_: ActionResult, f: FormData) {
   return guarded(ADMIN, async (ctx) => {
     needFees(ctx);
-    const year = ctx.school.current_year, plan = str(f, "plan");
+    const year = ctx.school.current_year, childcare = isChildcare(ctx.school), plan = childcare ? "month" : str(f, "plan");
     let periods: { period: string; due: string; label: string }[];
     if (plan === "year") {
       const due = str(f, "due_date");
@@ -65,17 +66,21 @@ export async function generateInvoices(_: ActionResult, f: FormData) {
       if (terms.length < 4) fail("Set all four term dates under Settings first: termly fees are due on each term's first day.");
       periods = terms.map((t) => ({ period: `Term ${t.number}`, due: t.start_date, label: `Term ${t.number}` }));
     } else if (plan === "month") {
-      const months = num(f, "months") === 12 ? 12 : num(f, "months") === 11 ? 11 : 10, day = num(f, "due_day") ?? 1;
+      // Childcare centres run all year: twelve monthly fees.
+      const months = childcare || num(f, "months") === 12 ? 12 : num(f, "months") === 11 ? 11 : 10, day = num(f, "due_day") ?? 1;
       if (day < 1 || day > 28) fail("Choose a due day between 1 and 28.");
       periods = Array.from({ length: months }, (_, i) => ({ period: MONTHS[i], due: `${year}-${String(i + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`, label: MONTHS[i] }));
     } else fail("Choose how the fees are paid.");
 
-    const billed = await billLearners(ctx.schoolId, year, periods);
-    if (!billed) fail("Every learner with fees set for their grade has already been billed this year (or no grade fees are set yet).");
-    const n = periods.length;
-    await audit(ctx.schoolId, ctx.user.id, "generate_invoices", "invoice", null, `${billed} learner(s), ${n} instalment(s) each`);
+    // A centre starting mid-year bills from this month on; a school bills the whole year.
+    const billed = await billLearners(ctx.schoolId, year, periods, { fromNow: childcare });
+    if (!billed) fail(childcare ? "Every child on a fee plan has already been billed this year (or no child has a fee plan yet)." : "Every learner with fees set for their grade has already been billed this year (or no grade fees are set yet).");
+    // A centre is billed from the current month (lib/fees.ts billLearners, fromNow), so count from there.
+    const t = today(), n = periods.length - (childcare ? periods.reduce((k, p, i) => (p.due <= t ? i : k), 0) : 0);
+    const who = childcare ? `child${billed === 1 ? "" : "ren"}` : `learner${billed === 1 ? "" : "s"}`;
+    await audit(ctx.schoolId, ctx.user.id, "generate_invoices", "invoice", null, `${billed} ${who}, ${n} instalment(s) each`);
     refresh();
-    return { ok: true, message: `Billed ${billed} learner${billed === 1 ? "" : "s"} (${n} instalment${n === 1 ? "" : "s"} each).` };
+    return { ok: true, message: `Billed ${billed} ${who} (${n} instalment${n === 1 ? "" : "s"} each).` };
   });
 }
 

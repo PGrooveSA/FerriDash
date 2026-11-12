@@ -27,6 +27,9 @@ export type School = {
   report_style: "caps" | "ieb";
   /** Colour theme for everyone at the school (lib/themes.ts). */
   theme: string;
+  /** A school, or a childcare centre (lib/org.ts). */
+  org_type: "school" | "childcare";
+  ecd_number: string | null; opens_at: string | null; closes_at: string | null;
   admissions_open: number; admissions_code: string | null; admissions_year: number | null; admissions_info: string | null;
   reenrol_year: number | null; reenrol_deadline: string | null;
 };
@@ -45,7 +48,7 @@ export type Ctx = {
 const NO_SCHOOL: School = {
   id: 0, name: "FerriDash", emis_number: "", province: "", district: "", quintile: 0, school_type: "", fee_paying: 0,
   address: "", phone: "", email: "", principal: "", motto: "", current_year: new Date().getFullYear(), current_term: 1, logo_updated_at: null,
-  fee_billing: 0, online_payments: 0, fee_reminders: 0, report_style: "caps", theme: "classic",
+  fee_billing: 0, online_payments: 0, fee_reminders: 0, report_style: "caps", theme: "classic", org_type: "school", ecd_number: null, opens_at: null, closes_at: null,
   admissions_open: 0, admissions_code: null, admissions_year: null, admissions_info: null, reenrol_year: null, reenrol_deadline: null,
 };
 

@@ -94,8 +94,11 @@ export async function saveTeacher(_: ActionResult, f: FormData) {
             const keep = allocations.length ? allocations : [-1];
             await run(`UPDATE class_subjects SET teacher_id = NULL WHERE teacher_id = ? AND id NOT IN (${keep.map(() => "?").join(",")})`, teacherId!, ...keep);
             for (const cs of allocations) await run("UPDATE class_subjects SET teacher_id = ? WHERE id = ?", teacherId!, cs);
-            await run("UPDATE classes SET class_teacher_id = NULL WHERE class_teacher_id = ? AND id IS DISTINCT FROM ?", teacherId!, homeroom);
-            if (homeroom) await run("UPDATE classes SET class_teacher_id = ? WHERE id = ?", teacherId!, homeroom);
+            // Childcare staff forms have no register class (classrooms set their lead practitioner): leave it alone.
+            if (f.has("homeroom_class_id")) {
+              await run("UPDATE classes SET class_teacher_id = NULL WHERE class_teacher_id = ? AND id IS DISTINCT FROM ?", teacherId!, homeroom);
+              if (homeroom) await run("UPDATE classes SET class_teacher_id = ? WHERE id = ?", teacherId!, homeroom);
+            }
             await audit(ctx.schoolId, ctx.user.id, "allocate", "teacher", teacherId!, `${allocations.length} subject(s)${homeroom ? ", register class" : ""}`);
           });
     revalidatePath("/academics");
@@ -193,6 +196,9 @@ export async function saveLearner(_: ActionResult, f: FormData) {
       opt(f, "date_of_birth") ?? decoded?.dob ?? null, classId, opt(f, "home_language"), opt(f, "address"), str(f, "status") || "Active"];
     if (!fields[0] || !fields[1] || !fields[2]) fail("Name, surname and admission number are required.");
     if (fields[5] && !isDate(String(fields[5]))) fail("Enter a valid date of birth.");
+    // Childcare centres bill by monthly fee plan (only their form has the field).
+    const feePlan = f.has("fee_plan_id") ? num(f, "fee_plan_id") : undefined;
+    if (feePlan && !(await get("SELECT id FROM fee_plans WHERE id = ? AND school_id = ?", feePlan, ctx.schoolId))) fail("Choose one of your fee plans.");
 
     let savedId = 0;
     await tx(async () => {
@@ -222,12 +228,14 @@ export async function saveLearner(_: ActionResult, f: FormData) {
               }
               await run("INSERT INTO guardian_links (parent_user_id, learner_id, relationship) VALUES (?,?,?) ON CONFLICT (parent_user_id, learner_id) DO NOTHING", parent.id, learnerId!, str(f, "relationship") || "Parent");
             }
+            if (feePlan !== undefined) await run("UPDATE learners SET fee_plan_id = ? WHERE id = ?", feePlan, learnerId!);
             await audit(ctx.schoolId, ctx.user.id, id ? "update" : "create", "learner", learnerId);
             savedId = learnerId ?? 0;
           });
     // A new learner, or one just placed in a class, gets this year's school fees on the school's schedule (lib/fees.ts).
     if (savedId && fields[9] === "Active") await autoBill(ctx.schoolId, savedId);
     revalidatePath("/learners");
+    revalidatePath("/children", "layout");
     revalidatePath("/finance", "layout");
   });
 }

@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useT } from "@/components/I18nProvider";
 import {
   LayoutDashboard, Building2, GraduationCap, Users, UsersRound, BookOpen, CalendarCheck, Award, FileBarChart,
-  Wallet, Megaphone, CalendarDays, Clock, MessageSquare, UserCircle, Settings, Palette, Upload, LogOut, ChevronDown, X, Menu, ClipboardList, Receipt, DoorOpen,
+  Wallet, Megaphone, CalendarDays, Clock, MessageSquare, UserCircle, Settings, Palette, Upload, LogOut, ChevronDown, X, Menu, ClipboardList, Receipt, DoorOpen, Baby, Shapes, ClipboardCheck, Contact,
 } from "lucide-react";
 import { logout } from "@/app/actions/auth";
 import SchoolCrest from "@/components/SchoolCrest";
@@ -77,6 +77,29 @@ const MENU: Item[] = [
   { href: "/messages", label: "Messages", icon: MessageSquare, roles: ALL },
 ];
 
+// Childcare centres (lib/org.ts): children, classrooms and check-in instead of CAPS results, reports and the timetable.
+const CARE_MENU: Item[] = [
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ALL },
+  { href: "/checkin", label: "Check-in", icon: ClipboardCheck, roles: STAFF },
+  { href: "/children", label: "Children", icon: Baby, roles: STAFF },
+  { href: "/children", label: "My children", icon: Baby, roles: ["parent"] },
+  { href: "/classrooms", label: "Classrooms", icon: Shapes, roles: STAFF },
+  { href: "/teachers", label: "Staff", icon: Contact, roles: ADMIN },
+  { href: "/parents", label: "Parents", icon: UsersRound, roles: ADMIN },
+  {
+    href: "/finance", label: "Finance", icon: Wallet, roles: ADMIN,
+    children: [
+      { href: "/finance/fees", label: "Fees Collection", roles: ADMIN, feature: "fees" },
+      { href: "/finance/settings", label: "Fee Settings", roles: ADMIN, feature: "fees" },
+      { href: "/finance/expenses", label: "School Expenses", roles: ADMIN },
+    ],
+  },
+  { href: "/finance/statement", label: "Fees", icon: Receipt, roles: ["parent"], feature: "fees" },
+  { href: "/notices", label: "Notices", icon: Megaphone, roles: ALL },
+  { href: "/calendar", label: "Calendar", icon: CalendarDays, roles: ALL },
+  { href: "/messages", label: "Messages", icon: MessageSquare, roles: ALL },
+];
+
 const OTHER: Item[] = [
   { href: "/profile", label: "Profile", icon: UserCircle, roles: EVERYONE },
   { href: "/import", label: "Import Data", icon: Upload, roles: ADMIN },
@@ -84,7 +107,9 @@ const OTHER: Item[] = [
   { href: "/appearance", label: "Appearance", icon: Palette, roles: ["super_admin", "school_admin"] },
 ];
 
-export default function Sidebar({ role, school, features = [] }: { role: Role; school: { id: number; name: string; logo_updated_at: string | null } | null; features?: Feature[] }) {
+export default function Sidebar({ role, school, features = [], childcare = false }: { role: Role; school: { id: number; name: string; logo_updated_at: string | null } | null; features?: Feature[]; childcare?: boolean }) {
+  const menu = childcare ? CARE_MENU : MENU;
+  const other = childcare ? OTHER.filter((m) => m.href !== "/import") : OTHER;
   const path = usePathname();
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -92,9 +117,9 @@ export default function Sidebar({ role, school, features = [] }: { role: Role; s
 
   useEffect(() => setOpen(false), [path]);
   useEffect(() => {
-    const parent = MENU.find((m) => m.children && path.startsWith(m.href));
+    const parent = menu.find((m) => m.children && path.startsWith(m.href));
     if (parent) setExpanded(parent.href);
-  }, [path]);
+  }, [path, menu]);
 
   const isActive = (href: string) => (href === "/dashboard" ? path === href : path === href || path.startsWith(href + "/"));
 
@@ -148,10 +173,10 @@ export default function Sidebar({ role, school, features = [] }: { role: Role; s
       </div>
       <nav className="flex-1 overflow-y-auto pr-1 -mr-1">
         <p className="px-4 text-[0.7rem] font-normal tracking-widest muted mb-2">{t("MENU")}</p>
-        <ul className="space-y-0.5">{MENU.filter((m) => m.roles.includes(role) && (!m.feature || features.includes(m.feature))).map(renderItem)}</ul>
+        <ul className="space-y-0.5">{menu.filter((m) => m.roles.includes(role) && (!m.feature || features.includes(m.feature))).map(renderItem)}</ul>
         <p className="px-4 text-[0.7rem] font-normal tracking-widest muted mt-6 mb-2">{t("OTHER")}</p>
         <ul className="space-y-0.5">
-          {OTHER.filter((m) => m.roles.includes(role)).map(renderItem)}
+          {other.filter((m) => m.roles.includes(role)).map(renderItem)}
           <li>
             <form action={logout}>
               <button className="flex w-full items-center gap-3 rounded-2xl px-4 py-2.5 text-base font-normal muted hover:bg-rose-500/10 hover:text-rose-600">

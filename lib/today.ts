@@ -3,6 +3,11 @@ export function today(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Johannesburg" }).format(new Date());
 }
 
+/** The time now in South Africa, as HH:MM. */
+export function nowTime(): string {
+  return new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Johannesburg", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date());
+}
+
 export function addDays(iso: string, n: number) {
   const d = new Date(iso + "T00:00:00Z");
   d.setUTCDate(d.getUTCDate() + n);

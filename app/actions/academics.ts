@@ -124,24 +124,29 @@ export async function removeLogo(): Promise<ActionResult> {
 export async function saveSchool(_: ActionResult, f: FormData) {
   return guarded(PLATFORM, async (ctx) => {
     const id = num(f, "id");
-    if (!str(f, "name")) fail("Enter the school's name.");
+    if (!str(f, "name")) fail("Enter the name.");
+    // The type is chosen once, when the organisation is added (sessions and pages depend on it: lib/org.ts).
+    const childcare = id ? (await get<{ org_type: string }>("SELECT org_type FROM schools WHERE id = ?", id))?.org_type === "childcare" : str(f, "org_type") === "childcare";
+    const time = (k: string) => { const v = opt(f, k); if (v && !/^([01]\d|2[0-3]):[0-5]\d$/.test(v)) fail("Enter the opening and closing times as HH:MM."); return v; };
+    const care = childcare ? [opt(f, "ecd_number"), time("opens_at"), time("closes_at")] : [null, null, null];
     // Fee billing, online payments and reminders are only for fee-paying schools; payments and reminders need billing.
-    const feePaying = str(f, "fee_paying") === "1" ? 1 : 0;
+    // Childcare centres always charge fees.
+    const feePaying = childcare || str(f, "fee_paying") === "1" ? 1 : 0;
     const billing = feePaying && str(f, "fee_billing") === "1" ? 1 : 0;
     const fees = [billing, billing && str(f, "online_payments") === "1" ? 1 : 0, billing && str(f, "fee_reminders") === "1" ? 1 : 0];
-    const vals = [str(f, "name"), opt(f, "emis_number"), str(f, "province"), opt(f, "district"), num(f, "quintile"), str(f, "school_type") || "Combined", feePaying, ...fees, opt(f, "address"), opt(f, "phone"), opt(f, "email"), opt(f, "principal")];
+    const vals = [str(f, "name"), childcare ? null : opt(f, "emis_number"), str(f, "province"), opt(f, "district"), childcare ? null : num(f, "quintile"), childcare ? "Combined" : str(f, "school_type") || "Combined", feePaying, ...fees, opt(f, "address"), opt(f, "phone"), opt(f, "email"), opt(f, "principal"), ...care];
     const feeNote = `fees: ${feePaying ? `fee-paying, billing ${fees[0] ? "on" : "off"}, online payments ${fees[1] ? "on" : "off"}, reminders ${fees[2] ? "on" : "off"}` : "no-fee"}`;
     if (id) {
-      if (!(await run("UPDATE schools SET name=?, emis_number=?, province=?, district=?, quintile=?, school_type=?, fee_paying=?, fee_billing=?, online_payments=?, fee_reminders=?, address=?, phone=?, email=?, principal=? WHERE id = ?", ...vals, id)).changes) fail("School not found.");
+      if (!(await run("UPDATE schools SET name=?, emis_number=?, province=?, district=?, quintile=?, school_type=?, fee_paying=?, fee_billing=?, online_payments=?, fee_reminders=?, address=?, phone=?, email=?, principal=?, ecd_number=?, opens_at=?, closes_at=? WHERE id = ?", ...vals, id)).changes) fail("School not found.");
       await audit(id, ctx.user.id, "update", "school", id, feeNote);
     } else {
       const adminEmail = str(f, "admin_email").toLowerCase(), pw = str(f, "admin_password");
-      if (!adminEmail.includes("@")) fail("Enter the school admin's email address.");
+      if (!adminEmail.includes("@")) fail("Enter the admin's (owner's) email address.");
       if (!strongEnough(pw)) fail("The initial password needs 8+ characters, a capital letter and a number.");
       if (await get("SELECT id FROM users WHERE lower(email) = ?", adminEmail)) fail("That email already belongs to another account.");
       await tx(async () => {
                 const year = new Date().getFullYear();
-                const sid = (await run("INSERT INTO schools (name, emis_number, province, district, quintile, school_type, fee_paying, fee_billing, online_payments, fee_reminders, address, phone, email, principal, current_year, current_term) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1)", ...vals, year)).id;
+                const sid = (await run("INSERT INTO schools (name, emis_number, province, district, quintile, school_type, fee_paying, fee_billing, online_payments, fee_reminders, address, phone, email, principal, ecd_number, opens_at, closes_at, current_year, current_term, org_type) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,?)", ...vals, year, childcare ? "childcare" : "school")).id;
                 await run("INSERT INTO users (school_id, role, first_name, last_name, email, password_hash) VALUES (?,?,?,?,?,?)", sid, "school_admin", str(f, "admin_first_name") || "School", str(f, "admin_last_name") || "Administrator", adminEmail, bcrypt.hashSync(pw, 10));
                 await audit(sid, ctx.user.id, "create", "school", sid, feeNote);
               });
