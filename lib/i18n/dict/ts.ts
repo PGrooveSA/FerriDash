@@ -152,6 +152,8 @@ export default {
   "Search children...": "Lava vana...",
   "Owner": "Nwinyi",
   "Practitioner": "Mutirhi wa vana",
+  "Past learners": "Swichudeni swa khale",
+  "Past children": "Vana va khale",
   "Appearance": "Xivumbeko",
   "Re-enrolment": "Ku tsarisa nakambe", "Re-enrolment for {year}": "Ku tsarisa nakambe ka {year}",
   "Please let the school know whether {names} will return next year.": "Hi kombela u tivisa xikolo loko {names} a ta vuya lembe leri taka.", "Closes {date}.": "Ku pfaliwa hi {date}.",

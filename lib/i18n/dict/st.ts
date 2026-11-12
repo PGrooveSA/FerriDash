@@ -152,6 +152,8 @@ export default {
   "Search children...": "Batla bana...",
   "Owner": "Mong",
   "Practitioner": "Mosebeletsi wa bana",
+  "Past learners": "Baithuti ba pele",
+  "Past children": "Bana ba pele",
   "Appearance": "Ponahalo",
   "Re-enrolment": "Ho ngodisa hape", "Re-enrolment for {year}": "Ho ngodisa hape ha {year}",
   "Please let the school know whether {names} will return next year.": "Ka kopo tsebisa sekolo hore na {names} o tla kgutla selemong se tlang.", "Closes {date}.": "E kwalwa ka {date}.",

@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useT } from "@/components/I18nProvider";
 import {
   LayoutDashboard, Building2, GraduationCap, Users, UsersRound, BookOpen, CalendarCheck, Award, FileBarChart,
-  Wallet, Megaphone, CalendarDays, Clock, MessageSquare, UserCircle, Settings, Palette, Upload, LogOut, ChevronDown, X, Menu, ClipboardList, Receipt, DoorOpen, Baby, Shapes, ClipboardCheck, Contact,
+  Wallet, Megaphone, CalendarDays, Clock, MessageSquare, UserCircle, Settings, Palette, Upload, LogOut, ChevronDown, X, Menu, ClipboardList, Receipt, DoorOpen, Baby, Shapes, ClipboardCheck, Contact, Archive,
 } from "lucide-react";
 import { logout } from "@/app/actions/auth";
 import SchoolCrest from "@/components/SchoolCrest";
@@ -27,6 +27,7 @@ const MENU: Item[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ALL },
   { href: "/teachers", label: "Teachers", icon: GraduationCap, roles: ADMIN },
   { href: "/learners", label: "Learners", icon: Users, roles: STAFF },
+  { href: "/past", label: "Past learners", icon: Archive, roles: ADMIN },
   { href: "/parents", label: "Parents", icon: UsersRound, roles: ADMIN },
   { href: "/academics", label: "Classes & Subjects", icon: BookOpen, roles: ADMIN },
   { href: "/attendance", label: "Attendance", icon: CalendarCheck, roles: ALL },
@@ -83,6 +84,7 @@ const CARE_MENU: Item[] = [
   { href: "/checkin", label: "Check-in", icon: ClipboardCheck, roles: STAFF },
   { href: "/children", label: "Children", icon: Baby, roles: STAFF },
   { href: "/children", label: "My children", icon: Baby, roles: ["parent"] },
+  { href: "/past", label: "Past children", icon: Archive, roles: ADMIN },
   { href: "/classrooms", label: "Classrooms", icon: Shapes, roles: STAFF },
   { href: "/teachers", label: "Staff", icon: Contact, roles: ADMIN },
   { href: "/parents", label: "Parents", icon: UsersRound, roles: ADMIN },

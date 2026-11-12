@@ -152,6 +152,8 @@ export default {
   "Search children...": "Khangela abantwana...",
   "Owner": "Umnini",
   "Practitioner": "Umsebenzi wabantwana",
+  "Past learners": "Abafundi bangaphambili",
+  "Past children": "Abantwana bangaphambili",
   "Appearance": "Inkangeleko",
   "Re-enrolment": "Ukubhalisa kwakhona", "Re-enrolment for {year}": "Ukubhalisa kwakhona ka-{year}",
   "Please let the school know whether {names} will return next year.": "Nceda wazise isikolo ukuba {names} uza kubuya na kunyaka ozayo.", "Closes {date}.": "Kuvala ngo-{date}.",

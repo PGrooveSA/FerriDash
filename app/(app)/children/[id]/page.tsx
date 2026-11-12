@@ -8,6 +8,9 @@ import { ageGroupLabel } from "@/lib/org";
 import { Card, PageHeader, Empty } from "@/components/ui/kit";
 import { FormDialog, DeleteButton, ConfirmButton, type Field } from "@/components/ui/forms";
 import Avatar from "@/components/ui/Avatar";
+import LeaveButton from "@/components/LeaveButton";
+import { feesOn } from "@/lib/fees";
+import { leftLabel } from "@/lib/leavers";
 import { AllergyChips, ageText, todayStatus } from "@/components/childcare";
 import { saveHealth, addAllergy, deleteAllergy, saveContact, deleteContact, setConsent, setFeePlan } from "@/app/actions/childcare";
 
@@ -63,7 +66,8 @@ export default async function ChildPage({ params }: { params: Promise<{ id: stri
   return (
     <>
       <PageHeader title={`${c.first_name} ${c.last_name}`} subtitle={`${ageText(c.date_of_birth, t)} · ${c.className ?? "No classroom yet"}${room?.age_group ? ` (${ageGroupLabel(room.age_group)})` : ""} · ${c.admission_number}`}>
-        <span className={`chip ${st.tone}`}>{st.label}</span>
+        {c.status === "Active" ? <span className={`chip ${st.tone}`}>{st.label}</span> : <span className="chip chip-slate">{leftLabel(c.status, true)}</span>}
+        {ctx.isAdmin && c.status === "Active" && <LeaveButton id={c.id} name={c.first_name} childcare fees={feesOn(ctx.school)} />}
         {ctx.user.role !== "parent" && <Link href={`/checkin${c.class_id ? `?room=${c.class_id}` : ""}`} className="btn btn-ghost">Check-in board</Link>}
         <Link href="/children" className="btn btn-ghost">All children</Link>
       </PageHeader>

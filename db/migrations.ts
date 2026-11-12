@@ -417,4 +417,11 @@ export const MIGRATIONS: { version: number; sql: string }[] = [
         END IF;
       END $$;`,
   },
+  {
+    version: 16,
+    // When and why a learner or child left (set when their status stops being Active; cleared if they come back).
+    sql: `
+      ALTER TABLE learners ADD COLUMN IF NOT EXISTS left_on TEXT;
+      ALTER TABLE learners ADD COLUMN IF NOT EXISTS left_reason TEXT;`,
+  },
 ];

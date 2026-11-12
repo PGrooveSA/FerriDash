@@ -152,6 +152,8 @@ export default {
   "Search children...": "Sesha bantfwana...",
   "Owner": "Umnikati",
   "Practitioner": "Sisebenti sebantfwana",
+  "Past learners": "Bafundzi bakadzeni",
+  "Past children": "Bantfwana bakadzeni",
   "Appearance": "Kubukeka",
   "Re-enrolment": "Kubhalisa kabusha", "Re-enrolment for {year}": "Kubhalisa kabusha kwa-{year}",
   "Please let the school know whether {names} will return next year.": "Sicela utsatise sikolo kutsi {names} utawubuya yini ngemnyaka lotako.", "Closes {date}.": "Kuvala nga-{date}.",

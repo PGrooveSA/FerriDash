@@ -1,5 +1,6 @@
 "use server";
 import bcrypt from "bcryptjs";
+import { syncFamilyLogins } from "@/lib/leavers";
 import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { ownLearnerIds } from "@/lib/auth";
@@ -132,6 +133,7 @@ export async function enrolApplicant(_: ActionResult, f: FormData) {
         created = true;
       }
       await run("INSERT INTO guardian_links (parent_user_id, learner_id, relationship) VALUES (?,?,?) ON CONFLICT (parent_user_id, learner_id) DO NOTHING", parent.id, learnerId, a.relationship || "Parent");
+      await syncFamilyLogins([learnerId]);
       await run("UPDATE applications SET status = 'Enrolled', learner_id = ?, parent_email = ?, updated_at = datetime('now') WHERE id = ?", learnerId, email, a.id);
       await audit(ctx.schoolId, ctx.user.id, "enrol", "learner", learnerId, `from application ${id}`);
     });

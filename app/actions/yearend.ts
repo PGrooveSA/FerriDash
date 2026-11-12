@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { all, audit, get, run, tx } from "@/lib/db";
 import { ADMIN, fail, guarded, num, type ActionResult } from "@/lib/action-utils";
 import { nextClassName, yearEndPlan, type YearEndAction } from "@/lib/yearend";
+import { syncFamilyLogins } from "@/lib/leavers";
 
 const ACTIONS: YearEndAction[] = ["promote", "repeat", "graduate", "leave"];
 const shiftYear = (date: string, by: number) => `${Number(date.slice(0, 4)) + by}${date.slice(4)}`;
@@ -19,6 +20,7 @@ export async function runYearEnd(_: ActionResult, f: FormData): Promise<ActionRe
     if (num(f, "confirm_year") !== year) fail(`Type ${year} to confirm.`);
     const plan = await yearEndPlan(ctx);
     const counts = { promote: 0, repeat: 0, graduate: 0, leave: 0 };
+    const leavers: number[] = [];
 
     await tx(async () => {
             // Next year's class for a given name/grade: reuse if it exists, else create it from this year's same-grade class.
@@ -46,8 +48,8 @@ export async function runYearEnd(_: ActionResult, f: FormData): Promise<ActionRe
 
                 if (action === "promote") await run("UPDATE learners SET class_id = ? WHERE id = ?", await classFor(nextClassName(c.name, c.grade), c.grade + 1), l.id);
                 else if (action === "repeat") await run("UPDATE learners SET class_id = ? WHERE id = ?", await classFor(c.name, c.grade), l.id);
-                else if (action === "graduate") await run("UPDATE learners SET status = 'Graduated' WHERE id = ?", l.id);
-                else await run("UPDATE learners SET status = 'Withdrawn' WHERE id = ?", l.id);
+                else if (action === "graduate") { await run("UPDATE learners SET status = 'Graduated', left_on = date('now'), left_reason = ? WHERE id = ?", note, l.id); leavers.push(l.id); }
+                else { await run("UPDATE learners SET status = 'Withdrawn', left_on = date('now'), left_reason = COALESCE(left_reason, ?) WHERE id = ?", `Left at the end of ${year}`, l.id); leavers.push(l.id); }
                 counts[action]++;
               }
             }
@@ -60,6 +62,8 @@ export async function runYearEnd(_: ActionResult, f: FormData): Promise<ActionRe
                       `${year} -> ${next}: ${counts.promote} promoted, ${counts.repeat} repeating, ${counts.graduate} graduated, ${counts.leave} left`);
           });
 
+    // Graduates and leavers keep their records, not their logins (lib/leavers.ts).
+    await syncFamilyLogins(leavers);
     revalidatePath("/", "layout");
     return { ok: true, message: `${year} closed. ${counts.promote} promoted, ${counts.repeat} repeating, ${counts.graduate} graduated, ${counts.leave} left. Welcome to ${next}.` };
   });

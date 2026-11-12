@@ -10,6 +10,8 @@ import { FormDialog, DeleteButton, Filters, type Field } from "@/components/ui/f
 import Avatar from "@/components/ui/Avatar";
 import { AllergyChips, ageText, todayStatus } from "@/components/childcare";
 import { saveLearner, deleteLearner } from "@/app/actions/people";
+import LeaveButton from "@/components/LeaveButton";
+import { feesOn } from "@/lib/fees";
 
 export const metadata = { title: "Children" };
 const PER_PAGE = 15;
@@ -93,7 +95,7 @@ export default async function ChildrenPage({ searchParams }: { searchParams: Pro
       <PageHeader title="Children" subtitle={`${total} child${total === 1 ? "" : "ren"}${room ? "" : " at the centre"}`}>
         <Filters search={{ name: "q", placeholder: "Search name or child number", value: q }}
           filters={[{ name: "room", label: "Classroom", allLabel: "All classrooms", value: room || "", options: rooms.map((r) => ({ value: r.id, label: r.name })) },
-            { name: "status", label: "Status", value: status, options: [{ value: "Active", label: "Current children" }, { value: "Withdrawn", label: "Left the centre" }, { value: "Graduated", label: "Went to school" }, { value: "all", label: "Everyone (incl. past)" }] }]} />
+            { name: "status", label: "Status", value: status, options: [{ value: "Active", label: "Current children" }, { value: "all", label: "Everyone (incl. past)" }] }]} />
         {ctx.isAdmin && <FormDialog title="Register a child" triggerLabel="Register child" fields={fields()} action={saveLearner} size="lg" />}
       </PageHeader>
       <Card>
@@ -123,7 +125,8 @@ export default async function ChildrenPage({ searchParams }: { searchParams: Pro
                         <td><div className="flex justify-end gap-1.5">
                           <Link href={`/children/${c.id}`} className="btn btn-ghost btn-sm">Profile</Link>
                           <FormDialog trigger="edit" title={`Edit ${c.first_name}`} fields={fields(c)} hidden={{ id: c.id }} action={saveLearner} size="lg" />
-                          <DeleteButton action={deleteLearner.bind(null, c.id)} label={`${c.first_name} ${c.last_name}`} />
+                          {c.status === "Active" && <LeaveButton id={c.id} name={c.first_name} childcare fees={feesOn(ctx.school)} />}
+                          <DeleteButton action={deleteLearner.bind(null, c.id)} label={`${c.first_name} ${c.last_name}`} confirmText={`Permanently delete ${`${c.first_name} ${c.last_name}`}? Their marks, attendance, fee statements and payments are erased too, and this cannot be undone.\n\nIf they left, cancel and use "Leaves" instead: the record is kept under Past children.`} />
                         </div></td>
                       )}
                     </tr>

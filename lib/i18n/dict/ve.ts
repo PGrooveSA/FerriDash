@@ -152,6 +152,8 @@ export default {
   "Search children...": "Ṱoḓa vhana...",
   "Owner": "Mune",
   "Practitioner": "Mushumi wa vhana",
+  "Past learners": "Vhagudi vha kale",
+  "Past children": "Vhana vha kale",
   "Appearance": "Mbonalo",
   "Re-enrolment": "U ṅwaliswa hafhu", "Re-enrolment for {year}": "U ṅwaliswa hafhu ha {year}",
   "Please let the school know whether {names} will return next year.": "Ri humbela ni ḓivhadze tshikolo arali {names} a tshi ḓo vhuya ṅwaha u ḓaho.", "Closes {date}.": "Hu valwa nga {date}.",

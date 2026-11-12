@@ -112,10 +112,11 @@ export async function billingSchedule(schoolId: number, year: number): Promise<I
 /**
  * Bills active learners (in a class whose grade has fees, and not billed this year yet) on this schedule: the grade's
  * yearly total split evenly over the instalments. At a childcare centre a child on a fee plan pays the plan's monthly
- * fee for each instalment instead (centres bill monthly), whatever their classroom. fromNow bills someone joining mid-year only for the current
+ * fee for each instalment instead (centres bill monthly), whatever their classroom. topUp also bills learners who
+ * already have some of the year's instalments (someone re-admitted): only the missing ones are added. fromNow bills someone joining mid-year only for the current
  * instalment (the latest one already due) and the ones after it. Returns how many learners were billed.
  */
-export async function billLearners(schoolId: number, year: number, schedule: Instalment[], opts: { learnerIds?: number[]; fromNow?: boolean } = {}): Promise<number> {
+export async function billLearners(schoolId: number, year: number, schedule: Instalment[], opts: { learnerIds?: number[]; fromNow?: boolean; topUp?: boolean } = {}): Promise<number> {
   if (!schedule.length || (opts.learnerIds && !opts.learnerIds.length)) return 0;
   // Numbered placeholders throughout (?1, ?2, then ?3...): lib/db.ts can't mix them with plain "?".
   const only = opts.learnerIds ? `AND l.id IN (${opts.learnerIds.map((_, i) => `?${i + 3}`).join(",")})` : "";
@@ -125,7 +126,7 @@ export async function billLearners(schoolId: number, year: number, schedule: Ins
     LEFT JOIN classes c ON c.id = l.class_id LEFT JOIN fee_structures fs ON fs.school_id = l.school_id AND fs.year = ?1 AND fs.grade = c.grade
     LEFT JOIN fee_plans fp ON fp.id = l.fee_plan_id AND fp.school_id = l.school_id
     WHERE l.school_id = ?2 AND l.status = 'Active' AND (fp.id IS NOT NULL OR fs.id IS NOT NULL)
-      AND NOT EXISTS (SELECT 1 FROM invoices i WHERE i.learner_id = l.id AND i.year = ?1 AND i.period IS NOT NULL) ${only}`,
+      ${opts.topUp ? "" : "AND NOT EXISTS (SELECT 1 FROM invoices i WHERE i.learner_id = l.id AND i.year = ?1 AND i.period IS NOT NULL)"} ${only}`,
     year, schoolId, ...(opts.learnerIds ?? []));
   if (!learners.length) return 0;
   const current = schedule.reduce((k, s, i) => (s.due <= t ? i : k), 0);

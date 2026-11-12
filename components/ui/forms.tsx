@@ -95,14 +95,14 @@ export function FormDialog({ title, fields, action, hidden = {}, trigger = "add"
   );
 }
 
-export function DeleteButton({ action, label = "this record" }: { action: () => Promise<ActionResult | void>; label?: string }) {
+export function DeleteButton({ action, label = "this record", confirmText }: { action: () => Promise<ActionResult | void>; label?: string; confirmText?: string }) {
   const router = useRouter();
   const t = useT();
   const [busy, setBusy] = useState(false);
   return (
     <button type="button" disabled={busy} className="icon-btn !w-8 !h-8 hover:!bg-rose-500/15 hover:text-rose-600" aria-label={t("Delete {name}", { name: t(label) })}
       onClick={async () => {
-        if (!confirm(t("Delete {name}? This cannot be undone.", { name: t(label) }))) return;
+        if (!confirm(confirmText ?? t("Delete {name}? This cannot be undone.", { name: t(label) }))) return;
         setBusy(true);
         const r = await action();
         setBusy(false);

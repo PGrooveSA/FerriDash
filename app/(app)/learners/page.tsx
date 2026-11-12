@@ -6,6 +6,8 @@ import { Card, PageHeader, Pager, TableWrap, Empty, StatusChip, hrefWith } from 
 import { FormDialog, DeleteButton, Filters, type Field } from "@/components/ui/forms";
 import Avatar from "@/components/ui/Avatar";
 import { saveLearner, deleteLearner } from "@/app/actions/people";
+import LeaveButton from "@/components/LeaveButton";
+import { feesOn } from "@/lib/fees";
 
 export const metadata = { title: "Learners" };
 const PER_PAGE = 12;
@@ -87,7 +89,8 @@ export default async function LearnersPage({ searchParams }: { searchParams: Pro
                         <div className="flex justify-end gap-1.5">
                           <Link href={`/reports/report-cards?learner=${l.id}`} className="btn btn-ghost btn-sm">Report</Link>
                           <FormDialog trigger="edit" title={`Edit ${l.first_name}`} fields={fields(l)} hidden={{ id: l.id }} action={saveLearner} size="lg" />
-                          <DeleteButton action={deleteLearner.bind(null, l.id)} label={`${l.first_name} ${l.last_name}`} />
+                          {l.status === "Active" && <LeaveButton id={l.id} name={l.first_name} childcare={false} fees={feesOn(ctx.school)} />}
+                          <DeleteButton action={deleteLearner.bind(null, l.id)} label={`${l.first_name} ${l.last_name}`} confirmText={`Permanently delete ${`${l.first_name} ${l.last_name}`}? Their marks, attendance, fee statements and payments are erased too, and this cannot be undone.\n\nIf they left, cancel and use "Leaves" instead: the record is kept under Past learners.`} />
                         </div>
                       </td>
                     )}

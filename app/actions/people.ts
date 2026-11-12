@@ -9,6 +9,7 @@ import { all, audit, get, run, tx } from "@/lib/db";
 import { EXIT_REASONS } from "@/lib/staff";
 import { parseSaId } from "@/lib/format";
 import { autoBill } from "@/lib/fees";
+import { syncFamilyLogins } from "@/lib/leavers";
 import { isLang } from "@/lib/i18n";
 import { ADMIN, EVERYONE, STAFF, emailField, fail, guarded, isDate, limit, num, opt, str, type ActionResult } from "@/lib/action-utils";
 
@@ -204,8 +205,11 @@ export async function saveLearner(_: ActionResult, f: FormData) {
     await tx(async () => {
             let learnerId = id;
             if (id) {
-              if (!(await get("SELECT id FROM learners WHERE id = ? AND school_id = ?", id, ctx.schoolId))) fail("Learner not found.");
+              const before = (await get<{ status: string }>("SELECT status FROM learners WHERE id = ? AND school_id = ?", id, ctx.schoolId)) ?? fail("Learner not found.");
               await run("UPDATE learners SET first_name=?, last_name=?, admission_number=?, id_number=?, gender=?, date_of_birth=?, class_id=?, home_language=?, address=?, status=? WHERE id = ?", ...fields, id);
+              // Leaving through the edit form: note the day (Mark as left also takes a reason); coming back clears it.
+              if (before.status === "Active" && fields[9] !== "Active") await run("UPDATE learners SET left_on = COALESCE(left_on, date('now')) WHERE id = ?", id);
+              if (before.status !== "Active" && fields[9] === "Active") await run("UPDATE learners SET left_on = NULL, left_reason = NULL WHERE id = ?", id);
               await run("UPDATE users SET first_name=?, last_name=? WHERE id = (SELECT user_id FROM learners WHERE id = ?)", fields[0], fields[1], id);
             } else {
               learnerId = (await run("INSERT INTO learners (first_name, last_name, admission_number, id_number, gender, date_of_birth, class_id, home_language, address, status, school_id, enrolled_on) VALUES (?,?,?,?,?,?,?,?,?,?,?,date('now'))", ...fields, ctx.schoolId)).id;
@@ -233,6 +237,7 @@ export async function saveLearner(_: ActionResult, f: FormData) {
             savedId = learnerId ?? 0;
           });
     // A new learner, or one just placed in a class, gets this year's school fees on the school's schedule (lib/fees.ts).
+    if (savedId) await syncFamilyLogins([savedId]);
     if (savedId && fields[9] === "Active") await autoBill(ctx.schoolId, savedId);
     revalidatePath("/learners");
     revalidatePath("/children", "layout");
@@ -275,6 +280,8 @@ export async function linkChild(_: ActionResult, f: FormData) {
     const learner = (await get<{ id: number }>("SELECT id FROM learners WHERE school_id = ? AND admission_number = ?", ctx.schoolId, str(f, "admission_number"))) ?? fail("No learner with that admission number.");
     if (!(await get("SELECT id FROM users WHERE id = ? AND school_id = ? AND role = 'parent'", parentId, ctx.schoolId))) fail("Parent not found.");
     await run("INSERT INTO guardian_links (parent_user_id, learner_id, relationship) VALUES (?,?,?) ON CONFLICT (parent_user_id, learner_id) DO UPDATE SET relationship = excluded.relationship", parentId, learner.id, str(f, "relationship") || "Parent");
+    // A parent whose login was off (their other children left) gets it back for a current child.
+    await syncFamilyLogins([learner.id]);
     await audit(ctx.schoolId, ctx.user.id, "link", "guardian", learner.id, `parent ${parentId}`);
     revalidatePath("/parents");
   });

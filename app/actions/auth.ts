@@ -41,8 +41,8 @@ export async function login(_: unknown, form: FormData): Promise<{ error?: strin
     return { error: blocked.includes(limits[0].key) ? LOCKED : TOO_MANY };
   }
 
-  const user = await get<{ id: number; role: string; password_hash: string; school_id: number | null; session_version: number; org_type: string | null }>(
-      "SELECT u.id, u.role, u.password_hash, u.school_id, u.session_version, s.org_type FROM users u LEFT JOIN schools s ON s.id = u.school_id WHERE lower(u.email) = ? AND u.active = 1 AND (s.id IS NULL OR s.active = 1)", email);
+  const user = await get<{ id: number; role: string; password_hash: string; school_id: number | null; session_version: number; org_type: string | null; active: number }>(
+      "SELECT u.id, u.role, u.password_hash, u.school_id, u.session_version, s.org_type, u.active FROM users u LEFT JOIN schools s ON s.id = u.school_id WHERE lower(u.email) = ? AND (s.id IS NULL OR s.active = 1)", email);
   const ok = await bcrypt.compare(password, user?.password_hash ?? NO_USER_HASH);
   if (!user || !ok) {
     const nowBlocked = await recordFailure(limits);
@@ -53,6 +53,12 @@ export async function login(_: unknown, form: FormData): Promise<{ error?: strin
       return { error: LOCKED };
     }
     return { error: "Incorrect email or password." };
+  }
+  // The right password for a switched-off login (a learner who left, a parent with no current children, staff who left):
+  // say so, rather than "incorrect password". Only someone who knows the password learns this.
+  if (!user.active) {
+    await securityEvent("login_failed", { email, known: 1, inactive: 1 });
+    return { error: "This account has been switched off because there is no current learner, child or post at the school linked to it. Contact the school if you still need access." };
   }
   await clearFailures([limits[0].key]);
   await run("UPDATE users SET last_login = datetime('now') WHERE id = ?", user.id);
