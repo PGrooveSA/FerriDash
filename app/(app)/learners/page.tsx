@@ -90,7 +90,7 @@ export default async function LearnersPage({ searchParams }: { searchParams: Pro
                           <Link href={`/reports/report-cards?learner=${l.id}`} className="btn btn-ghost btn-sm">Report</Link>
                           <FormDialog trigger="edit" title={`Edit ${l.first_name}`} fields={fields(l)} hidden={{ id: l.id }} action={saveLearner} size="lg" />
                           {l.status === "Active" && <LeaveButton id={l.id} name={l.first_name} childcare={false} fees={feesOn(ctx.school)} />}
-                          <DeleteButton action={deleteLearner.bind(null, l.id)} label={`${l.first_name} ${l.last_name}`} confirmText={`Permanently delete ${`${l.first_name} ${l.last_name}`}? Their marks, attendance, fee statements and payments are erased too, and this cannot be undone.\n\nIf they left, cancel and use "Leaves" instead: the record is kept under Past learners.`} />
+                          <DeleteButton action={deleteLearner.bind(null, l.id)} label={`${l.first_name} ${l.last_name}`} confirmText={`Permanently delete ${`${l.first_name} ${l.last_name}`}? Their marks, attendance, fee statements and payments are erased too, and this cannot be undone.\n\nIf they left, cancel and use "Leaves" instead: the record is kept in the Passed Out Archive.`} />
                         </div>
                       </td>
                     )}

@@ -3,7 +3,7 @@ import { markLeft } from "@/app/actions/leavers";
 import { LEFT_STATUSES } from "@/lib/leavers";
 import { today } from "@/lib/today";
 
-/** "Leaves": the learner or child moves to Past learners / Past children; their record is kept and their login switched off. */
+/** "Leaves": the learner or child moves to the Passed Out Archive; their record is kept and their login switched off. */
 export default function LeaveButton({ id, name, childcare, fees }: { id: number; name: string; childcare: boolean; fees: boolean }) {
   return (
     <FormDialog trigger="button" triggerLabel="Leaves" title={`${name} leaves the ${childcare ? "centre" : "school"}`} hidden={{ learner_id: id }} action={markLeft} submitLabel="Confirm"

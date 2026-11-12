@@ -34,7 +34,7 @@ export async function markLeft(_: ActionResult, f: FormData) {
     await syncFamilyLogins([id]);
     await audit(ctx.schoolId, ctx.user.id, "left", isChildcare(ctx.school) ? "child" : "learner", id, `${status} on ${on}${cancelled ? `, ${cancelled} future invoice(s) cancelled` : ""}`);
     refresh();
-    return { ok: true, message: `${l.first_name} is now under Past ${isChildcare(ctx.school) ? "children" : "learners"}.${cancelled ? ` ${cancelled} unpaid future invoice${cancelled === 1 ? "" : "s"} cancelled.` : ""}` };
+    return { ok: true, message: `${l.first_name} is now in the Passed Out Archive.${cancelled ? ` ${cancelled} unpaid future invoice${cancelled === 1 ? "" : "s"} cancelled.` : ""}` };
   });
 }
 

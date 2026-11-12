@@ -10,7 +10,7 @@ import Avatar from "@/components/ui/Avatar";
 import { readmit } from "@/app/actions/leavers";
 import { deleteLearner } from "@/app/actions/people";
 
-export const metadata = { title: "Past records" };
+export const metadata = { title: "Passed Out Archive" };
 const PER_PAGE = 20;
 
 type P = { id: number; first_name: string; last_name: string; admission_number: string; status: string; left_on: string | null; left_reason: string | null;
@@ -46,7 +46,7 @@ export default async function PastPage({ searchParams }: { searchParams: Promise
 
   return (
     <>
-      <PageHeader title={childcare ? "Past children" : "Past learners"}
+      <PageHeader title="Passed Out Archive"
         subtitle={`${total} ${total === 1 ? (childcare ? "child" : "learner") : who} who left. Records are kept; their logins and their parents' are switched off.`}>
         <Filters search={{ name: "q", placeholder: "Search name or number", value: q }}
           filters={[{ name: "status", label: "Status", value: status, allLabel: "All reasons", options: LEFT_STATUSES[childcare ? "childcare" : "school"] },
