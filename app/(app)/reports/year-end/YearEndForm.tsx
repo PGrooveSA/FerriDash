@@ -36,7 +36,7 @@ export default function YearEndForm({ plan, year }: { plan: PlanClass[]; year: n
     <form onSubmit={(e) => { e.preventDefault(); const fd = new FormData(e.currentTarget); startTransition(() => action(fd)); }} className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {([["promote", ArrowUpCircle, "to the next grade"], ["repeat", RotateCcw, "stay in the same grade"], ["graduate", GraduationCap, "Grade 12 completed"], ["leave", LogOut, "removed from class lists"]] as const).map(([k, Icon, hint]) => (
-          <div key={k} className="glass p-5"><Icon className="w-6 h-6" /><p className="text-3xl font-bold mt-2">{counts[k]}</p><p className="font-medium">{LABEL[k]}</p><p className="text-xs muted">{hint}</p></div>
+          <div key={k} className="stat-card p-5"><Icon className="w-6 h-6" /><p className="text-3xl font-bold mt-2">{counts[k]}</p><p className="font-medium">{LABEL[k]}</p><p className="text-xs muted">{hint}</p></div>
         ))}
       </div>
 

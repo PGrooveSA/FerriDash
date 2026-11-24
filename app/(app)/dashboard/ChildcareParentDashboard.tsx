@@ -54,16 +54,16 @@ export default async function ChildcareParentDashboard({ ctx }: { ctx: Ctx }) {
                 <Link href={`/children/${k.id}`} className="btn btn-ghost btn-sm">Profile and contacts</Link>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5">
-                <div className="glass-strong rounded-2xl p-4"><p className="text-xs muted">Today</p><p className="text-lg font-bold"><span className={`chip ${st.tone} !text-sm`}>{st.label}</span></p>
+                <div className="stat-card p-4"><p className="text-xs muted">Today</p><p className="text-lg font-bold"><span className={`chip ${st.tone} !text-sm`}>{st.label}</span></p>
                   <p className="text-xs muted mt-1">{k.in_at ? `Dropped off by ${k.dropped_by}` : "Not checked in yet"}</p></div>
-                <div className="glass-strong rounded-2xl p-4"><p className="text-xs muted">Collected</p><p className="text-lg font-bold">{k.out_at ?? "-"}</p><p className="text-xs muted">{k.collected_by ? `by ${k.collected_by}` : "Still at the centre or not in today"}</p></div>
+                <div className="stat-card p-4"><p className="text-xs muted">Collected</p><p className="text-lg font-bold">{k.out_at ?? "-"}</p><p className="text-xs muted">{k.collected_by ? `by ${k.collected_by}` : "Still at the centre or not in today"}</p></div>
                 {a ? (
-                  <Link href={`/finance/statement?learner=${k.id}`} className="glass-strong rounded-2xl p-4 hover:-translate-y-0.5 transition-transform">
+                  <Link href={`/finance/statement?learner=${k.id}`} className="stat-card p-4 hover:-translate-y-0.5 transition-transform">
                     <p className="text-xs muted">Fees due now</p>
                     <p className={`text-lg font-bold ${a.overdue > 0.5 ? "text-rose-600" : ""}`}>{zar(Math.max(0, a.dueNow))}</p>
                     <p className="text-xs muted">{a.overdue > 0.5 ? `${zar(a.overdue)} overdue` : a.total > 0.5 ? "Tap to pay or see the statement" : "Paid up. Thank you!"}</p>
                   </Link>
-                ) : <div className="glass-strong rounded-2xl p-4"><p className="text-xs muted">Centre hours</p><p className="text-lg font-bold">{ctx.school.opens_at ?? "?"}–{ctx.school.closes_at ?? "?"}</p></div>}
+                ) : <div className="stat-card p-4"><p className="text-xs muted">Centre hours</p><p className="text-lg font-bold">{ctx.school.opens_at ?? "?"}–{ctx.school.closes_at ?? "?"}</p></div>}
               </div>
             </Card>
           );

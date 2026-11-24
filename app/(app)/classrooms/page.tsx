@@ -46,9 +46,9 @@ export default async function ClassroomsPage() {
             )}>
               <p className="text-sm muted -mt-3 mb-4">{ageGroupLabel(r.age_group)}{r.room ? ` · ${r.room}` : ""}</p>
               <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="glass-strong rounded-2xl p-3"><p className="text-2xl font-bold">{r.present}</p><p className="text-xs muted">in now</p></div>
-                <div className="glass-strong rounded-2xl p-3"><p className="text-2xl font-bold">{r.children}{r.capacity ? <span className="text-sm muted font-normal">/{r.capacity}</span> : null}</p><p className="text-xs muted">enrolled</p></div>
-                <div className="glass-strong rounded-2xl p-3"><p className="text-2xl font-bold">1:{r.perStaff}</p><p className="text-xs muted">ratio</p></div>
+                <div className="stat-card p-3"><p className="text-2xl font-bold">{r.present}</p><p className="text-xs muted">in now</p></div>
+                <div className="stat-card p-3"><p className="text-2xl font-bold">{r.children}{r.capacity ? <span className="text-sm muted font-normal">/{r.capacity}</span> : null}</p><p className="text-xs muted">enrolled</p></div>
+                <div className="stat-card p-3"><p className="text-2xl font-bold">1:{r.perStaff}</p><p className="text-xs muted">ratio</p></div>
               </div>
               {r.over ? (
                 <p className="mt-3 text-sm text-rose-600 flex items-start gap-1.5"><AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />

@@ -403,6 +403,16 @@ body {
   --chart-1: #c74949;
 }
 
+/* Summary cards (StatCard and the small figure boxes on dashboards): dark grey with white text, in every theme. */
+.stat-card { background: #2f343b; color: #ffffff; border: 0; border-radius: var(--radius-card, 0.85rem); }
+.dark .stat-card { background: #2a2f37; }
+.stat-card .muted, .stat-card .text-sm.muted, .stat-card .text-xs.muted { color: rgb(255 255 255 / 0.72); }
+.skin-root main .stat-card .icon-btn, .stat-card .icon-btn { background: rgb(255 255 255 / 0.12); color: #ffffff; border-color: transparent; box-shadow: none; }
+.stat-card .text-rose-600 { color: #fda4af; }
+.stat-card .text-emerald-600 { color: #6ee7b7; }
+.stat-card :is(h1, h2, h3) { color: #ffffff !important; }
+a.stat-card:hover { background: #3a4048; }
+
 /* Sidebar items take their look from the theme. */
 .nav-active { background: var(--nav-active-bg); color: var(--nav-active-ink); box-shadow: var(--nav-active-shadow); }
 .nav-idle { color: var(--muted); }
@@ -516,12 +526,12 @@ html.skin-fade, html.skin-fade *, html.skin-fade *::before, html.skin-fade *::af
 /* ---------- Sign-in page: a flat, always-light split card (app/login/page.tsx) ---------- */
 .login-page {
   --ink: #101828; --muted: #667085; color-scheme: light;
-  color: var(--ink); background: #ecebe8;
+  color: var(--ink); background: #e9ebee;
 }
-.login-shell { border-radius: 1.75rem; background: #fff; box-shadow: 0 30px 80px -30px rgb(40 20 0 / 0.35); }
+.login-shell { border-radius: 1.75rem; background: #fff; border: 1px solid #dfe2e7; }
 .login-art-side { background: #fff; }
-.login-form-side { background: #fdf0e3; }
-.login-form-card { background: #fff; border-radius: 1.25rem; padding: 1.4rem 1.5rem 1.6rem; box-shadow: 0 12px 34px -20px rgb(90 45 0 / 0.35); }
+.login-form-side { background: #f3f4f6; }
+.login-form-card { background: #fff; border-radius: 1.25rem; padding: 1.4rem 1.5rem 1.6rem; border: 1px solid #e4e7ec; }
 .login-label { display: block; font-size: 0.95rem; font-weight: 700; color: #101828; margin-bottom: 0.4rem; }
 .login-input {
   width: 100%; border-radius: 0.8rem; padding: 0.8rem 1rem 0.8rem 3rem; font-size: 1rem;

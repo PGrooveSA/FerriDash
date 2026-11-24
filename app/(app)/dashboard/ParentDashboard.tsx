@@ -58,18 +58,18 @@ export default async function ParentDashboard({ ctx }: { ctx: Ctx }) {
               </div>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-5">
-              <div className="glass-strong rounded-2xl p-4"><p className="text-xs muted">{tr("Attendance")}</p><p className="text-2xl font-bold">{att.rate != null ? `${att.rate}%` : "-"}</p><p className="text-xs muted">{tr("{n} absent days", { n: att.absent ?? 0 })}</p></div>
-              <div className="glass-strong rounded-2xl p-4"><p className="text-xs muted">{latest ? tr("Term {n} average", { n: latest.term }) : tr("Average")}</p><p className="text-2xl font-bold">{latest?.row?.average != null ? `${latest.row.average}%` : "-"}</p><p className="text-xs muted">{latest?.row?.position ? tr("Position {n}", { n: latest.row.position }) : tr("Not yet published")}</p></div>
+              <div className="stat-card p-4"><p className="text-xs muted">{tr("Attendance")}</p><p className="text-2xl font-bold">{att.rate != null ? `${att.rate}%` : "-"}</p><p className="text-xs muted">{tr("{n} absent days", { n: att.absent ?? 0 })}</p></div>
+              <div className="stat-card p-4"><p className="text-xs muted">{latest ? tr("Term {n} average", { n: latest.term }) : tr("Average")}</p><p className="text-2xl font-bold">{latest?.row?.average != null ? `${latest.row.average}%` : "-"}</p><p className="text-xs muted">{latest?.row?.position ? tr("Position {n}", { n: latest.row.position }) : tr("Not yet published")}</p></div>
               {fees ? (() => {
                 const a = fees.get(l.id)!;
                 return (
-                  <Link href={`/finance/statement?learner=${l.id}`} className="glass-strong rounded-2xl p-4 hover:-translate-y-0.5 transition-transform">
+                  <Link href={`/finance/statement?learner=${l.id}`} className="stat-card p-4 hover:-translate-y-0.5 transition-transform">
                     <p className="text-xs muted">{tr("School fees due now")}</p>
                     <p className={`text-2xl font-bold ${a.overdue > 0.5 ? "text-rose-600" : ""}`}>{zar(Math.max(0, a.dueNow))}</p>
                     <p className="text-xs muted">{a.overdue > 0.5 ? tr("{amount} overdue", { amount: zar(a.overdue) }) : a.total > 0.5 ? tr("{amount} for the rest of the year", { amount: zar(a.total - Math.max(0, a.dueNow)) }) : tr("Paid up. Thank you!")}</p>
                   </Link>
                 );
-              })() : <div className="glass-strong rounded-2xl p-4"><p className="text-xs muted">{tr("Subjects")}</p><p className="text-2xl font-bold">{latest?.cr?.subjects.length ?? "-"}</p><p className="text-xs muted">{tr("CAPS curriculum")}</p></div>}
+              })() : <div className="stat-card p-4"><p className="text-xs muted">{tr("Subjects")}</p><p className="text-2xl font-bold">{latest?.cr?.subjects.length ?? "-"}</p><p className="text-xs muted">{tr("CAPS curriculum")}</p></div>}
             </div>
             {latest && (
               <div className="flex flex-wrap gap-2 mt-4">

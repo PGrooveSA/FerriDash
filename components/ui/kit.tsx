@@ -28,22 +28,16 @@ export function PageHeader({ title, subtitle, children }: { title: string; subti
   );
 }
 
-const TONES = {
-  sky: "from-sky-200/80 to-sky-100/40 dark:from-sky-500/25 dark:to-sky-500/5",
-  green: "from-emerald-200/80 to-emerald-100/40 dark:from-emerald-500/25 dark:to-emerald-500/5",
-  orange: "from-brand-200/80 to-brand-100/40 dark:from-brand-500/25 dark:to-brand-500/5",
-  gold: "from-gold-200/80 to-gold-100/40 dark:from-gold-500/25 dark:to-gold-500/5",
-  butter: "from-butter-300/80 to-butter-100/40 dark:from-butter-500/25 dark:to-butter-500/5",
-  charcoal: "from-charcoal-200/80 to-charcoal-100/40 dark:from-charcoal-500/20 dark:to-charcoal-500/5",
-} as const;
+/** Kept for the tone prop: every summary card has the same dark grey look (.stat-card in globals.css). */
+const TONES = { sky: 1, green: 1, orange: 1, gold: 1, butter: 1, charcoal: 1 } as const;
 
 export function StatCard({ label, value, icon: Icon, tone = "sky", delta, hint }: { label: string; value: React.ReactNode; icon?: LucideIcon; tone?: keyof typeof TONES; delta?: number; hint?: string }) {
   return (
-    <div className={`glass tile p-5 bg-gradient-to-br ${TONES[tone]} relative overflow-hidden`}>
+    <div className="stat-card tile p-5 relative overflow-hidden" data-tone={tone}>
       <div className="flex items-start justify-between">
         {Icon && <span className="icon-btn !w-10 !h-10"><Icon className="w-5 h-5" /></span>}
         {delta != null && (
-          <span className={`chip ${delta >= 0 ? "chip-green" : "chip-red"} bg-white/70 dark:bg-white/10`}>
+          <span className={`chip ${delta >= 0 ? "chip-green" : "chip-red"}`}>
             {delta >= 0 ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}{Math.abs(delta)}%
           </span>
         )}

@@ -84,12 +84,12 @@ export default async function AdminDashboard({ ctx }: { ctx: Ctx }) {
               <AreaTrend money data={money} xKey="name" series={[{ key: "expense", name: tr("Expenses"), color: "var(--chart-2)" }]} />
             </Card>
             <div className="grid gap-6">
-              <Link href="/results/moderation" className="glass p-5 block hover:scale-[1.01] transition-transform">
-                <Award className="w-8 h-8 text-gold-500" />
+              <Link href="/results/moderation" className="stat-card p-5 block hover:scale-[1.01] transition-transform">
+                <Award className="w-8 h-8 text-gold-400" />
                 <p className="text-3xl font-bold mt-3">{pending}</p>
                 <p className="muted text-sm">{tr("Mark sheets awaiting moderation")}</p>
               </Link>
-              <div className="glass p-5">
+              <div className="stat-card p-5">
                 <p className="text-sm muted">{tr("Current term")}</p>
                 <p className="text-3xl font-bold">{tr("Term {n}", { n: ctx.school.current_term })}</p>
                 <p className="text-sm muted">{tr("{year} academic year", { year })} · {ctx.school.province}</p>
