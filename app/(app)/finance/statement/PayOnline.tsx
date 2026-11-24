@@ -70,8 +70,9 @@ type Row = { id: number; provider: string; amount: number; status: string; reaso
 const TONE: Record<string, string> = { Successful: "chip-green", Failed: "chip-red", Pending: "chip-butter", Created: "chip-butter" };
 const LABEL: Record<string, string> = { Successful: "Paid", Failed: "Not completed", Pending: "Awaiting confirmation", Created: "Awaiting payment" };
 
-/** Recent online payments; ones still open are checked when the page opens. */
-export function OnlinePaymentsList({ rows, autoCheck, title = "Online payments", hint }: { rows: Row[]; autoCheck: number[]; title?: string; hint?: string }) {
+/** Recent online payments; ones still open are checked when the page opens.
+ * hidden: shows nothing but still runs that check (parents and learners don't see the list). */
+export function OnlinePaymentsList({ rows, autoCheck, title = "Online payments", hint, hidden = false }: { rows: Row[]; autoCheck: number[]; title?: string; hint?: string; hidden?: boolean }) {
   const router = useRouter();
   const [busy, setBusy] = useState<number | null>(null);
   const [msg, setMsg] = useState<Record<number, string>>({});
@@ -88,7 +89,7 @@ export function OnlinePaymentsList({ rows, autoCheck, title = "Online payments",
     ran.current = true;
     (async () => { for (const id of autoCheck) await check(id); })();
   }, [autoCheck]); // eslint-disable-line react-hooks/exhaustive-deps
-  if (!rows.length) return null;
+  if (hidden || !rows.length) return null;
   return (
     <div className="glass p-5 no-print">
       <h3 className="font-semibold">{title}</h3>

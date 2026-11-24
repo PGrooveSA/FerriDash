@@ -55,10 +55,12 @@ export default async function StatementPage({ searchParams }: { searchParams: Pr
         {ctx.isAdmin && acc.overdue > 0.5 && <RemindButton learnerId={learnerId} label="Send reminder" />}
         <PrintButton />
       </PageHeader>
-      {(providers.length && !ctx.isAdmin && acc.total > 0) || online.length ? (
+      {/* Parents and learners don't see the online payments list; it still confirms open payments in the background. */}
+      {!ctx.isAdmin && <OnlinePaymentsList rows={online} autoCheck={openIds} hidden />}
+      {(providers.length && !ctx.isAdmin && acc.total > 0) || (ctx.isAdmin && online.length) ? (
         <div className="space-y-4 mb-6">
           {providers.length > 0 && !ctx.isAdmin && acc.total > 0 && <PayNow learnerId={learnerId} balance={acc.total} dueNow={acc.dueNow} min={Math.min(MIN_ONLINE_PAYMENT, acc.total)} providers={providers} testMode={methods.testMode} />}
-          <OnlinePaymentsList rows={online} autoCheck={openIds} />
+          {ctx.isAdmin && <OnlinePaymentsList rows={online} autoCheck={openIds} />}
         </div>
       ) : null}
       <article className="glass-solid print-area p-6 sm:p-8">
