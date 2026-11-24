@@ -6,7 +6,7 @@ export const metadata = { title: "Sign in" };
 
 // The sign-in page is shared by every school on the platform, so it carries no school branding.
 // One flat, always-light card: learners illustration on the left (generated with Higgsfield,
-// public/brand/login-learners.webp), "Welcome back" and the form on a cream panel on the right.
+// public/brand/login-learners.webp), "Sign In" and the form on a cream panel on the right.
 export default async function LoginPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const ended = (await searchParams).ended === "1";
   // Signed state for this browser's sign-in nonce (set by middleware.ts), checked by the sign-in action.
@@ -25,8 +25,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
 
         <section className="login-form-side px-6 pb-9 pt-7 sm:px-12 lg:py-12 flex flex-col justify-center">
           <div className="w-full max-w-md mx-auto">
-            <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-[#e8590c]">Welcome back</h1>
-            <p className="mt-2 text-base sm:text-lg">Sign in with the login your school gave you.</p>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-center text-[#e8590c]">Sign In</h1>
             {ended && <p className="text-sm mt-4 rounded-xl px-3 py-2 bg-[#f4600c]/10">You have been signed out. If you can&apos;t sign in, contact your school office.</p>}
             <LoginForm state={state} />
             <p className="text-sm sm:text-base text-center mt-6"><b>New to FerriDash?</b> Your school office creates your login.</p>
