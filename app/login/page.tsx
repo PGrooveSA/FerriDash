@@ -1,49 +1,40 @@
 import { cookies } from "next/headers";
 import LoginForm from "./LoginForm";
 import { LOGIN_NONCE_COOKIE, signLoginState } from "@/lib/session";
-import LoginBackdrop from "@/components/LoginBackdrop";
-import BrandLogo from "@/components/BrandLogo";
 
 export const metadata = { title: "Sign in" };
 
 // The sign-in page is shared by every school on the platform, so it carries no school branding.
-// One card over the animated dawn sky: the form on the left, a glass panel with 3D education art
-// (generated with Higgsfield, public/brand/login-art-*.webp) on the right.
+// One flat, always-light card: learners illustration on the left (generated with Higgsfield,
+// public/brand/login-learners.webp), "Welcome back" and the form on a cream panel on the right.
 export default async function LoginPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const ended = (await searchParams).ended === "1";
   // Signed state for this browser's sign-in nonce (set by middleware.ts), checked by the sign-in action.
   const nonce = (await cookies()).get(LOGIN_NONCE_COOKIE)?.value;
   const state = nonce ? await signLoginState(nonce) : "";
   return (
-    <>
-      <LoginBackdrop />
-      <main className="relative z-10 min-h-screen flex flex-col items-center justify-center gap-6 p-4 sm:p-8">
-        <div className="login-shell w-full max-w-5xl grid lg:grid-cols-2 overflow-hidden">
-          <section className="login-form-side px-6 py-9 sm:px-12 sm:py-10 flex flex-col justify-center">
-            <div className="w-full max-w-sm mx-auto">
-              <div className="flex justify-center"><BrandLogo className="w-52" /></div>
-              <h1 className="text-2xl font-semibold tracking-tight text-center mt-7">Sign in</h1>
-              {ended && <p className="text-sm text-center mt-4 rounded-xl px-3 py-2 bg-brand-500/10">You have been signed out. If you can&apos;t sign in, contact your school office.</p>}
-              <LoginForm state={state} />
-              <p className="text-sm text-center muted mt-6">New to FerriDash? <span className="text-[var(--ink)] font-medium">Your school office creates your login.</span></p>
-              <p className="text-xs text-center muted mt-3">Your information is processed in line with POPIA.</p>
-            </div>
-          </section>
+    <main className="login-page min-h-screen flex flex-col items-center justify-center gap-5 p-4 sm:p-8">
+      <div className="login-shell w-full max-w-6xl grid lg:grid-cols-[1.05fr_1fr] overflow-hidden">
+        <section className="login-art-side flex flex-col px-6 pt-7 pb-6 sm:px-10 sm:pt-9 lg:pb-9" aria-label="Learning today, leading tomorrow">
+          <img src="/brand/ferridash-logo-light.svg" alt="FerriDash" width={563} height={132} className="w-40 sm:w-48 h-auto select-none" draggable={false} />
+          <img src="/brand/login-learners.webp" alt="" width={1200} height={1200} className="w-full max-w-[15rem] sm:max-w-[20rem] lg:max-w-[30rem] h-auto self-center mt-2 select-none" draggable={false} />
+          <h2 className="hidden lg:block text-[1.75rem] font-bold tracking-tight text-center mt-auto">
+            Learning today, <span className="text-[#f4600c]">leading tomorrow.</span>
+          </h2>
+        </section>
 
-          {/* Top and bottom clusters of the art frame the headline, so they never cover it. */}
-          <section className="login-art-side hidden lg:flex flex-col justify-between gap-4 px-10 py-9" aria-label="Learning today, leading tomorrow">
-            <img src="/brand/login-art-top.webp" alt="" width={1000} height={679} className="login-art w-[88%] self-center h-auto select-none" draggable={false} />
-            <div className="text-white">
-              <h2 className="text-[2.6rem] font-bold leading-[1.05] tracking-tight drop-shadow-[0_4px_18px_rgb(15_23_42/0.45)]">
-                Learning today,<br /><span className="text-gold-300">leading tomorrow.</span>
-              </h2>
-              <p className="mt-3 text-base text-white/90 drop-shadow-[0_2px_10px_rgb(15_23_42/0.5)] max-w-sm">CAPS results, report cards, attendance and fees in Rand, for South African schools.</p>
-            </div>
-            <img src="/brand/login-art-bottom.webp" alt="" width={1000} height={520} className="login-art login-art-2 w-[78%] self-end h-auto select-none" draggable={false} />
-          </section>
-        </div>
-        <p className="text-xs text-white/70">Copyright © Infinite Q Graphics</p>
-      </main>
-    </>
+        <section className="login-form-side px-6 pb-9 pt-7 sm:px-12 lg:py-12 flex flex-col justify-center">
+          <div className="w-full max-w-md mx-auto">
+            <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-[#e8590c]">Welcome back</h1>
+            <p className="mt-2 text-base sm:text-lg">Sign in with the login your school gave you.</p>
+            {ended && <p className="text-sm mt-4 rounded-xl px-3 py-2 bg-[#f4600c]/10">You have been signed out. If you can&apos;t sign in, contact your school office.</p>}
+            <LoginForm state={state} />
+            <p className="text-sm sm:text-base text-center mt-6"><b>New to FerriDash?</b> Your school office creates your login.</p>
+            <p className="text-xs text-center text-[#475467] mt-3">Your information is processed in line with POPIA.</p>
+          </div>
+        </section>
+      </div>
+      <p className="text-xs text-[#667085]">Copyright © Infinite Q Graphics</p>
+    </main>
   );
 }
