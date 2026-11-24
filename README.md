@@ -6,7 +6,7 @@ assignments, school expenses in **ZAR**, notices, calendar and messaging, with a
 
 Copyright © Infinite Q Graphics
 
-**Live:** https://ferridash.autogration.co.za (Vercel, region Paris, deploys automatically from `main`; also at https://ferri-dash.vercel.app). Android and iOS
+**Live:** https://www.ferridash.co.za (Vercel, region Paris, deploys automatically from `main`; also at https://ferri-dash.vercel.app). Android and iOS
 apps in `mobile/` open the same site.
 
 ## Database: Supabase (PostgreSQL)

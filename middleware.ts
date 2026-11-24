@@ -4,14 +4,25 @@ import { CHILDCARE_ONLY, SCHOOL_ONLY, inSection } from "./lib/org";
 
 const PLATFORM_PATHS = ["/dashboard", "/schools", "/profile", "/appearance", "/api/avatar", "/api/session-end"];
 
+/** FerriDash's old address: every request there gets the "FerriDash has moved" page (app/moved). */
+const OLD_HOSTS = ["ferridash.autogration.co.za"];
+
 export async function middleware(req: NextRequest) {
+  const host = (req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "").split(":")[0].toLowerCase();
+  if (OLD_HOSTS.includes(host)) {
+    const to = req.nextUrl.pathname === "/moved" ? "/" : req.nextUrl.pathname + req.nextUrl.search;
+    const url = req.nextUrl.clone();
+    url.pathname = "/moved";
+    url.search = `?to=${encodeURIComponent(to)}`;
+    return NextResponse.rewrite(url);
+  }
   const session = await verifySession(req.cookies.get(SESSION_COOKIE)?.value);
   const isLogin = req.nextUrl.pathname.startsWith("/login");
   // Public: legal pages and school logos (school branding, not personal data).
   // The app reports its push token before anyone signs in (app/api/device).
   // Online admissions forms (/apply/<code>), PayFast's payment notifications and the daily job (each checks its own caller).
   const p = req.nextUrl.pathname;
-  if (p.startsWith("/legal") || p.startsWith("/api/logo/") || p === "/api/device" || p.startsWith("/apply/") || p === "/api/payfast/notify" || p === "/api/cron/daily") return NextResponse.next();
+  if (p.startsWith("/legal") || p === "/moved" || p.startsWith("/api/logo/") || p === "/api/device" || p.startsWith("/apply/") || p === "/api/payfast/notify" || p === "/api/cron/daily") return NextResponse.next();
   if (!session && !isLogin) return NextResponse.redirect(new URL("/login", req.url));
   if (session && isLogin) return NextResponse.redirect(new URL("/dashboard", req.url));
   // The sign-in page: the browser gets a fresh random value that the form's signed state must match (lib/session.ts).
