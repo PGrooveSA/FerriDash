@@ -1,12 +1,21 @@
 import { get, run } from "./db";
 import type { Ctx } from "./auth";
 
+/** Notices for families: learners and parents both read and are notified of every one of them
+ * (school trips, fee announcements...). "learners" and "parents" are older values kept for existing notices. */
+export const FAMILY_AUDIENCES = ["families", "learners", "parents"];
+export const NOTICE_AUDIENCES = ["all", "staff", ...FAMILY_AUDIENCES];
+
 /** Notice audiences each role may read. */
 export function noticeAudiences(ctx: Ctx): string[] {
-  if (ctx.isAdmin) return ["all", "staff", "learners", "parents"];
+  if (ctx.isAdmin) return NOTICE_AUDIENCES;
   if (ctx.user.role === "teacher") return ["all", "staff"];
-  if (ctx.user.role === "learner") return ["all", "learners"];
-  return ["all", "parents"];
+  return ["all", ...FAMILY_AUDIENCES];
+}
+
+/** How a notice's audience is shown. */
+export function audienceLabel(audience: string): string {
+  return audience === "all" ? "Everyone" : audience === "staff" ? "Staff only" : "Learners and parents";
 }
 
 /** Notices for this user, posted by someone else since they last opened the notice board. */

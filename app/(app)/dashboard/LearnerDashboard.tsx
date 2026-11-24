@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FAMILY_AUDIENCES } from "@/lib/notices";
 import { CalendarCheck, Award, ClipboardList, Clock } from "lucide-react";
 import type { Ctx } from "@/lib/auth";
 import { all, get } from "@/lib/db";
@@ -92,7 +93,7 @@ export default async function LearnerDashboard({ ctx }: { ctx: Ctx }) {
           <Card title={latest ? `${tr("Marks by subject")} · ${tr("Term {n}", { n: latest.term })}` : tr("Marks by subject")}>
             {bars.length ? <HBars data={bars} /> : <Empty title={tr("No published results yet")} />}
           </Card>
-          <Card title={tr("Progress")}>{trend.length ? <Trend data={trend} xKey="term" series={[{ key: "average", name: tr("Average %"), color: "#38bdf8" }]} /> : <Empty title={tr("Nothing here yet")} />}</Card>
+          <Card title={tr("Progress")}>{trend.length ? <Trend data={trend} xKey="term" series={[{ key: "average", name: tr("Average %"), color: "var(--chart-1)" }]} /> : <Empty title={tr("Nothing here yet")} />}</Card>
         </div>
         {assignments.length > 0 && (
           <Card title={tr("Assignments")} action={<Link href="/assignments" className="text-xs muted">{tr("View all")}</Link>}>
@@ -103,7 +104,7 @@ export default async function LearnerDashboard({ ctx }: { ctx: Ctx }) {
       </div>
       <aside className="space-y-6">
         <Card><MiniCalendar tr={tr} schoolId={ctx.schoolId} ctx={ctx} /><AssignmentsDue tr={tr} ctx={ctx} heading={tr("Assignments due")} /><Agenda tr={tr} schoolId={ctx.schoolId} heading={tr("Agenda")} /></Card>
-        <NoticeList tr={tr} schoolId={ctx.schoolId} audiences={["all", "learners"]} card={{ title: tr("Notices") }} />
+        <NoticeList tr={tr} schoolId={ctx.schoolId} audiences={["all", ...FAMILY_AUDIENCES]} card={{ title: tr("Notices") }} />
       </aside>
     </div>
   );

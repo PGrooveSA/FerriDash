@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FAMILY_AUDIENCES } from "@/lib/notices";
 import type { Ctx } from "@/lib/auth";
 import { ownLearnerIds } from "@/lib/auth";
 import { all } from "@/lib/db";
@@ -70,7 +71,7 @@ export default async function ChildcareParentDashboard({ ctx }: { ctx: Ctx }) {
       </div>
       <aside className="space-y-6">
         <Card><MiniCalendar tr={tr} schoolId={ctx.schoolId} ctx={ctx} /><Agenda tr={tr} schoolId={ctx.schoolId} heading={tr("Agenda")} /></Card>
-        <NoticeList tr={tr} schoolId={ctx.schoolId} audiences={["all", "parents"]} card={{ title: tr("Notices") }} />
+        <NoticeList tr={tr} schoolId={ctx.schoolId} audiences={["all", ...FAMILY_AUDIENCES]} card={{ title: tr("Notices") }} />
         <RecentMessages tr={tr} userId={ctx.user.id} card={{ title: tr("Messages") }} />
       </aside>
     </div>

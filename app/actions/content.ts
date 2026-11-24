@@ -5,6 +5,7 @@ import { ADMIN, STAFF, fail, guarded, isDate, limit, num, opt, str, type ActionR
 import { securityEvent } from "@/lib/security-log";
 import { today, addDays } from "@/lib/today";
 import { notify, noticeAudienceUsers } from "@/lib/push";
+import { NOTICE_AUDIENCES } from "@/lib/notices";
 import { randomUUID } from "node:crypto";
 import { fileSize, getFile, removeFile, signedUploadUrl, storageKey } from "@/lib/storage";
 import { MAX_MESSAGE_FILE_BYTES, MESSAGE_FILE_TYPES, attachmentMatches, fileExt } from "@/lib/uploads";
@@ -18,7 +19,7 @@ export async function saveNotice(_: ActionResult, f: FormData) {
     const vals = [str(f, "title"), str(f, "body"), str(f, "audience") || "all", opt(f, "tags")];
     if (!vals[0] || !vals[1]) fail("Title and message are required.");
     if (vals[0]!.length > 200) fail("The title is too long (200 characters at most).");
-    if (!["all", "staff", "learners", "parents"].includes(vals[2]!)) fail("Choose who can see the notice.");
+    if (!NOTICE_AUDIENCES.includes(vals[2]!)) fail("Choose who can see the notice.");
     if (!id) await limit(ctx, "notice", 30, 3600);
     if (id) {
       const n = (await get<{ author_id: number }>("SELECT author_id FROM notices WHERE id = ? AND school_id = ?", id, ctx.schoolId)) ?? fail("Notice not found.");

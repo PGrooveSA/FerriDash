@@ -145,8 +145,8 @@ async function sendIos(devices: { id: number; token: string }[], msg: PushMessag
 
 /** Active users of a school who can read a notice for this audience (see lib/notices.ts). */
 export async function noticeAudienceUsers(schoolId: number, audience: string, exceptUserId: number): Promise<number[]> {
-  const roles = audience === "staff" ? ["school_admin", "teacher"] : audience === "learners" ? ["learner"]
-    : audience === "parents" ? ["parent"] : ["school_admin", "teacher", "learner", "parent"];
+  // Family notices (school trips, fees...) go to every learner and every parent.
+  const roles = audience === "staff" ? ["school_admin", "teacher"] : audience === "all" ? ["school_admin", "teacher", "learner", "parent"] : ["learner", "parent"];
   return (await all<{ id: number }>(`SELECT id FROM users WHERE school_id = ? AND active = 1 AND id <> ? AND role IN (${roles.map(() => "?").join(",")})`,
     schoolId, exceptUserId, ...roles)).map((r) => r.id);
 }

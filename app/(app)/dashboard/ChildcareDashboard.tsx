@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { NOTICE_AUDIENCES } from "@/lib/notices";
 import { Baby, LogIn, Home, AlertTriangle, Wallet, ShieldAlert } from "lucide-react";
 import type { Ctx } from "@/lib/auth";
 import { all, get } from "@/lib/db";
@@ -109,7 +110,7 @@ export default async function ChildcareDashboard({ ctx }: { ctx: Ctx }) {
       <aside className="space-y-6">
         <Card><MiniCalendar tr={tr} schoolId={sid} /><Agenda tr={tr} schoolId={sid} heading={tr("Agenda")} /></Card>
         <RecentMessages tr={tr} userId={ctx.user.id} card={{ title: tr("Messages"), action: <Link href="/messages" className="text-xs muted">{tr("View all")}</Link> }} />
-        <NoticeList tr={tr} schoolId={sid} audiences={["all", "staff", "parents"]} card={{ title: tr("Notice board"), action: <Link href="/notices" className="text-xs muted">{tr("View all")}</Link> }} />
+        <NoticeList tr={tr} schoolId={sid} audiences={NOTICE_AUDIENCES} card={{ title: tr("Notice board"), action: <Link href="/notices" className="text-xs muted">{tr("View all")}</Link> }} />
       </aside>
     </div>
   );

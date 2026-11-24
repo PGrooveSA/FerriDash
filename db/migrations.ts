@@ -424,4 +424,23 @@ export const MIGRATIONS: { version: number; sql: string }[] = [
       ALTER TABLE learners ADD COLUMN IF NOT EXISTS left_on TEXT;
       ALTER TABLE learners ADD COLUMN IF NOT EXISTS left_reason TEXT;`,
   },
+  {
+    version: 17,
+    // Notices for "Learners and parents" (audience 'families'): both are notified and both see them.
+    sql: `
+      DO $$ DECLARE c TEXT; BEGIN
+        FOR c IN SELECT conname FROM pg_constraint WHERE conrelid = 'notices'::regclass AND contype = 'c' AND pg_get_constraintdef(oid) LIKE '%audience%' LOOP
+          EXECUTE format('ALTER TABLE notices DROP CONSTRAINT %I', c);
+        END LOOP;
+      END $$;
+      ALTER TABLE notices ADD CONSTRAINT notices_audience_check CHECK (audience IN ('all','staff','learners','parents','families'));`,
+  },
+  {
+    version: 18,
+    // The themes were replaced by 12 flat themes (lib/themes.ts); each old theme moves to the closest new one.
+    // Navy & Tangerine keeps the id 'classic', so schools on the old default get the new default.
+    sql: `
+      UPDATE schools SET theme = CASE theme WHEN 'standard' THEN 'classic' WHEN 'citrus' THEN 'teal' WHEN 'slate' THEN 'grey-orange' WHEN 'lavender' THEN 'indigo' WHEN 'mono' THEN 'royal' WHEN 'forest' THEN 'evergreen' WHEN 'honey' THEN 'grey-yellow' ELSE theme END WHERE theme IN ('standard','citrus','slate','lavender','mono','forest','honey');
+      UPDATE users SET theme = CASE theme WHEN 'standard' THEN 'classic' WHEN 'citrus' THEN 'teal' WHEN 'slate' THEN 'grey-orange' WHEN 'lavender' THEN 'indigo' WHEN 'mono' THEN 'royal' WHEN 'forest' THEN 'evergreen' WHEN 'honey' THEN 'grey-yellow' ELSE theme END WHERE theme IN ('standard','citrus','slate','lavender','mono','forest','honey');`,
+  },
 ];

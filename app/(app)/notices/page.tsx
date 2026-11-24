@@ -7,7 +7,7 @@ import { Card, PageHeader, Empty, Pager, hrefWith } from "@/components/ui/kit";
 import { FormDialog, DeleteButton, Filters, type Field } from "@/components/ui/forms";
 import { saveNotice, deleteNotice, deleteOldNotices } from "@/app/actions/content";
 import { today, addDays } from "@/lib/today";
-import { noticeAudiences, markNoticesSeen } from "@/lib/notices";
+import { noticeAudiences, markNoticesSeen, audienceLabel, FAMILY_AUDIENCES } from "@/lib/notices";
 import { tFor } from "@/lib/i18n";
 
 export const metadata = { title: "Notice board" };
@@ -38,7 +38,7 @@ export default async function NoticesPage({ searchParams }: { searchParams: Prom
   const fields = (n?: N): Field[] => [
     { name: "title", label: "Title", required: true, defaultValue: n?.title },
     { name: "body", label: "Message", type: "textarea", required: true, defaultValue: n?.body },
-    { name: "audience", label: "Who can see it", type: "select", required: true, options: [{ value: "all", label: "Everyone" }, { value: "staff", label: "Staff only" }, { value: "learners", label: "Learners" }, { value: "parents", label: "Parents" }], defaultValue: n?.audience ?? "all", half: true },
+    { name: "audience", label: "Who can see it", type: "select", required: true, options: [{ value: "all", label: "Everyone" }, { value: "staff", label: "Staff only" }, { value: "families", label: "Learners and parents" }], defaultValue: n ? (FAMILY_AUDIENCES.includes(n.audience) ? "families" : n.audience) : "all", half: true, help: "Learners and parents are both notified on their phones and see it on their notice board." },
     { name: "tags", label: "Tags (comma separated)", defaultValue: n?.tags, placeholder: "School, Academic", half: true },
   ];
 
@@ -59,7 +59,7 @@ export default async function NoticesPage({ searchParams }: { searchParams: Prom
                   <div className="flex flex-wrap items-start gap-3">
                     <div className="flex-1 min-w-[12rem]">
                       <h2 className="text-lg font-semibold">{n.title}</h2>
-                      <p className="text-sm muted">{tr("By {name}", { name: by(n) })}{n.audience !== "all" && <> · <span className="capitalize">{tr(n.audience)}</span></>}</p>
+                      <p className="text-sm muted">{tr("By {name}", { name: by(n) })}{n.audience !== "all" && <> · <span>{tr(audienceLabel(n.audience))}</span></>}</p>
                     </div>
                     <span className="chip chip-slate">{fmtDate(n.created_at)}</span>
                     <span className="chip chip-slate"><Eye className="w-3 h-3" />{n.views.toLocaleString("en-ZA")}</span>

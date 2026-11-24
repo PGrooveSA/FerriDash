@@ -2,7 +2,7 @@
 // Written in the numbered style of a formal school policy: sections 1., clauses 1.1., sub-items 1.1.1.
 // Facts here must match the app: where data is stored (vercel.json region cdg1, Supabase eu-west-3 Paris),
 // the services used (lib/payfast.ts, lib/ozow.ts, lib/push.ts), the cookies (lib/session.ts), sessions
-// (12 hours, 30 days with "Remember me") and the 15-minute lock after repeated wrong passwords.
+// (12 hours) and the 15-minute lock after repeated wrong passwords.
 
 /** Contact details printed in both documents.
  * DEMO VALUES: the officer, phone and address are made-up placeholders until the real ones are supplied. */
@@ -152,7 +152,7 @@ export const DOCS: Record<string, LegalDoc> = {
               "encrypted connections (HTTPS) between your device and FerriDash;",
               "stored data encrypted by our database provider;",
               "passwords stored only as one-way hashes, never as readable text;",
-              "sessions that end after 12 hours, or after 30 days if you choose \"Remember me\";",
+              "sessions that end after 12 hours;",
               "an account lock of 15 minutes after repeated wrong passwords, with limits on repeated attempts;",
               "protection against forged sign-in and form requests;",
               "role-based access and separation between schools;",

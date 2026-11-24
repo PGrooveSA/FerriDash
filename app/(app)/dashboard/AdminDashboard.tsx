@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { NOTICE_AUDIENCES } from "@/lib/notices";
 import { Users, GraduationCap, UsersRound, Wallet, Building2, Award } from "lucide-react";
 import type { Ctx } from "@/lib/auth";
 import { all, get } from "@/lib/db";
@@ -67,20 +68,20 @@ export default async function AdminDashboard({ ctx }: { ctx: Ctx }) {
 
           <div className="grid grid-cols-1 lg:grid-cols-[20rem_1fr] gap-6">
             <Card title={tr("Learners")}>
-              <Donut data={[{ name: tr("Boys"), value: c.boys, color: "#7dd3fc" }, { name: tr("Girls"), value: c.girls, color: "#ffdf55" }]} center={String(c.learners)} sub={tr("enrolled")} />
+              <Donut data={[{ name: tr("Boys"), value: c.boys, color: "var(--chart-1)" }, { name: tr("Girls"), value: c.girls, color: "var(--chart-2)" }]} center={String(c.learners)} sub={tr("enrolled")} />
               <div className="grid grid-cols-2 mt-4 text-center">
-                <div><span className="inline-block w-3 h-3 rounded-full bg-sky-300" /><p className="text-xl font-bold">{c.boys}</p><p className="text-xs muted">Boys ({c.learners ? Math.round((c.boys / c.learners) * 100) : 0}%)</p></div>
-                <div><span className="inline-block w-3 h-3 rounded-full bg-butter-300" /><p className="text-xl font-bold">{c.girls}</p><p className="text-xs muted">Girls ({c.learners ? Math.round((c.girls / c.learners) * 100) : 0}%)</p></div>
+                <div><span className="inline-block w-3 h-3 rounded-full" style={{ background: "var(--chart-1)" }} /><p className="text-xl font-bold">{c.boys}</p><p className="text-xs muted">Boys ({c.learners ? Math.round((c.boys / c.learners) * 100) : 0}%)</p></div>
+                <div><span className="inline-block w-3 h-3 rounded-full" style={{ background: "var(--chart-2)" }} /><p className="text-xl font-bold">{c.girls}</p><p className="text-xs muted">Girls ({c.learners ? Math.round((c.girls / c.learners) * 100) : 0}%)</p></div>
               </div>
             </Card>
             <Card title={tr("Attendance")} action={<Link href="/attendance" className="text-xs muted hover:text-[var(--ink)]">{tr("View register")}</Link>}>
-              <Bars data={att} xKey="day" yMax={100} unit="%" series={[{ key: "present", name: tr("Present"), color: "#10b981" }, { key: "absent", name: tr("Absent"), color: "#ffa86d" }]} />
+              <Bars data={att} xKey="day" yMax={100} unit="%" series={[{ key: "present", name: tr("Present"), color: "var(--chart-1)" }, { key: "absent", name: tr("Absent"), color: "var(--chart-2)" }]} />
             </Card>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_20rem] gap-6">
             <Card title={tr("Expenses")} action={<Link href="/finance/expenses" className="text-xs muted hover:text-[var(--ink)]">{tr("View all")}</Link>}>
-              <AreaTrend money data={money} xKey="name" series={[{ key: "expense", name: tr("Expenses"), color: "#fcca1c" }]} />
+              <AreaTrend money data={money} xKey="name" series={[{ key: "expense", name: tr("Expenses"), color: "var(--chart-2)" }]} />
             </Card>
             <div className="grid gap-6">
               <Link href="/results/moderation" className="glass p-5 block hover:scale-[1.01] transition-transform">
@@ -97,7 +98,7 @@ export default async function AdminDashboard({ ctx }: { ctx: Ctx }) {
           </div>
 
           <Card title={tr("Academic performance by class · Term {n}", { n: term })} action={<Link href="/results/analysis" className="text-xs muted hover:text-[var(--ink)]">{tr("Analysis")}</Link>}>
-            <Bars data={perf} xKey="name" yMax={100} unit="%" series={[{ key: "average", name: tr("Class average"), color: "#38bdf8" }, { key: "pass", name: tr("Learners averaging 50%+"), color: "#10b981" }]} />
+            <Bars data={perf} xKey="name" yMax={100} unit="%" series={[{ key: "average", name: tr("Class average"), color: "var(--chart-1)" }, { key: "pass", name: tr("Learners averaging 50%+"), color: "var(--chart-3)" }]} />
             <p className="text-xs muted mt-2">{tr("Averages use CAPS phase weighting: School-Based Assessment blended with examinations.")}</p>
           </Card>
         </div>
@@ -105,7 +106,7 @@ export default async function AdminDashboard({ ctx }: { ctx: Ctx }) {
         <aside className="space-y-6">
           <Card><MiniCalendar tr={tr} schoolId={sid} /><Agenda tr={tr} schoolId={sid} heading={tr("Agenda")} /></Card>
           <RecentMessages tr={tr} userId={ctx.user.id} card={{ title: tr("Messages"), action: <Link href="/messages" className="text-xs muted">{tr("View all")}</Link> }} />
-          <NoticeList tr={tr} schoolId={sid} audiences={["all", "staff", "learners", "parents"]} card={{ title: tr("Notice board"), action: <Link href="/notices" className="text-xs muted">{tr("View all")}</Link> }} />
+          <NoticeList tr={tr} schoolId={sid} audiences={NOTICE_AUDIENCES} card={{ title: tr("Notice board"), action: <Link href="/notices" className="text-xs muted">{tr("View all")}</Link> }} />
         </aside>
       </div>
     </div>

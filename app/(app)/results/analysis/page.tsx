@@ -52,7 +52,7 @@ export default async function AnalysisPage({ searchParams }: { searchParams: Pro
       </div>
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
         <Card title="Subject averages & pass rates">
-          <Bars data={stats.map((s) => ({ name: s.code ?? s.name.slice(0, 6), average: s.average, pass: s.passRate }))} xKey="name" yMax={100} unit="%" series={[{ key: "average", name: "Average", color: "#ffdf55" }, { key: "pass", name: "Pass rate", color: "#ffa86d" }]} />
+          <Bars data={stats.map((s) => ({ name: s.code ?? s.name.slice(0, 6), average: s.average, pass: s.passRate }))} xKey="name" yMax={100} unit="%" series={[{ key: "average", name: "Average", color: "var(--chart-1)" }, { key: "pass", name: "Pass rate", color: "var(--chart-2)" }]} />
         </Card>
         <Card title="CAPS level distribution">
           <Bars data={levelData} xKey="name" series={CAPS_LEVELS.slice().reverse().map((l, i) => ({ key: `L${l.level}`, name: `Level ${l.level}`, color: LEVEL_COLORS[i] }))} />

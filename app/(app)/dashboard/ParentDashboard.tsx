@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FAMILY_AUDIENCES } from "@/lib/notices";
 import type { Ctx } from "@/lib/auth";
 import { ownLearnerIds } from "@/lib/auth";
 import { zar, fullName, avatarUrl, bannerUrl, fmtDate } from "@/lib/format";
@@ -82,7 +83,7 @@ export default async function ParentDashboard({ ctx }: { ctx: Ctx }) {
       </div>
       <aside className="space-y-6">
         <Card><MiniCalendar tr={tr} schoolId={ctx.schoolId} ctx={ctx} /><AssignmentsDue tr={tr} ctx={ctx} heading={tr("Assignments due")} /><Agenda tr={tr} schoolId={ctx.schoolId} heading={tr("Agenda")} /></Card>
-        <NoticeList tr={tr} schoolId={ctx.schoolId} audiences={["all", "parents"]} card={{ title: tr("Notices") }} />
+        <NoticeList tr={tr} schoolId={ctx.schoolId} audiences={["all", ...FAMILY_AUDIENCES]} card={{ title: tr("Notices") }} />
         <RecentMessages tr={tr} userId={ctx.user.id} card={{ title: tr("Messages") }} />
       </aside>
     </div>

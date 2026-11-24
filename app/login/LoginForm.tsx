@@ -27,11 +27,8 @@ export default function LoginForm({ state: loginState }: { state: string }) {
           </button>
         </div>
       </div>
-      <div className="flex items-center justify-between gap-3 text-sm sm:text-base pt-1">
-        <label className="flex items-center gap-2 cursor-pointer select-none">
-          <input type="checkbox" name="remember" value="1" className="w-5 h-5 rounded accent-[#f4600c]" />
-          Remember me
-        </label>
+      <div className="flex items-center justify-end gap-3 text-sm sm:text-base pt-1">
+        
         <button type="button" onClick={() => setForgot((f) => !f)} className="text-[#e8590c] underline underline-offset-2 font-semibold hover:text-[#c2410c]">Forgot password?</button>
       </div>
       {forgot && (

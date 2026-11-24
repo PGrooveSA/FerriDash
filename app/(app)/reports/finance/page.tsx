@@ -45,7 +45,7 @@ export default async function FinanceReport() {
         <>
           <div className="grid grid-cols-1 xl:grid-cols-[1fr_22rem] gap-6 mb-6">
             <Card title="Spending by month" className="print-area">
-              <Bars data={byMonth} xKey="name" series={[{ key: "spent", name: "Spent (R)", color: "#ffa86d" }]} />
+              <Bars data={byMonth} xKey="name" series={[{ key: "spent", name: "Spent (R)", color: "var(--chart-2)" }]} />
             </Card>
             <Card title="Expenses by category">
               <Donut data={byCategory.map((e, i) => ({ name: e.category, value: Math.round(e.total), color: COLORS[i % COLORS.length] }))} center={zar(spent, true)} sub="spent" />

@@ -70,7 +70,7 @@ export default async function TeacherDashboard({ ctx }: { ctx: Ctx }) {
         </div>
 
         <Card title={tr("My classes · Term {n} averages", { n: prev })}>
-          <Bars data={perf} xKey="name" yMax={100} unit="%" series={[{ key: "average", name: tr("Average"), color: "#38bdf8" }]} />
+          <Bars data={perf} xKey="name" yMax={100} unit="%" series={[{ key: "average", name: tr("Average"), color: "var(--chart-1)" }]} />
         </Card>
 
         <Card title={tr("My mark sheets")} action={<span className="text-xs muted">{tr("Term {n}", { n: term })}</span>}>

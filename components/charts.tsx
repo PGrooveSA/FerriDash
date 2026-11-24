@@ -55,7 +55,7 @@ export function HBars({ data, height }: { data: { name: string; value: number | 
           <YAxis type="category" dataKey="name" {...axis} width={150} />
           <Tooltip {...tooltipStyle} formatter={(v) => `${v}%`} />
           <Bar isAnimationActive={false} dataKey="value" name="Mark" radius={[0, 10, 10, 0]} maxBarSize={22}>
-            {data.map((d, i) => <Cell key={i} fill={d.color ?? "#ffdf55"} />)}
+            {data.map((d, i) => <Cell key={i} fill={d.color ?? "var(--chart-2)"} />)}
           </Bar>
         </BarChart>
       </ResponsiveContainer>
@@ -69,20 +69,12 @@ export function AreaTrend({ data, xKey, series, height = 260, money = false }: {
     <div style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data}>
-          <defs>
-            {series.map((s) => (
-              <linearGradient key={s.key} id={`g-${s.key}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={s.color} stopOpacity={0.45} />
-                <stop offset="100%" stopColor={s.color} stopOpacity={0} />
-              </linearGradient>
-            ))}
-          </defs>
           <CartesianGrid strokeDasharray="3 6" vertical={false} stroke="var(--line)" />
           <XAxis dataKey={xKey} {...axis} />
           <YAxis {...axis} width={48} tickFormatter={fmt} />
           <Tooltip {...tooltipStyle} formatter={(v) => (money ? new Intl.NumberFormat("en-ZA", { style: "currency", currency: "ZAR", maximumFractionDigits: 0 }).format(Number(v)) : String(v))} />
           {series.length > 1 && <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} formatter={legendText} />}
-          {series.map((s) => <Area isAnimationActive={false} key={s.key} type="monotone" dataKey={s.key} name={s.name} stroke={s.color} strokeWidth={3} fill={`url(#g-${s.key})`} dot={false} activeDot={{ r: 6 }} />)}
+          {series.map((s) => <Area isAnimationActive={false} key={s.key} type="monotone" dataKey={s.key} name={s.name} stroke={s.color} strokeWidth={3} fill={s.color} fillOpacity={0.12} dot={false} activeDot={{ r: 6 }} />)}
         </AreaChart>
       </ResponsiveContainer>
     </div>
