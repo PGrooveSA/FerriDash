@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import Link from "next/link";
 import LoginForm from "./LoginForm";
 import { LOGIN_NONCE_COOKIE, signLoginState } from "@/lib/session";
 
@@ -33,7 +34,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           </div>
         </section>
       </div>
-      <p className="text-xs text-[#667085]">Copyright © Infinite Q Graphics</p>
+      <p className="text-xs sm:text-sm text-center text-[#475467]">Read our <Link href="/legal/privacy" className="underline underline-offset-2 font-semibold text-[#1d2b51]">Privacy Policy</Link> and <Link href="/legal/terms" className="underline underline-offset-2 font-semibold text-[#1d2b51]">Terms &amp; Conditions</Link> to learn how we handle your data.</p>
     </main>
   );
 }

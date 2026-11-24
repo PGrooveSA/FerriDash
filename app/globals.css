@@ -487,6 +487,33 @@ html.skin-fade, html.skin-fade *, html.skin-fade *::before, html.skin-fade *::af
 .login-submit:disabled { opacity: 0.7; transform: none; }
 .login-submit:focus-visible { outline: 2px solid #1d2b51; outline-offset: 3px; }
 
+/* ---------- Legal documents (/legal/privacy, /legal/terms): a plain printed policy ---------- */
+.legal-doc {
+  position: relative; z-index: 1; min-height: 100vh; background: #fff; color: #000; color-scheme: light;
+  font-family: "Gill Sans MT", "Gill Sans", "Gill Sans Nova", Calibri, "Segoe UI", sans-serif;
+  font-size: 15px; line-height: 1.5;
+}
+.legal-page { max-width: 52rem; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+.legal-nav { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.85rem; }
+.legal-doc a { color: #000; text-decoration: underline; text-underline-offset: 2px; }
+.legal-logo { display: block; width: 11rem; height: auto; margin: 2rem auto 1.5rem; }
+.legal-doc h1 { font-size: 1.6rem; font-weight: 700; text-align: center; }
+.legal-ref { text-align: center; margin-top: 0.15rem; }
+.legal-intro { margin-top: 1.5rem; text-align: justify; }
+.legal-doc h2 { display: flex; gap: 0.6rem; font-size: 1rem; font-weight: 700; margin: 1.75rem 0 0.6rem; }
+.legal-doc h2.legal-toc-title { display: block; font-size: 1.05rem; margin-top: 2rem; }
+.legal-toc { list-style: none; padding: 0; margin: 0; }
+.legal-toc a { display: flex; gap: 0.6rem; padding: 0.1rem 0; text-decoration: none; }
+.legal-toc a:hover { text-decoration: underline; }
+.legal-toc span:first-child, .legal-doc h2 span { min-width: 1.6rem; }
+.legal-clause, .legal-sub { display: flex; gap: 0.6rem; margin-top: 0.35rem; text-align: justify; }
+.legal-clause span:first-child { min-width: 2.4rem; flex-shrink: 0; }
+.legal-sub { padding-left: 3rem; }
+.legal-sub span:first-child { min-width: 3rem; flex-shrink: 0; }
+.legal-foot { margin-top: 3rem; font-size: 0.8rem; text-align: center; }
+@media (max-width: 640px) { .legal-sub { padding-left: 1.25rem; } .legal-clause, .legal-sub, .legal-intro { text-align: left; } }
+@media print { .legal-nav { display: none; } .legal-page { padding-top: 0; } }
+
 /* ---------- Printed report cards: tabulated, black and white ---------- */
 @media print {
   .print-area { color: #000 !important; }
