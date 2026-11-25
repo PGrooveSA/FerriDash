@@ -3,7 +3,8 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-sans: var(--font-lato), "Segoe UI", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-sans: var(--font-sora), "Segoe UI", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-serif: var(--font-source-serif), Georgia, "Times New Roman", serif;
   /* Tangerine - primary */
   --color-brand-50: #fff5ed;
   --color-brand-100: #ffe8d4;
@@ -80,6 +81,8 @@
 }
 
 html, body { min-height: 100%; }
+/* Headings and the legal pages' text in Source Serif 4; menus, buttons, forms, tables and numbers in Sora. */
+:where(h1, h2, h3, .legal-page p, .legal-page li) { font-family: var(--font-serif); letter-spacing: -0.01em; }
 body {
   background: var(--bg);
   color: var(--ink);

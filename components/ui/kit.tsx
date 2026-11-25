@@ -42,7 +42,8 @@ export function StatCard({ label, value, icon: Icon, tone = "sky", delta, hint }
           </span>
         )}
       </div>
-      <p className="text-3xl font-bold tracking-tight mt-4">{value}</p>
+      {/* Long values (money) a size smaller so they fit the card in Sora, which is a wide font. */}
+      <p className={`${typeof value === "string" && value.length > 8 ? "text-2xl" : "text-3xl"} font-bold tracking-tight mt-4 whitespace-nowrap`}>{value}</p>
       <p className="text-sm font-medium mt-1">{label}</p>
       {hint && <p className="text-xs muted mt-0.5">{hint}</p>}
     </div>

@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Lato } from "next/font/google";
+import { Sora, Source_Serif_4 } from "next/font/google";
 import DeviceLink from "@/components/DeviceLink";
 
-// FerriDash uses Lato everywhere (every theme), self-hosted by Next. Lato has no 500/600 weights:
-// browsers show font-medium as regular and font-semibold as bold.
-const lato = Lato({ subsets: ["latin"], display: "swap", weight: ["300", "400", "700", "900"], variable: "--font-lato" });
-const fontVars = lato.variable;
+// FerriDash fonts (every theme), self-hosted by Next: Sora for the interface (menus, buttons, forms, tables, numbers);
+// Source Serif 4 for headings and the legal pages' text. Both are variable fonts.
+const sora = Sora({ subsets: ["latin"], display: "swap", variable: "--font-sora" });
+const serif = Source_Serif_4({ subsets: ["latin"], display: "swap", style: ["normal", "italic"], variable: "--font-source-serif" });
+const fontVars = `${sora.variable} ${serif.variable}`;
 
 export const metadata: Metadata = {
   title: { default: "FerriDash", template: "%s · FerriDash" },
