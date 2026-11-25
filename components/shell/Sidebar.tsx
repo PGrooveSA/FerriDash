@@ -181,7 +181,7 @@ export default function Sidebar({ role, school, features = [], childcare = false
           {other.filter((m) => m.roles.includes(role)).map(renderItem)}
           <li>
             <form action={logout}>
-              <button className="flex w-full items-center gap-3 rounded-2xl px-4 py-2.5 text-base font-normal muted hover:bg-rose-500/10 hover:text-rose-600">
+              <button className="flex w-full items-center gap-3 rounded-2xl px-4 py-2.5 text-base font-normal text-[var(--ink)] hover:bg-rose-500/10 hover:text-rose-600">
                 <LogOut className="w-[1.15rem] h-[1.15rem]" /> {t("Log out")}
               </button>
             </form>
